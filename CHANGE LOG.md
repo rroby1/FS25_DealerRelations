@@ -58,3 +58,40 @@
 - All discovered categories are classified.
 - Demo candidate list builds successfully.
 - Relationship persistence still loads correctly.
+
+## Version 0.5.0
+
+### Added
+
+* Brand classification system (`BRANDS` table).
+* Equipment XML reader (`readEquipmentXml()`).
+* Brand discovery foundation for future demo filtering.
+* Explicit brand classification rules:
+
+  * `true` = eligible
+  * `false` = excluded
+  * `nil` = unclassified (excluded by default)
+
+### Changed
+
+* Refactored equipment XML access into a reusable helper function.
+* Continued use of explicit classification tables for deterministic filtering behavior.
+
+### Removed
+
+* Temporary XML loading diagnostic code.
+* Temporary brand discovery export system.
+* Temporary brand discovery save callback.
+
+### Verified
+
+* Store items discovered: 1319
+* Demo candidates discovered: 559
+* Equipment XML loading verified on all eligible candidates.
+* Save/load persistence functioning correctly.
+* No unclassified category warnings.
+* No XML loading failures.
+
+### Notes
+
+This release establishes the foundation for brand-based equipment filtering while maintaining a clean and stable codebase. Brand filtering logic and demo candidate selection will be implemented in future releases.

@@ -107,13 +107,13 @@ DealerRelations.Equipment.CATEGORIES = {
     SPRAYERS = true,
 
     -- Fillables
-    FILLABLETANKS = true,
+    FILLABLETANKS = false,
     IBC = false,
     PALLETS = false,
     PALLETSILAGE = false,
     SEEDTANKS = true,
     SLURRYTANKS = true,
-    WATERTANKS = true,
+    WATERTANKS = false,
 
     -- Forage
     FORAGEHARVESTERS = true,
@@ -240,6 +240,44 @@ function DealerRelations.Equipment:isDemoCandidate(item)
 end
 
 -------------------------------------------------------------------------------
+-- Reads equipment data directly from a vehicle XML file.
+--
+-- Used by Dealer Relations to access XML attributes that are not available
+-- from store manager data alone.
+--
+-- Currently reads:
+--   - Brand
+--
+-- Additional attributes may be added in future versions for equipment cache
+-- generation and demo selection logic.
+--
+-- @param xmlFilename string Path to the equipment XML file.
+-- @return table|nil Equipment data table when successful, otherwise nil.
+----------------------------------------------------------------------------
+
+function DealerRelations.Equipment:readEquipmentXml(xmlFilename)
+    if xmlFilename == nil or xmlFilename == "" then
+        DealerRelations.warning("Cannot read equipment XML: xmlFilename is missing")
+        return nil
+    end
+
+    local xmlFile = loadXMLFile("dealerRelationsEquipmentXML", xmlFilename)
+
+    if xmlFile == nil or xmlFile == 0 then
+        DealerRelations.warning("Failed to load equipment XML: " .. tostring(xmlFilename))
+        return nil
+    end
+
+    local data = {
+        brand = getXMLString(xmlFile, "vehicle.storeData.brand")
+    }
+
+    delete(xmlFile)
+
+    return data
+end
+
+-------------------------------------------------------------------------------
 -- Discovers eligible Dealer Relations demo equipment from the FS25 store.
 --
 -- Builds an in-memory list only. This does not save equipment data and does
@@ -275,3 +313,161 @@ function DealerRelations.Equipment:discover()
     DealerRelations.log("Store items discovered: " .. tostring(storeItemCount))
     DealerRelations.log("Demo candidates discovered: " .. tostring(candidateCount))
 end
+
+-------------------------------------------------------------------------------
+-- Brand Classification
+--
+-- Determines whether a brand is eligible for Dealer Relations demo consideration.
+--
+-- true  = Eligible
+-- false = Excluded
+--
+-- Brands not present in this table are considered unclassified and will be
+-- excluded by default.
+-------------------------------------------------------------------------------
+
+DealerRelations.Equipment.BRANDS = {
+    AGCO = true,
+    AGIBATCO = true,
+    AGISTORM = true,
+    AGIWESTFIELD = true,
+    AGRIFAC = true,
+    AGRIO = true,
+    AGRISEM = true,
+    AGROMASZ = true,
+    ALBUTT = true,
+    ALPEGO = true,
+    AMAZONE = true,
+    AMITYTECH = true,
+    ANDERSONGROUP = true,
+    ANNABURGER = true,
+    ANTONIOCARRARO = true,
+    ARCUSIN = true,
+    BEDNAR = true,
+    BERGMANN = true,
+    BERTHOUD = true,
+    BOMECH = true,
+    BRANDT = true,
+    BRANTNER = true,
+    BREDAL = true,
+    BRESSELUNDLADE = true,
+    CAPELLO = true,
+    CASEIH = true,
+    CHALLENGER = true,
+    CLAAS = true,
+    CONVEYALL = true,
+    DALBO = true,
+    DAMCON = true,
+    DEMCO = true,
+    DEUTZFAHR = true,
+    DEWULF = true,
+    EINBOECK = true,
+    ELHO = true,
+    ELMERSMFG = true,
+    ERO = true,
+    FARESIN = true,
+    FARMAX = true,
+    FARMET = true,
+    FARMTECH = true,
+    FENDT = true,
+    FIAT = true,
+    FLIEGL = true,
+    FUHRMANN = true,
+    GERINGHOFF = true,
+    GESSNER = true,
+    GOEWEIL = true,
+    GORENC = true,
+    GREATPLAINS = true,
+    GREGOIRE = true,
+    GRIMME = true,
+    HARDI = true,
+    HAUER = true,
+    HAWE = true,
+    HEIZOMAT = true,
+    HOLMER = true,
+    HORSCH = true,
+    IMPEX = true,
+    ISEKI = true,
+    JCB = true,
+    JENZ = true,
+    JMMANUFACTURING = true,
+    JOHNDEERE = true,
+    JUNGHEINRICH = true,
+    KAWECO = true,
+    KEMPER = true,
+    KESLA = true,
+    KINZE = true,
+    KNOCHE = true,
+    KOCKERLING = true,
+    KOLLER = true,
+    KOMATSU = true,
+    KOTTE = true,
+    KRAMER = true,
+    KRAMPE = true,
+    KROEGER = true,
+    KRONE = true,
+    KUBOTA = true,
+    KUHN = true,
+    KVERNELAND = true,
+    LACOTEC = true,
+    LANDINI = true,
+    LEMKEN = true,
+    LINDNER = true,
+    LIZARD = true,
+    LODEKING = true,
+    MACDON = true,
+    MAGSI = true,
+    MANITOU = true,
+    MASSEYFERGUSON = true,
+    MCCORMACK = true,
+    MCCORMICK = true,
+    MERIDIAN = true,
+    MERLO = true,
+    MZURI = true,
+    NARDI = true,
+    NEWHOLLAND = true,
+    NOVAG = true,
+    OXBO = true,
+    PALADIN = true,
+    PFANZELT = true,
+    PITTSTRAILERS = true,
+    POETTINGER = true,
+    PONSSE = true,
+    PRINOTH = true,
+    PROVITIS = true,
+    QUICKE = true,
+    REITER = true,
+    RIEDLER = true,
+    RIGITRAC = true,
+    RISUTEC = true,
+    ROPA = true,
+    ROTTNE = true,
+    RUDOLPH = true,
+    SALEK = true,
+    SAMASZ = true,
+    SAME = true,
+    SAMSONAGRO = true,
+    SCHAEFFER = true,
+    SCHUITEMAKER = true,
+    SCHWARZMUELLER = true,
+    SENNEBOGEN = true,
+    SILOKING = true,
+    SIP = true,
+    STEYR = true,
+    STREUMASTER = true,
+    SUMMERSMFG = true,
+    TAJFUN = true,
+    TENWINKEL = true,
+    TMCCANCELA = true,
+    TREFFLER = true,
+    TT = true,
+    UNIA = true,
+    VAEDERSTAD = true,
+    VALTRA = true,
+    VERMEER = true,
+    VOLVO = true,
+    WALKABOUT = true,
+    WESTTECH = true,
+    ZETOR = true,
+    ZUNHAMMER = true
+}

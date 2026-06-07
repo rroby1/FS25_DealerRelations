@@ -43,6 +43,7 @@ function DealerRelations.Persistence:save(savegameDirectory)
     delete(xmlFile)
 
     DealerRelations.log("Saved dealerRelations.xml")
+		
 end
 
 -------------------------------------------------------------------------------
@@ -95,4 +96,5 @@ function DealerRelations.Persistence:load(savegameDirectory)
         ", relationship level: " ..
         tostring(DealerRelations.Data:getRelationshipLevel())
     )
+
 end
