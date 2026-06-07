@@ -15,7 +15,7 @@
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.3.0"
+DealerRelations.version = "0.4.0"
 
 -------------------------------------------------------------------------------
 -- Load supporting modules.
@@ -26,6 +26,7 @@ DealerRelations.version = "0.3.0"
 source(g_currentModDirectory .. "scripts/DealerRelationsDebug.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsData.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsPersistence.lua")
+source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")
 
 -------------------------------------------------------------------------------
 -- Called by the game when a map is loaded.
@@ -51,6 +52,8 @@ function DealerRelations:loadMap()
     if g_currentMission ~= nil and g_currentMission.missionInfo ~= nil then
         DealerRelations.Persistence:load(g_currentMission.missionInfo.savegameDirectory)
     end
+	
+		DealerRelations.Equipment:discover()
 end
 
 -------------------------------------------------------------------------------
@@ -69,6 +72,7 @@ function DealerRelations.saveSavegame()
     local savegameDirectory = g_currentMission.missionInfo.savegameDirectory
 
     DealerRelations.Persistence:save(savegameDirectory)
+		
 end
 
 -------------------------------------------------------------------------------

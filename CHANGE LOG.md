@@ -45,3 +45,16 @@
 - Confidence survives save/load.
 - Relationship level restores correctly from persisted confidence.
 
+## 0.4.0
+
+### Added
+- Equipment discovery module.
+- In-memory demo candidate list.
+- Equipment category classification table.
+- Warning logs for unclassified equipment categories.
+
+### Verified
+- FS25 store items are readable at load.
+- All discovered categories are classified.
+- Demo candidate list builds successfully.
+- Relationship persistence still loads correctly.
