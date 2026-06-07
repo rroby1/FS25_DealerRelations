@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<modDesc descVersion="94">
+    <author>rroby</author>
+    <version>0.1.0</version>
+    <iconFilename>icon.dds</iconFilename>
+	<multiplayer supported="false"/>
+    
+    <title>
+            <en>Dealer Relations</en>
+    </title>
+    <description>
+	    <en><![CDATA[
+		Dealer Relations is a Farming Simulator 25 mod designed to make equipment dealerships feel like active participants in the farming community rather than simple equipment vending machines.
+
+		The mod introduces dealer relationships, equipment demonstrations, equipment recommendations, and dealer-driven opportunities that are influenced by the player's farming operation and equipment history.
+
+		The goal is to create a more immersive and believable farming experience where dealers respond to what is happening on the farm and build an ongoing relationship with the player over time.
+		]]>
+		</en>
+	</description>
+	
+	<extraSourceFiles>
+		<sourceFile filename="scripts/DealerRelations.lua"/>
+	</extraSourceFiles>
+
+</modDesc>
