@@ -15,7 +15,7 @@
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.5.0"
+DealerRelations.version = "0.6.0"
 
 -------------------------------------------------------------------------------
 -- Load supporting modules.
