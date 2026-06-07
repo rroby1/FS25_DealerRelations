@@ -14,3 +14,19 @@
 - Data module defines defaults and runtime access only.
 - Persistence and gameplay logic are not implemented yet.
 
+## 0.2.0
+
+### Changed
+- Relationship level is now derived from confidence.
+- Relationship level is no longer stored directly.
+
+### Added
+- Confidence-based relationship level calculation.
+- Validation testing for confidence thresholds.
+- Validation testing for confidence guardrails.
+
+### Benefits
+- Prevents confidence and relationship level from becoming inconsistent.
+- Relationship threshold changes automatically apply to existing savegames.
+- Reduces persisted data requirements.
+

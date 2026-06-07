@@ -14,7 +14,7 @@
 
 DealerRelations = DealerRelations or {}
 
-DealerRelations.version = "0.1.0"
+DealerRelations.version = "0.2.0"
 
 -- Load supporting modules.
 -- These files are loaded here rather than in modDesc.xml
@@ -27,3 +27,4 @@ function DealerRelations:loadMap()
 end
 
 addModEventListener(DealerRelations)
+
