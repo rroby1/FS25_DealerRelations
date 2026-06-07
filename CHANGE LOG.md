@@ -30,3 +30,18 @@
 - Relationship threshold changes automatically apply to existing savegames.
 - Reduces persisted data requirements.
 
+## 0.3.0
+
+### Added
+- DealerRelationsPersistence module.
+- XML save/load support for confidence values.
+
+### Changed
+- Relationship level is derived from confidence and is no longer persisted.
+- Dealer Relations data is loaded during map initialization.
+- Dealer Relations data is saved during the game save process.
+
+### Verified
+- Confidence survives save/load.
+- Relationship level restores correctly from persisted confidence.
+
