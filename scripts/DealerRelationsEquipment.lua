@@ -293,6 +293,36 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename)
 		data.powerMax = displayNeededMaxPower or displayNeededPower
 	end
 
+	if data.powerRole == "SELF_PROPELLED" then
+		local motorIndex = 0
+		local motorHp = getXMLInt(
+			xmlFile,
+			string.format(
+				"vehicle.motorized.motorConfigurations.motorConfiguration(%d)#hp",
+				motorIndex
+			)
+		)
+
+		while motorHp ~= nil do
+			if data.powerMin == nil or motorHp < data.powerMin then
+				data.powerMin = motorHp
+			end
+
+			if data.powerMax == nil or motorHp > data.powerMax then
+				data.powerMax = motorHp
+			end
+
+			motorIndex = motorIndex + 1
+			motorHp = getXMLInt(
+				xmlFile,
+				string.format(
+					"vehicle.motorized.motorConfigurations.motorConfiguration(%d)#hp",
+					motorIndex
+				)
+			)
+		end
+	end
+
     delete(xmlFile)
 
     return data
