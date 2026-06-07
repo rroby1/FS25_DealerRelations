@@ -268,9 +268,30 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename)
         return nil
     end
 
+	local displayPower = getXMLInt(xmlFile, "vehicle.storeData.specs.power")
+	local displayNeededPower = getXMLInt(xmlFile, "vehicle.storeData.specs.neededPower")
+	local displayNeededMaxPower = getXMLInt(xmlFile, "vehicle.storeData.specs.neededPower#maxPower")
+
     local data = {
-        brand = getXMLString(xmlFile, "vehicle.storeData.brand")
-    }
+		brand = getXMLString(xmlFile, "vehicle.storeData.brand"),
+		powerRole = "NONE",
+		displayPower = nil,
+		powerMin = nil,
+		powerMax = nil
+	}
+
+	if displayPower ~= nil then
+		data.powerRole = "SELF_PROPELLED"
+		data.displayPower = displayPower
+		data.powerMin = displayPower
+		data.powerMax = displayPower
+	elseif displayNeededPower ~= nil then
+		data.powerRole = "IMPLEMENT"
+		data.displayPower = displayNeededPower
+		data.powerMin = displayNeededPower
+		data.powerMax = displayNeededPower
+		data.powerMax = displayNeededMaxPower or displayNeededPower
+	end
 
     delete(xmlFile)
 
