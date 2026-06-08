@@ -95,3 +95,51 @@
 ### Notes
 
 This release establishes the foundation for brand-based equipment filtering while maintaining a clean and stable codebase. Brand filtering logic and demo candidate selection will be implemented in future releases.
+
+## v0.6.0
+### Added
+- Equipment discovery system.
+- Category classification system.
+- Brand discovery system.
+- XML attribute discovery system.
+- Power attribute discovery system.
+- Equipment record generation from store items.
+
+### Equipment Records
+Added support for storing:
+- Name
+- Brand
+- Category
+- Price
+- XML filename
+- XML brand
+- Power role
+- Display power
+- Minimum power
+- Maximum power
+
+### Discovery Pipeline
+Store Data
+→ Category Filter
+→ XML Read
+→ Brand Discovery
+→ Power Discovery
+→ Equipment Record
+
+### Discovery Results
+- Store Items Scanned: 1319
+- Demo Candidates Identified: 559
+
+### Verified Power Roles
+- SELF_PROPELLED
+- IMPLEMENT
+- NONE
+
+### Internal Changes
+- Refactored equipment discovery into a dedicated module.
+- Established equipment record structure for future demo selection.
+- Added XML parsing framework for equipment metadata extraction.
+- Added logging for discovery and attribute analysis.
+
+### Notes
+- Establishes the equipment data foundation required for future demo candidate selection and dealer offer systems.
