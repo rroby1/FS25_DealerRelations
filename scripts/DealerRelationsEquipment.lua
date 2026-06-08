@@ -289,7 +289,6 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename)
 		data.powerRole = "IMPLEMENT"
 		data.displayPower = displayNeededPower
 		data.powerMin = displayNeededPower
-		data.powerMax = displayNeededPower
 		data.powerMax = displayNeededMaxPower or displayNeededPower
 	end
 
@@ -349,16 +348,23 @@ function DealerRelations.Equipment:discover()
         storeItemCount = storeItemCount + 1
 
         if self:isDemoCandidate(item) then
-            candidateCount = candidateCount + 1
+			candidateCount = candidateCount + 1
 
-            table.insert(DealerRelations.equipmentList, {
-                name = item.name,
-                brand = item.brandName,
-                category = item.categoryName,
-                price = item.price,
-                xmlFilename = item.xmlFilename
-            })
-        end
+			local xmlData = self:readEquipmentXml(item.xmlFilename)
+
+			table.insert(DealerRelations.equipmentList, {
+				name = item.name,
+				brand = item.brandName,
+				category = item.categoryName,
+				price = item.price,
+				xmlFilename = item.xmlFilename,
+				powerRole = xmlData ~= nil and xmlData.powerRole or "NONE",
+				displayPower = xmlData ~= nil and xmlData.displayPower or nil,
+				powerMin = xmlData ~= nil and xmlData.powerMin or nil,
+				powerMax = xmlData ~= nil and xmlData.powerMax or nil,
+				xmlBrand = xmlData ~= nil and xmlData.brand or nil
+			})
+		end
     end
 
     DealerRelations.log("Store items discovered: " .. tostring(storeItemCount))
