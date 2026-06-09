@@ -39,11 +39,31 @@ function DealerRelations.Persistence:save(savegameDirectory)
 
     setXMLFloat(xmlFile, "dealerRelations.confidence", DealerRelations.Data:getConfidence())
 
+    setXMLInt(
+        xmlFile,
+        "dealerRelations.lastDemoCheckMonth",
+        DealerRelations.Data:getLastDemoCheckMonth()
+    )
+
+    local recentCandidates = DealerRelations.Data:getRecentDemoCandidates()
+
+    for index, candidateKey in ipairs(recentCandidates) do
+        local key = string.format(
+            "dealerRelations.recentDemoCandidates.candidate(%d)",
+            index - 1
+        )
+
+        setXMLString(
+            xmlFile,
+            key .. "#key",
+            candidateKey
+        )
+    end
+
     saveXMLFile(xmlFile)
     delete(xmlFile)
 
     DealerRelations.log("Saved dealerRelations.xml")
-		
 end
 
 -------------------------------------------------------------------------------
@@ -81,6 +101,74 @@ function DealerRelations.Persistence:load(savegameDirectory)
     end
 
     local confidence = getXMLFloat(xmlFile, "dealerRelations.confidence")
+	
+	local lastDemoCheckMonth = getXMLInt(
+		xmlFile,
+		"dealerRelations.lastDemoCheckMonth"
+	)
+
+	if lastDemoCheckMonth ~= nil then
+		DealerRelations.Data:setLastDemoCheckMonth(lastDemoCheckMonth)
+
+		DealerRelations.log(
+			"Loaded lastDemoCheckMonth: " ..
+			tostring(DealerRelations.Data:getLastDemoCheckMonth())
+		)
+	else
+		DealerRelations.warning(
+			"lastDemoCheckMonth missing from dealerRelations.xml; using default value"
+		)
+	end
+
+	DealerRelations.dealerData.recentDemoCandidates = {}
+	
+	local index = 0
+	local key = getXMLString(
+		xmlFile,
+		string.format(
+			"dealerRelations.recentDemoCandidates.candidate(%d)#key",
+			index
+		)
+	)
+
+	while key ~= nil do
+		DealerRelations.Data:addRecentDemoCandidate(key)
+
+		index = index + 1
+
+		key = getXMLString(
+			xmlFile,
+			string.format(
+				"dealerRelations.recentDemoCandidates.candidate(%d)#key",
+				index
+			)
+		)
+	end
+
+	DealerRelations.log(
+		"Loaded recent demo candidates: " ..
+		tostring(#DealerRelations.Data:getRecentDemoCandidates())
+	)
+	
+	DealerRelations.log(
+		"Candidate 0: " ..
+		tostring(
+			getXMLString(
+				xmlFile,
+				"dealerRelations.recentDemoCandidates.candidate(0)#key"
+			)
+		)
+	)
+
+	DealerRelations.log(
+		"Candidate direct: " ..
+		tostring(
+			getXMLString(
+				xmlFile,
+				"dealerRelations.recentDemoCandidates.candidate#key"
+			)
+		)
+	)
 
     if confidence ~= nil then
         DealerRelations.Data:setConfidence(confidence)

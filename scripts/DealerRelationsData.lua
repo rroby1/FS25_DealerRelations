@@ -165,3 +165,15 @@ function DealerRelations.Data:isRecentDemoCandidate(candidateKey)
 
     return false
 end
+
+-------------------------------------------------------------------------------
+-- Last Demo Check Month
+-------------------------------------------------------------------------------
+
+function DealerRelations.Data:getLastDemoCheckMonth()
+    return DealerRelations.dealerData.lastDemoCheckMonth
+end
+
+function DealerRelations.Data:setLastDemoCheckMonth(value)
+    DealerRelations.dealerData.lastDemoCheckMonth = tonumber(value) or 0
+end

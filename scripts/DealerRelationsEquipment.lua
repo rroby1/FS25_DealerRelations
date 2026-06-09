@@ -565,16 +565,7 @@ function DealerRelations.Equipment:getRandomDemoCandidate()
 
     DealerRelations.Data:addRecentDemoCandidate(candidateKey)
 	
-	DealerRelations.log(
-		"Added recent demo candidate: " .. candidateKey
-	)
-	
-	DealerRelations.log(
-		"Recent demo candidates: " ..
-		table.concat(DealerRelations.Data:getRecentDemoCandidates(), " || ")
-	)
-
-    DealerRelations.log(string.format(
+	DealerRelations.log(string.format(
         "Selected demo candidate: %s | Brand=%s | Category=%s | HP=%s",
         candidate.name,
         candidate.brand,
