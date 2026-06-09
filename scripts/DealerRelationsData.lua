@@ -29,7 +29,12 @@ DealerRelations.dealerData = {
 
     -- Last in-game month when the monthly demo check was processed.
     -- A value of 0 means no monthly demo check has been processed yet.
-    lastDemoCheckMonth = 0
+    lastDemoCheckMonth = 0,
+	
+	-- Recently selected demo candidate keys.
+    -- Used to prevent the same equipment configuration from being
+    -- offered repeatedly within a short period of time.
+	recentDemoCandidates = {}
 }
 
 -------------------------------------------------------------------------------
@@ -105,4 +110,58 @@ end
 
 function DealerRelations.Data:setLastDemoCheckMonth(month)
     DealerRelations.dealerData.lastDemoCheckMonth = tonumber(month) or 0
+end
+
+-------------------------------------------------------------------------------
+-- Recent Demo Candidates
+-------------------------------------------------------------------------------
+
+-- Returns the list of recently selected demo candidate keys.
+--
+-- Used by duplicate prevention logic to avoid offering the same
+-- equipment configuration repeatedly within a short period of time.
+--
+-- @return table List of recent demo candidate keys.
+-------------------------------------------------------------------------------
+
+function DealerRelations.Data:getRecentDemoCandidates()
+    return DealerRelations.dealerData.recentDemoCandidates
+end
+
+-------------------------------------------------------------------------------
+-- Adds a demo candidate key to the recent candidates list.
+--
+-- The list is maintained as a fixed-size history. Older entries
+-- are removed when the maximum history size is exceeded.
+--
+-- @param candidateKey string Unique key identifying the selected
+--                           demo candidate.
+-------------------------------------------------------------------------------
+
+function DealerRelations.Data:addRecentDemoCandidate(candidateKey)
+    table.insert(DealerRelations.dealerData.recentDemoCandidates, candidateKey)
+
+    while #DealerRelations.dealerData.recentDemoCandidates > 5 do
+        table.remove(DealerRelations.dealerData.recentDemoCandidates, 1)
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Checks whether a demo candidate key exists in the recent
+-- candidates history.
+--
+-- @param candidateKey string Unique key identifying the selected
+--                           demo candidate.
+--
+-- @return boolean True if the candidate was recently offered.
+-------------------------------------------------------------------------------
+
+function DealerRelations.Data:isRecentDemoCandidate(candidateKey)
+    for _, recentKey in ipairs(DealerRelations.dealerData.recentDemoCandidates) do
+        if recentKey == candidateKey then
+            return true
+        end
+    end
+
+    return false
 end

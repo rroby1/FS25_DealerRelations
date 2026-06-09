@@ -348,24 +348,28 @@ function DealerRelations.Equipment:discover()
         storeItemCount = storeItemCount + 1
 
         if self:isDemoCandidate(item) then
-			candidateCount = candidateCount + 1
+            local xmlData = self:readEquipmentXml(item.xmlFilename)
+            local brand = xmlData ~= nil and xmlData.brand or item.brandName
+            local brandAllowed = DealerRelations.Equipment.BRANDS[brand]
 
-			local xmlData = self:readEquipmentXml(item.xmlFilename)
+            if brandAllowed == true then
+                candidateCount = candidateCount + 1
 
-			table.insert(DealerRelations.equipmentList, {
-				name = item.name,
-				brand = xmlData ~= nil and xmlData.brand or item.brandName,
-				storeBrand = item.brandName,
-				xmlBrand = xmlData ~= nil and xmlData.brand or nil,
-				category = item.categoryName,
-				price = item.price,
-				xmlFilename = item.xmlFilename,
-				powerRole = xmlData ~= nil and xmlData.powerRole or "NONE",
-				displayPower = xmlData ~= nil and xmlData.displayPower or nil,
-				powerMin = xmlData ~= nil and xmlData.powerMin or nil,
-				powerMax = xmlData ~= nil and xmlData.powerMax or nil
-			})
-		end
+                table.insert(DealerRelations.equipmentList, {
+                    name = item.name,
+                    brand = brand,
+                    storeBrand = item.brandName,
+                    xmlBrand = xmlData ~= nil and xmlData.brand or nil,
+                    category = item.categoryName,
+                    price = item.price,
+                    xmlFilename = item.xmlFilename,
+                    powerRole = xmlData ~= nil and xmlData.powerRole or "NONE",
+                    displayPower = xmlData ~= nil and xmlData.displayPower or nil,
+                    powerMin = xmlData ~= nil and xmlData.powerMin or nil,
+                    powerMax = xmlData ~= nil and xmlData.powerMax or nil
+                })
+            end
+        end
     end
 
     DealerRelations.log("Store items discovered: " .. tostring(storeItemCount))
@@ -385,149 +389,149 @@ end
 -------------------------------------------------------------------------------
 
 DealerRelations.Equipment.BRANDS = {
-    AGCO = true,
-    AGIBATCO = true,
-    AGISTORM = true,
-    AGIWESTFIELD = true,
-    AGRIFAC = true,
-    AGRIO = true,
-    AGRISEM = true,
-    AGROMASZ = true,
-    ALBUTT = true,
-    ALPEGO = true,
-    AMAZONE = true,
-    AMITYTECH = true,
-    ANDERSONGROUP = true,
-    ANNABURGER = true,
-    ANTONIOCARRARO = true,
-    ARCUSIN = true,
-    BEDNAR = true,
-    BERGMANN = true,
-    BERTHOUD = true,
-    BOMECH = true,
-    BRANDT = true,
-    BRANTNER = true,
-    BREDAL = true,
-    BRESSELUNDLADE = true,
-    CAPELLO = true,
-    CASEIH = true,
-    CHALLENGER = true,
-    CLAAS = true,
-    CONVEYALL = true,
-    DALBO = true,
-    DAMCON = true,
-    DEMCO = true,
-    DEUTZFAHR = true,
-    DEWULF = true,
-    EINBOECK = true,
-    ELHO = true,
-    ELMERSMFG = true,
-    ERO = true,
-    FARESIN = true,
-    FARMAX = true,
-    FARMET = true,
-    FARMTECH = true,
-    FENDT = true,
-    FIAT = true,
-    FLIEGL = true,
-    FUHRMANN = true,
-    GERINGHOFF = true,
-    GESSNER = true,
-    GOEWEIL = true,
-    GORENC = true,
-    GREATPLAINS = true,
-    GREGOIRE = true,
-    GRIMME = true,
-    HARDI = true,
-    HAUER = true,
-    HAWE = true,
-    HEIZOMAT = true,
-    HOLMER = true,
-    HORSCH = true,
-    IMPEX = true,
-    ISEKI = true,
-    JCB = true,
-    JENZ = true,
-    JMMANUFACTURING = true,
-    JOHNDEERE = true,
-    JUNGHEINRICH = true,
-    KAWECO = true,
-    KEMPER = true,
-    KESLA = true,
-    KINZE = true,
-    KNOCHE = true,
-    KOCKERLING = true,
-    KOLLER = true,
-    KOMATSU = true,
-    KOTTE = true,
-    KRAMER = true,
-    KRAMPE = true,
-    KROEGER = true,
-    KRONE = true,
-    KUBOTA = true,
-    KUHN = true,
-    KVERNELAND = true,
-    LACOTEC = true,
-    LANDINI = true,
-    LEMKEN = true,
-    LINDNER = true,
-    LIZARD = true,
-    LODEKING = true,
-    MACDON = true,
-    MAGSI = true,
-    MANITOU = true,
+    AGCO = false,
+    AGIBATCO = false,
+    AGISTORM = false,
+    AGIWESTFIELD = false,
+    AGRIFAC = false,
+    AGRIO = false,
+    AGRISEM = false,
+    AGROMASZ = false,
+    ALBUTT = false,
+    ALPEGO = false,
+    AMAZONE = false,
+    AMITYTECH = false,
+    ANDERSONGROUP = false,
+    ANNABURGER = false,
+    ANTONIOCARRARO = false,
+    ARCUSIN = false,
+    BEDNAR = false,
+    BERGMANN = false,
+    BERTHOUD = false,
+    BOMECH = false,
+    BRANDT = false,
+    BRANTNER = false,
+    BREDAL = false,
+    BRESSELUNDLADE = false,
+    CAPELLO = false,
+    CASEIH = false,
+    CHALLENGER = false,
+    CLAAS = false,
+    CONVEYALL = false,
+    DALBO = false,
+    DAMCON = false,
+    DEMCO = false,
+    DEUTZFAHR = false,
+    DEWULF = false,
+    EINBOECK = false,
+    ELHO = false,
+    ELMERSMFG = false,
+    ERO = false,
+    FARESIN = false,
+    FARMAX = false,
+    FARMET = false,
+    FARMTECH = false,
+    FENDT = false,
+    FIAT = false,
+    FLIEGL = false,
+    FUHRMANN = false,
+    GERINGHOFF = false,
+    GESSNER = false,
+    GOEWEIL = false,
+    GORENC = false,
+    GREATPLAINS = false,
+    GREGOIRE = false,
+    GRIMME = false,
+    HARDI = false,
+    HAUER = false,
+    HAWE = false,
+    HEIZOMAT = false,
+    HOLMER = false,
+    HORSCH = false,
+    IMPEX = false,
+    ISEKI = false,
+    JCB = false,
+    JENZ = false,
+    JMMANUFACTURING = false,
+    JOHNDEERE = false,
+    JUNGHEINRICH = false,
+    KAWECO = false,
+    KEMPER = false,
+    KESLA = false,
+    KINZE = false,
+    KNOCHE = false,
+    KOCKERLING = false,
+    KOLLER = false,
+    KOMATSU = false,
+    KOTTE = false,
+    KRAMER = false,
+    KRAMPE = false,
+    KROEGER = false,
+    KRONE = false,
+    KUBOTA = false,
+    KUHN = false,
+    KVERNELAND = false,
+    LACOTEC = false,
+    LANDINI = false,
+    LEMKEN = false,
+    LINDNER = false,
+    LIZARD = false,
+    LODEKING = false,
+    MACDON = false,
+    MAGSI = false,
+    MANITOU = false,
     MASSEYFERGUSON = true,
-    MCCORMACK = true,
-    MCCORMICK = true,
-    MERIDIAN = true,
-    MERLO = true,
-    MZURI = true,
-    NARDI = true,
-    NEWHOLLAND = true,
-    NOVAG = true,
-    OXBO = true,
-    PALADIN = true,
-    PFANZELT = true,
-    PITTSTRAILERS = true,
-    POETTINGER = true,
-    PONSSE = true,
-    PRINOTH = true,
-    PROVITIS = true,
-    QUICKE = true,
-    REITER = true,
-    RIEDLER = true,
-    RIGITRAC = true,
-    RISUTEC = true,
-    ROPA = true,
-    ROTTNE = true,
-    RUDOLPH = true,
-    SALEK = true,
-    SAMASZ = true,
-    SAME = true,
-    SAMSONAGRO = true,
-    SCHAEFFER = true,
-    SCHUITEMAKER = true,
-    SCHWARZMUELLER = true,
-    SENNEBOGEN = true,
-    SILOKING = true,
-    SIP = true,
-    STEYR = true,
-    STREUMASTER = true,
-    SUMMERSMFG = true,
-    TAJFUN = true,
-    TENWINKEL = true,
-    TMCCANCELA = true,
-    TREFFLER = true,
-    TT = true,
-    UNIA = true,
-    VAEDERSTAD = true,
-    VALTRA = true,
-    VERMEER = true,
-    VOLVO = true,
-    WALKABOUT = true,
-    WESTTECH = true,
-    ZETOR = true,
-    ZUNHAMMER = true
+    MCCORMACK = false,
+    MCCORMICK = false,
+    MERIDIAN = false,
+    MERLO = false,
+    MZURI = false,
+    NARDI = false,
+    NEWHOLLAND = false,
+    NOVAG = false,
+    OXBO = false,
+    PALADIN = false,
+    PFANZELT = false,
+    PITTSTRAILERS = false,
+    POETTINGER = false,
+    PONSSE = false,
+    PRINOTH = false,
+    PROVITIS = false,
+    QUICKE = false,
+    REITER = false,
+    RIEDLER = false,
+    RIGITRAC = false,
+    RISUTEC = false,
+    ROPA = false,
+    ROTTNE = false,
+    RUDOLPH = false,
+    SALEK = false,
+    SAMASZ = false,
+    SAME = false,
+    SAMSONAGRO = false,
+    SCHAEFFER = false,
+    SCHUITEMAKER = false,
+    SCHWARZMUELLER = false,
+    SENNEBOGEN = false,
+    SILOKING = false,
+    SIP = false,
+    STEYR = false,
+    STREUMASTER = false,
+    SUMMERSMFG = false,
+    TAJFUN = false,
+    TENWINKEL = false,
+    TMCCANCELA = false,
+    TREFFLER = false,
+    TT = false,
+    UNIA = false,
+    VAEDERSTAD = false,
+    VALTRA = false,
+    VERMEER = false,
+    VOLVO = false,
+    WALKABOUT = false,
+    WESTTECH = false,
+    ZETOR = false,
+    ZUNHAMMER = false
 }
 
 -------------------------------------------------------------------------------
@@ -545,17 +549,65 @@ function DealerRelations.Equipment:getRandomDemoCandidate()
         return nil
     end
 
-    local index = math.random(1, #DealerRelations.equipmentList)
-    local candidate = DealerRelations.equipmentList[index]
-    local hp = candidate.displayPower or 0
+    local candidate = nil
+    local candidateKey = nil
+
+    repeat
+        local index = math.random(1, #DealerRelations.equipmentList)
+        candidate = DealerRelations.equipmentList[index]
+        candidateKey = self:getDemoCandidateKey(candidate)
+
+        if DealerRelations.Data:isRecentDemoCandidate(candidateKey) then
+            DealerRelations.log("Demo candidate was recently offered; selecting another candidate")
+            candidate = nil
+        end
+    until candidate ~= nil
+
+    DealerRelations.Data:addRecentDemoCandidate(candidateKey)
+	
+	DealerRelations.log(
+		"Added recent demo candidate: " .. candidateKey
+	)
+	
+	DealerRelations.log(
+		"Recent demo candidates: " ..
+		table.concat(DealerRelations.Data:getRecentDemoCandidates(), " || ")
+	)
 
     DealerRelations.log(string.format(
-		"Selected demo candidate: %s | Brand=%s | Category=%s | HP=%s",
-		candidate.name,
-		candidate.brand,
-		candidate.category,
-		tostring(candidate.displayPower or "Unknown")
-	))
+        "Selected demo candidate: %s | Brand=%s | Category=%s | HP=%s",
+        candidate.name,
+        candidate.brand,
+        candidate.category,
+        tostring(candidate.displayPower or "Unknown")
+    ))
 
     return candidate
+end
+
+-------------------------------------------------------------------------------
+-- Demo Candidate Key
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- Builds a unique key for a demo candidate.
+--
+-- The key identifies a specific equipment configuration so duplicate
+-- prevention can avoid offering the same configuration repeatedly.
+--
+-- @param candidate table Equipment entry selected from the eligible list.
+--
+-- @return string Unique demo candidate key.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:getDemoCandidateKey(candidate)
+    if candidate == nil then
+        return nil
+    end
+
+    return string.format(
+        "%s|%s|%s",
+        tostring(candidate.brand or "UNKNOWN"),
+        tostring(candidate.name or "UNKNOWN"),
+        tostring(candidate.displayPower or "UNKNOWN")
+    )
 end
