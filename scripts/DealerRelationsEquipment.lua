@@ -354,15 +354,16 @@ function DealerRelations.Equipment:discover()
 
 			table.insert(DealerRelations.equipmentList, {
 				name = item.name,
-				brand = item.brandName,
+				brand = xmlData ~= nil and xmlData.brand or item.brandName,
+				storeBrand = item.brandName,
+				xmlBrand = xmlData ~= nil and xmlData.brand or nil,
 				category = item.categoryName,
 				price = item.price,
 				xmlFilename = item.xmlFilename,
 				powerRole = xmlData ~= nil and xmlData.powerRole or "NONE",
 				displayPower = xmlData ~= nil and xmlData.displayPower or nil,
 				powerMin = xmlData ~= nil and xmlData.powerMin or nil,
-				powerMax = xmlData ~= nil and xmlData.powerMax or nil,
-				xmlBrand = xmlData ~= nil and xmlData.brand or nil
+				powerMax = xmlData ~= nil and xmlData.powerMax or nil
 			})
 		end
     end
@@ -528,3 +529,33 @@ DealerRelations.Equipment.BRANDS = {
     ZETOR = true,
     ZUNHAMMER = true
 }
+
+-------------------------------------------------------------------------------
+-- Returns a random eligible piece of equipment from the discovered equipment list.
+-- This is used when generating a demo offer.
+--
+-- Returns:
+--   table  Selected equipment entry from equipmentList.
+--   nil    If no eligible equipment is available.
+-------------------------------------------------------------------------------
+
+function DealerRelations.Equipment:getRandomDemoCandidate()
+    if DealerRelations.equipmentList == nil or #DealerRelations.equipmentList == 0 then
+        DealerRelations.warning("No eligible demo candidates available")
+        return nil
+    end
+
+    local index = math.random(1, #DealerRelations.equipmentList)
+    local candidate = DealerRelations.equipmentList[index]
+    local hp = candidate.displayPower or 0
+
+    DealerRelations.log(string.format(
+		"Selected demo candidate: %s | Brand=%s | Category=%s | HP=%s",
+		candidate.name,
+		candidate.brand,
+		candidate.category,
+		tostring(candidate.displayPower or "Unknown")
+	))
+
+    return candidate
+end

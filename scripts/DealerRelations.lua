@@ -15,7 +15,7 @@
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.6.0"
+DealerRelations.version = "0.7.0"
 
 -------------------------------------------------------------------------------
 -- Load supporting modules.
@@ -52,8 +52,18 @@ function DealerRelations:loadMap()
     if g_currentMission ~= nil and g_currentMission.missionInfo ~= nil then
         DealerRelations.Persistence:load(g_currentMission.missionInfo.savegameDirectory)
     end
-	
-		DealerRelations.Equipment:discover()
+
+    -- Build the eligible equipment list.
+    DealerRelations.Equipment:discover()
+
+    -- TEMP v0.7.0 test hook:
+    -- Select a random demo candidate immediately after discovery.
+    -- Future versions should trigger this from the demo offer system instead.
+    local candidate = DealerRelations.Equipment:getRandomDemoCandidate()
+
+    if candidate == nil then
+        DealerRelations.warning("No demo candidate selected during loadMap test")
+    end
 end
 
 -------------------------------------------------------------------------------
