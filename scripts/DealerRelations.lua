@@ -56,11 +56,6 @@ function DealerRelations:loadMap()
     -- Build the eligible equipment list.
     DealerRelations.Equipment:discover()
 
-    -- TEMP v0.7.0 test hook:
-    -- Select a random demo candidate immediately after discovery.
-    -- Future versions should trigger this from the demo offer system instead.
-    local candidate = DealerRelations.Equipment:getRandomDemoCandidate()
-
     if candidate == nil then
         DealerRelations.warning("No demo candidate selected during loadMap test")
     end
