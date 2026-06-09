@@ -86,6 +86,39 @@ function DealerRelations.saveSavegame()
 end
 
 -------------------------------------------------------------------------------
+-- Monthly Demo Check
+-------------------------------------------------------------------------------
+
+-- Checks whether a monthly demo evaluation should occur.
+function DealerRelations:checkMonthlyDemo()
+    local currentMonth = g_currentMission.environment.currentPeriod
+    local lastMonth = DealerRelations.Data:getLastDemoCheckMonth()
+
+    if currentMonth ~= lastMonth then
+        DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
+
+        DealerRelations.log(string.format(
+            "Monthly demo check triggered for month %d",
+            currentMonth
+        ))
+
+        local candidate = DealerRelations.Equipment:getRandomDemoCandidate()
+
+        if candidate == nil then
+            DealerRelations.warning("Monthly demo check did not select a candidate")
+        end
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Update
+-------------------------------------------------------------------------------
+
+function DealerRelations:update(dt)
+    self:checkMonthlyDemo()
+end
+
+-------------------------------------------------------------------------------
 -- Register Dealer Relations as a mod event listener.
 -------------------------------------------------------------------------------
 addModEventListener(DealerRelations)

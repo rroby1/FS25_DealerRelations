@@ -25,7 +25,11 @@ DealerRelations.CONSTANTS = {
 
 DealerRelations.dealerData = {
     -- Starting confidence value for a new save or failed XML load.
-    confidence = 0
+    confidence = 0,
+
+    -- Last in-game month when the monthly demo check was processed.
+    -- A value of 0 means no monthly demo check has been processed yet.
+    lastDemoCheckMonth = 0
 }
 
 -------------------------------------------------------------------------------
@@ -89,4 +93,16 @@ function DealerRelations.Data:getRelationshipLevel()
     end
 
     return 0
+end
+
+-------------------------------------------------------------------------------
+-- Monthly Demo Check Data
+-------------------------------------------------------------------------------
+
+function DealerRelations.Data:getLastDemoCheckMonth()
+    return DealerRelations.dealerData.lastDemoCheckMonth
+end
+
+function DealerRelations.Data:setLastDemoCheckMonth(month)
+    DealerRelations.dealerData.lastDemoCheckMonth = tonumber(month) or 0
 end
