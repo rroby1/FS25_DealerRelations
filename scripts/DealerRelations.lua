@@ -15,7 +15,7 @@
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.8.0"
+DealerRelations.version = "0.9.0"
 
 -------------------------------------------------------------------------------
 -- Load supporting modules.
@@ -120,6 +120,11 @@ function DealerRelations:checkMonthlyDemo()
             candidate.category,
             tostring(candidate.displayPower or "Unknown")
         ))
+        
+        g_currentMission:addIngameNotification(
+            FSBaseMission.INGAME_NOTIFICATION_INFO,
+            "Dealer Relations: The dealer has a demo offer available. Check with the dealer before the end of the month."
+        )
     end
 end
 
