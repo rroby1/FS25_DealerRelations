@@ -372,8 +372,11 @@ function DealerRelations.Equipment:discover()
         end
     end
 
-    DealerRelations.log("Store items discovered: " .. tostring(storeItemCount))
-    DealerRelations.log("Demo candidates discovered: " .. tostring(candidateCount))
+    DealerRelations.log(string.format(
+		"Equipment discovery complete: %d store items, %d demo candidates",
+		storeItemCount,
+		candidateCount
+	))
 end
 
 -------------------------------------------------------------------------------
@@ -558,7 +561,6 @@ function DealerRelations.Equipment:getRandomDemoCandidate()
         candidateKey = self:getDemoCandidateKey(candidate)
 
         if DealerRelations.Data:isRecentDemoCandidate(candidateKey) then
-            DealerRelations.log("Demo candidate was recently offered; selecting another candidate")
             candidate = nil
         end
     until candidate ~= nil

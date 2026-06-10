@@ -143,3 +143,34 @@ Store Data
 
 ### Notes
 - Establishes the equipment data foundation required for future demo candidate selection and dealer offer systems.
+
+## v0.7.0
+
+### Added
+- Monthly demo evaluation system.
+- Random demo candidate selection from eligible equipment.
+- Duplicate prevention using recent demo candidate history.
+- Demo candidate key generation.
+- Brand eligibility filtering.
+- Equipment power classification support.
+- XML-based equipment metadata extraction.
+- Persistence for recent demo candidate history.
+
+### Improved
+- Equipment discovery and candidate filtering.
+- Equipment metadata collection.
+- Internal documentation and code organization.
+
+### Changed
+- Demo offers are now evaluated once per in-game month.
+- Demo candidate selection now respects recent offer history.
+
+### Fixed
+- Monthly demo checks triggering repeatedly within the same month.
+- Persistence loading for recent demo candidate history.
+- Various save/load reliability issues discovered during development.
+
+### Cleanup
+- Removed temporary testing hooks.
+- Removed obsolete debugging and XML diagnostic logging.
+- Simplified startup and persistence logging.

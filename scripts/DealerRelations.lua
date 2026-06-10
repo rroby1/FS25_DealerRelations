@@ -45,8 +45,6 @@ function DealerRelations:loadMap()
         DealerRelations.saveSavegame
     )
 
-    DealerRelations.log("Savegame callback registered")
-
     -- Load persisted Dealer Relations data from the active savegame.
     -- If no data exists, default values remain in use.
     if g_currentMission ~= nil and g_currentMission.missionInfo ~= nil then
@@ -55,10 +53,6 @@ function DealerRelations:loadMap()
 
     -- Build the eligible equipment list.
     DealerRelations.Equipment:discover()
-
-    if candidate == nil then
-        DealerRelations.warning("No demo candidate selected during loadMap test")
-    end
 end
 
 -------------------------------------------------------------------------------
@@ -67,8 +61,7 @@ end
 -- Persists Dealer Relations data to the active savegame directory.
 -------------------------------------------------------------------------------
 function DealerRelations.saveSavegame()
-    DealerRelations.log("Savegame callback fired")
-
+    
     if g_currentMission == nil or g_currentMission.missionInfo == nil then
         DealerRelations.warning("Cannot save: missionInfo is nil")
         return
@@ -77,7 +70,6 @@ function DealerRelations.saveSavegame()
     local savegameDirectory = g_currentMission.missionInfo.savegameDirectory
 
     DealerRelations.Persistence:save(savegameDirectory)
-		
 end
 
 -------------------------------------------------------------------------------

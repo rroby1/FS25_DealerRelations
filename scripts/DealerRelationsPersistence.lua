@@ -33,8 +33,6 @@ function DealerRelations.Persistence:save(savegameDirectory)
 
     local filePath = savegameDirectory .. "/" .. self.FILE_NAME
 
-    DealerRelations.log("Saving dealerRelations.xml to: " .. filePath)
-
     local xmlFile = createXMLFile("dealerRelationsXML", filePath, "dealerRelations")
 
     setXMLFloat(xmlFile, "dealerRelations.confidence", DealerRelations.Data:getConfidence())
@@ -62,8 +60,6 @@ function DealerRelations.Persistence:save(savegameDirectory)
 
     saveXMLFile(xmlFile)
     delete(xmlFile)
-
-    DealerRelations.log("Saved dealerRelations.xml")
 end
 
 -------------------------------------------------------------------------------
@@ -86,10 +82,7 @@ function DealerRelations.Persistence:load(savegameDirectory)
 
     local filePath = savegameDirectory .. "/" .. self.FILE_NAME
 
-    DealerRelations.log("Checking dealerRelations.xml at: " .. filePath)
-
     if not fileExists(filePath) then
-        DealerRelations.log("dealerRelations.xml not found; using default dealer data")
         return
     end
 
@@ -101,74 +94,49 @@ function DealerRelations.Persistence:load(savegameDirectory)
     end
 
     local confidence = getXMLFloat(xmlFile, "dealerRelations.confidence")
-	
-	local lastDemoCheckMonth = getXMLInt(
-		xmlFile,
-		"dealerRelations.lastDemoCheckMonth"
-	)
 
-	if lastDemoCheckMonth ~= nil then
-		DealerRelations.Data:setLastDemoCheckMonth(lastDemoCheckMonth)
+    local lastDemoCheckMonth = getXMLInt(
+        xmlFile,
+        "dealerRelations.lastDemoCheckMonth"
+    )
 
-		DealerRelations.log(
-			"Loaded lastDemoCheckMonth: " ..
-			tostring(DealerRelations.Data:getLastDemoCheckMonth())
-		)
-	else
-		DealerRelations.warning(
-			"lastDemoCheckMonth missing from dealerRelations.xml; using default value"
-		)
-	end
+    if lastDemoCheckMonth ~= nil then
+        DealerRelations.Data:setLastDemoCheckMonth(lastDemoCheckMonth)
+    else
+        DealerRelations.warning(
+            "lastDemoCheckMonth missing from dealerRelations.xml; using default value"
+        )
+    end
 
-	DealerRelations.dealerData.recentDemoCandidates = {}
-	
-	local index = 0
-	local key = getXMLString(
-		xmlFile,
-		string.format(
-			"dealerRelations.recentDemoCandidates.candidate(%d)#key",
-			index
-		)
-	)
+    DealerRelations.dealerData.recentDemoCandidates = {}
 
-	while key ~= nil do
-		DealerRelations.Data:addRecentDemoCandidate(key)
+    local index = 0
+    local key = getXMLString(
+        xmlFile,
+        string.format(
+            "dealerRelations.recentDemoCandidates.candidate(%d)#key",
+            index
+        )
+    )
 
-		index = index + 1
+    while key ~= nil do
+        DealerRelations.Data:addRecentDemoCandidate(key)
 
-		key = getXMLString(
-			xmlFile,
-			string.format(
-				"dealerRelations.recentDemoCandidates.candidate(%d)#key",
-				index
-			)
-		)
-	end
+        index = index + 1
 
-	DealerRelations.log(
-		"Loaded recent demo candidates: " ..
-		tostring(#DealerRelations.Data:getRecentDemoCandidates())
-	)
-	
-	DealerRelations.log(
-		"Candidate 0: " ..
-		tostring(
-			getXMLString(
-				xmlFile,
-				"dealerRelations.recentDemoCandidates.candidate(0)#key"
-			)
-		)
-	)
+        key = getXMLString(
+            xmlFile,
+            string.format(
+                "dealerRelations.recentDemoCandidates.candidate(%d)#key",
+                index
+            )
+        )
+    end
 
-	DealerRelations.log(
-		"Candidate direct: " ..
-		tostring(
-			getXMLString(
-				xmlFile,
-				"dealerRelations.recentDemoCandidates.candidate#key"
-			)
-		)
-	)
+    DealerRelations.log(
+        "Loaded recent demo candidates: " ..
+        tostring(#DealerRelations.Data:getRecentDemoCandidates())
+    )
 
     if confidence ~= nil then
         DealerRelations.Data:setConfidence(confidence)
@@ -184,5 +152,4 @@ function DealerRelations.Persistence:load(savegameDirectory)
         ", relationship level: " ..
         tostring(DealerRelations.Data:getRelationshipLevel())
     )
-
 end
