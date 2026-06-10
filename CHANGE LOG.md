@@ -174,3 +174,26 @@ Store Data
 - Removed temporary testing hooks.
 - Removed obsolete debugging and XML diagnostic logging.
 - Simplified startup and persistence logging.
+
+## v0.8.0
+
+### Added
+- Active demo offer system.
+- Active demo offer data model and accessors.
+- Monthly demo offer creation from selected candidates.
+- Persistence for active demo offers.
+- Active demo offer loading during savegame startup.
+- Automatic expiration of previous-month demo offers.
+
+### Improved
+- Monthly demo workflow now creates persistent offers.
+- Save/load process now restores active offer state.
+- Lua file indentation standardized.
+
+### Changed
+- Monthly demo evaluations now generate and store active offers.
+- Previous-month offers are automatically removed when a new month begins.
+
+### Cleanup
+- Additional logging review and refinement.
+- Consistent formatting across updated modules.
