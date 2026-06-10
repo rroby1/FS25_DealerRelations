@@ -27,6 +27,7 @@ source(g_currentModDirectory .. "scripts/DealerRelationsDebug.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsData.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsPersistence.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")
+source(g_currentModDirectory .. "scripts/DealerRelationsUI.lua")
 
 -------------------------------------------------------------------------------
 -- Called by the game when a map is loaded.
@@ -160,6 +161,10 @@ end
 
 function DealerRelations:update(dt)
     self:checkMonthlyDemo()
+    
+    if not DealerRelations.UI.inputRegistered then
+        DealerRelations.UI:registerInput()
+    end
 end
 
 -------------------------------------------------------------------------------
