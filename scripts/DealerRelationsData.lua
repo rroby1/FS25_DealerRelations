@@ -34,7 +34,12 @@ DealerRelations.dealerData = {
 	-- Recently selected demo candidate keys.
     -- Used to prevent the same equipment configuration from being
     -- offered repeatedly within a short period of time.
-	recentDemoCandidates = {}
+	recentDemoCandidates = {},
+	
+	-- Currently active demo offer.
+    -- Only one offer may exist at a time.
+    -- Nil indicates no active offer is available.
+    activeDemoOffer = nil
 }
 
 -------------------------------------------------------------------------------
@@ -164,4 +169,51 @@ function DealerRelations.Data:isRecentDemoCandidate(candidateKey)
     end
 
     return false
+end
+
+-------------------------------------------------------------------------------
+-- Active Demo Offer
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- Returns the currently active demo offer.
+--
+-- An active demo offer represents equipment that has been offered
+-- to the player for evaluation. Only one active offer may exist
+-- at a time.
+--
+-- @return table|nil Active demo offer data, or nil if no offer exists.
+-------------------------------------------------------------------------------
+function DealerRelations.Data:getActiveDemoOffer()
+    return DealerRelations.dealerData.activeDemoOffer
+end
+
+-------------------------------------------------------------------------------
+-- Stores the active demo offer.
+--
+-- Replaces any existing active offer.
+--
+-- @param offer table Demo offer data to store.
+-------------------------------------------------------------------------------
+function DealerRelations.Data:setActiveDemoOffer(offer)
+    DealerRelations.dealerData.activeDemoOffer = offer
+end
+
+-------------------------------------------------------------------------------
+-- Clears the currently active demo offer.
+--
+-- Used when an offer expires, is declined, or is otherwise removed
+-- from the system.
+-------------------------------------------------------------------------------
+function DealerRelations.Data:clearActiveDemoOffer()
+    DealerRelations.dealerData.activeDemoOffer = nil
+end
+
+-------------------------------------------------------------------------------
+-- Returns whether an active demo offer currently exists.
+--
+-- @return boolean True when an active offer is present.
+-------------------------------------------------------------------------------
+function DealerRelations.Data:hasActiveDemoOffer()
+    return DealerRelations.dealerData.activeDemoOffer ~= nil
 end

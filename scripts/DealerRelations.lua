@@ -15,7 +15,7 @@
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.7.0"
+DealerRelations.version = "0.8.0"
 
 -------------------------------------------------------------------------------
 -- Load supporting modules.
@@ -61,7 +61,6 @@ end
 -- Persists Dealer Relations data to the active savegame directory.
 -------------------------------------------------------------------------------
 function DealerRelations.saveSavegame()
-    
     if g_currentMission == nil or g_currentMission.missionInfo == nil then
         DealerRelations.warning("Cannot save: missionInfo is nil")
         return
@@ -70,6 +69,8 @@ function DealerRelations.saveSavegame()
     local savegameDirectory = g_currentMission.missionInfo.savegameDirectory
 
     DealerRelations.Persistence:save(savegameDirectory)
+
+    DealerRelations.log("Saved dealerRelations.xml")
 end
 
 -------------------------------------------------------------------------------
@@ -82,20 +83,73 @@ function DealerRelations:checkMonthlyDemo()
     local lastMonth = DealerRelations.Data:getLastDemoCheckMonth()
 
     if currentMonth ~= lastMonth then
-        DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
+		DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
 
-        DealerRelations.log(string.format(
-            "Monthly demo check triggered for month %d",
-            currentMonth
-        ))
+		self:expireDemoOffer(currentMonth)
+
+		DealerRelations.log(string.format(
+			"Monthly demo check triggered for month %d",
+			currentMonth
+		))
 
         local candidate = DealerRelations.Equipment:getRandomDemoCandidate()
 
         if candidate == nil then
             DealerRelations.warning("Monthly demo check did not select a candidate")
+            return
         end
+
+        DealerRelations.Data:setActiveDemoOffer({
+            candidateKey = DealerRelations.Equipment:getDemoCandidateKey(candidate),
+            name = candidate.name,
+            brand = candidate.brand,
+            category = candidate.category,
+            price = candidate.price,
+            xmlFilename = candidate.xmlFilename,
+            powerRole = candidate.powerRole,
+            displayPower = candidate.displayPower,
+            powerMin = candidate.powerMin,
+            powerMax = candidate.powerMax,
+            offerMonth = currentMonth
+        })
+
+        DealerRelations.log(string.format(
+            "Demo offer created: %s | Brand=%s | Category=%s | HP=%s",
+            candidate.name,
+            candidate.brand,
+            candidate.category,
+            tostring(candidate.displayPower or "Unknown")
+        ))
     end
 end
+
+-------------------------------------------------------------------------------
+-- Demo Offer Expiration
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- Expires the active demo offer if it is from a previous month.
+--
+-- Future versions may apply confidence changes when an offer expires.
+-------------------------------------------------------------------------------
+function DealerRelations:expireDemoOffer(currentMonth)
+    local offer = DealerRelations.Data:getActiveDemoOffer()
+
+    if offer == nil then
+        return
+    end
+
+    if offer.offerMonth ~= currentMonth then
+        DealerRelations.log(
+            "Demo offer expired: " ..
+            tostring(offer.name)
+        )
+
+        DealerRelations.Data:clearActiveDemoOffer()
+    end
+end
+
+
 
 -------------------------------------------------------------------------------
 -- Update

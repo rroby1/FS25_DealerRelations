@@ -57,6 +57,22 @@ function DealerRelations.Persistence:save(savegameDirectory)
             candidateKey
         )
     end
+	
+	local activeOffer = DealerRelations.Data:getActiveDemoOffer()
+
+    if activeOffer ~= nil then
+        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#candidateKey", activeOffer.candidateKey)
+        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#name", activeOffer.name)
+        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#brand", activeOffer.brand)
+        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#category", activeOffer.category)
+        setXMLFloat(xmlFile, "dealerRelations.activeDemoOffer#price", activeOffer.price or 0)
+        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#xmlFilename", activeOffer.xmlFilename)
+        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#powerRole", activeOffer.powerRole)
+        setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#displayPower", activeOffer.displayPower or 0)
+        setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMin", activeOffer.powerMin or 0)
+        setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMax", activeOffer.powerMax or 0)
+        setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#offerMonth", activeOffer.offerMonth or 0)
+    end
 
     saveXMLFile(xmlFile)
     delete(xmlFile)
@@ -138,10 +154,46 @@ function DealerRelations.Persistence:load(savegameDirectory)
         tostring(#DealerRelations.Data:getRecentDemoCandidates())
     )
 
+    local activeOfferCandidateKey = getXMLString(
+        xmlFile,
+        "dealerRelations.activeDemoOffer#candidateKey"
+    )
+
+    if activeOfferCandidateKey ~= nil then
+        DealerRelations.Data:setActiveDemoOffer({
+            candidateKey = activeOfferCandidateKey,
+            name = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#name"),
+            brand = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#brand"),
+            category = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#category"),
+            price = getXMLFloat(xmlFile, "dealerRelations.activeDemoOffer#price"),
+            xmlFilename = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#xmlFilename"),
+            powerRole = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#powerRole"),
+            displayPower = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#displayPower"),
+            powerMin = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMin"),
+            powerMax = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMax"),
+            offerMonth = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#offerMonth")
+        })
+
+        local activeOffer = DealerRelations.Data:getActiveDemoOffer()
+
+        DealerRelations.log(string.format(
+            "Loaded active demo offer: %s | Brand=%s | Category=%s | HP=%s | Month=%s",
+            tostring(activeOffer.name),
+            tostring(activeOffer.brand),
+            tostring(activeOffer.category),
+            tostring(activeOffer.displayPower or "Unknown"),
+            tostring(activeOffer.offerMonth)
+        ))
+    else
+        DealerRelations.Data:clearActiveDemoOffer()
+    end
+
     if confidence ~= nil then
         DealerRelations.Data:setConfidence(confidence)
     else
-        DealerRelations.warning("Confidence missing from dealerRelations.xml; using default confidence")
+        DealerRelations.warning(
+            "Confidence missing from dealerRelations.xml; using default confidence"
+        )
     end
 
     delete(xmlFile)
