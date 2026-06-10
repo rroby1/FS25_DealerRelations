@@ -98,7 +98,7 @@ DealerRelations.Equipment.CATEGORIES = {
     SILOS = false,
     STORAGES = false,
     TREES = false,
-	BEEHIVES = false,
+    BEEHIVES = false,
 
     -- Fertilizing & Spraying
     FERTILIZERSPREADERS = true,
@@ -184,7 +184,7 @@ DealerRelations.Equipment.CATEGORIES = {
     SILOCOMPACTION = false,
     WEIGHTS = true,
     WINTEREQUIPMENT = true,
-	BARRELS = false,
+    BARRELS = false,
 
     -- Transport
     LOWLOADERS = true,
@@ -194,14 +194,14 @@ DealerRelations.Equipment.CATEGORIES = {
     TRAILERSCHANGINGSYSTEM = false,
     TRAILERSSEMI = false,
 
-	-- Baling
-	BALES = false,
-	BALINGMISC = false,
-	BALERSSQUARE = true,
-	BALERSROUND = true,
-	BALELOADERS = true,
-	BALEWRAPPERS = true,
-	BALETRANSPORT = true,
+    -- Baling
+    BALES = false,
+    BALINGMISC = false,
+    BALERSSQUARE = true,
+    BALERSROUND = true,
+    BALELOADERS = true,
+    BALEWRAPPERS = true,
+    BALETRANSPORT = true,
 
     -- Tractors
     TRACTORSS = true,
@@ -268,59 +268,59 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename)
         return nil
     end
 
-	local displayPower = getXMLInt(xmlFile, "vehicle.storeData.specs.power")
-	local displayNeededPower = getXMLInt(xmlFile, "vehicle.storeData.specs.neededPower")
-	local displayNeededMaxPower = getXMLInt(xmlFile, "vehicle.storeData.specs.neededPower#maxPower")
+    local displayPower = getXMLInt(xmlFile, "vehicle.storeData.specs.power")
+    local displayNeededPower = getXMLInt(xmlFile, "vehicle.storeData.specs.neededPower")
+    local displayNeededMaxPower = getXMLInt(xmlFile, "vehicle.storeData.specs.neededPower#maxPower")
 
     local data = {
-		brand = getXMLString(xmlFile, "vehicle.storeData.brand"),
-		powerRole = "NONE",
-		displayPower = nil,
-		powerMin = nil,
-		powerMax = nil
-	}
+        brand = getXMLString(xmlFile, "vehicle.storeData.brand"),
+        powerRole = "NONE",
+        displayPower = nil,
+        powerMin = nil,
+        powerMax = nil
+    }
 
-	if displayPower ~= nil then
-		data.powerRole = "SELF_PROPELLED"
-		data.displayPower = displayPower
-		data.powerMin = displayPower
-		data.powerMax = displayPower
-	elseif displayNeededPower ~= nil then
-		data.powerRole = "IMPLEMENT"
-		data.displayPower = displayNeededPower
-		data.powerMin = displayNeededPower
-		data.powerMax = displayNeededMaxPower or displayNeededPower
-	end
+    if displayPower ~= nil then
+        data.powerRole = "SELF_PROPELLED"
+        data.displayPower = displayPower
+        data.powerMin = displayPower
+        data.powerMax = displayPower
+    elseif displayNeededPower ~= nil then
+        data.powerRole = "IMPLEMENT"
+        data.displayPower = displayNeededPower
+        data.powerMin = displayNeededPower
+        data.powerMax = displayNeededMaxPower or displayNeededPower
+    end
 
-	if data.powerRole == "SELF_PROPELLED" then
-		local motorIndex = 0
-		local motorHp = getXMLInt(
-			xmlFile,
-			string.format(
-				"vehicle.motorized.motorConfigurations.motorConfiguration(%d)#hp",
-				motorIndex
-			)
-		)
+    if data.powerRole == "SELF_PROPELLED" then
+        local motorIndex = 0
+        local motorHp = getXMLInt(
+            xmlFile,
+            string.format(
+                "vehicle.motorized.motorConfigurations.motorConfiguration(%d)#hp",
+                motorIndex
+            )
+        )
 
-		while motorHp ~= nil do
-			if data.powerMin == nil or motorHp < data.powerMin then
-				data.powerMin = motorHp
-			end
+        while motorHp ~= nil do
+            if data.powerMin == nil or motorHp < data.powerMin then
+                data.powerMin = motorHp
+            end
 
-			if data.powerMax == nil or motorHp > data.powerMax then
-				data.powerMax = motorHp
-			end
+            if data.powerMax == nil or motorHp > data.powerMax then
+                data.powerMax = motorHp
+            end
 
-			motorIndex = motorIndex + 1
-			motorHp = getXMLInt(
-				xmlFile,
-				string.format(
-					"vehicle.motorized.motorConfigurations.motorConfiguration(%d)#hp",
-					motorIndex
-				)
-			)
-		end
-	end
+            motorIndex = motorIndex + 1
+            motorHp = getXMLInt(
+                xmlFile,
+                string.format(
+                    "vehicle.motorized.motorConfigurations.motorConfiguration(%d)#hp",
+                    motorIndex
+                )
+            )
+        end
+    end
 
     delete(xmlFile)
 
@@ -373,10 +373,10 @@ function DealerRelations.Equipment:discover()
     end
 
     DealerRelations.log(string.format(
-		"Equipment discovery complete: %d store items, %d demo candidates",
-		storeItemCount,
-		candidateCount
-	))
+        "Equipment discovery complete: %d store items, %d demo candidates",
+        storeItemCount,
+        candidateCount
+    ))
 end
 
 -------------------------------------------------------------------------------
@@ -566,8 +566,8 @@ function DealerRelations.Equipment:getRandomDemoCandidate()
     until candidate ~= nil
 
     DealerRelations.Data:addRecentDemoCandidate(candidateKey)
-	
-	DealerRelations.log(string.format(
+
+    DealerRelations.log(string.format(
         "Selected demo candidate: %s | Brand=%s | Category=%s | HP=%s",
         candidate.name,
         candidate.brand,

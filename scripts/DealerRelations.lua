@@ -77,20 +77,20 @@ end
 -- Monthly Demo Check
 -------------------------------------------------------------------------------
 
--- Checks whether a monthly demo evaluation should occur.
+-- Checks whether a monthly demo evaluation should occur and creates a new offer.
 function DealerRelations:checkMonthlyDemo()
     local currentMonth = g_currentMission.environment.currentPeriod
     local lastMonth = DealerRelations.Data:getLastDemoCheckMonth()
 
     if currentMonth ~= lastMonth then
-		DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
+        DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
 
-		self:expireDemoOffer(currentMonth)
+        self:expireDemoOffer(currentMonth)
 
-		DealerRelations.log(string.format(
-			"Monthly demo check triggered for month %d",
-			currentMonth
-		))
+        DealerRelations.log(string.format(
+            "Monthly demo check triggered for month %d",
+            currentMonth
+        ))
 
         local candidate = DealerRelations.Equipment:getRandomDemoCandidate()
 
@@ -148,8 +148,6 @@ function DealerRelations:expireDemoOffer(currentMonth)
         DealerRelations.Data:clearActiveDemoOffer()
     end
 end
-
-
 
 -------------------------------------------------------------------------------
 -- Update

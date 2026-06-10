@@ -30,13 +30,13 @@ DealerRelations.dealerData = {
     -- Last in-game month when the monthly demo check was processed.
     -- A value of 0 means no monthly demo check has been processed yet.
     lastDemoCheckMonth = 0,
-	
-	-- Recently selected demo candidate keys.
+
+    -- Recently selected demo candidate keys.
     -- Used to prevent the same equipment configuration from being
     -- offered repeatedly within a short period of time.
-	recentDemoCandidates = {},
-	
-	-- Currently active demo offer.
+    recentDemoCandidates = {},
+
+    -- Currently active demo offer.
     -- Only one offer may exist at a time.
     -- Nil indicates no active offer is available.
     activeDemoOffer = nil

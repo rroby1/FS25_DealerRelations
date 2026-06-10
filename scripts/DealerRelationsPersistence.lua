@@ -57,8 +57,8 @@ function DealerRelations.Persistence:save(savegameDirectory)
             candidateKey
         )
     end
-	
-	local activeOffer = DealerRelations.Data:getActiveDemoOffer()
+
+    local activeOffer = DealerRelations.Data:getActiveDemoOffer()
 
     if activeOffer ~= nil then
         setXMLString(xmlFile, "dealerRelations.activeDemoOffer#candidateKey", activeOffer.candidateKey)
