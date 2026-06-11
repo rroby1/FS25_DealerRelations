@@ -28,6 +28,7 @@ source(g_currentModDirectory .. "scripts/DealerRelationsData.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsPersistence.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsUI.lua")
+source(g_currentModDirectory .. "scripts/gui/DealerRelationsDemoOfferDialog.lua")
 
 -------------------------------------------------------------------------------
 -- Called by the game when a map is loaded.

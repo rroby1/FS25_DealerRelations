@@ -13,6 +13,8 @@
 DealerRelations = DealerRelations or {}
 DealerRelations.UI = DealerRelations.UI or {}
 
+DealerRelations.log("DealerRelationsDemoOfferDialog loaded")
+
 -------------------------------------------------------------------------------
 -- State
 -------------------------------------------------------------------------------
@@ -136,5 +138,7 @@ function DealerRelations.UI:openActiveDemoOffer()
         tostring(offer.price)
     )
     
-    InfoDialog.show(message)
+    DealerRelationsDemoOfferDialog.register()
+    
+    DealerRelationsDemoOfferDialog.show(message)
 end
