@@ -63,3 +63,43 @@ function DealerRelations.UI:onOpenDemoOfferInput()
         )
     end
 end
+
+-------------------------------------------------------------------------------
+-- Demo Offer Actions
+-------------------------------------------------------------------------------
+
+function DealerRelations.UI:acceptActiveDemoOffer()
+    local offer = DealerRelations.Data:getActiveDemoOffer()
+
+    if offer == nil then
+        DealerRelations.warning("Cannot accept demo offer: no active offer exists")
+        return
+    end
+
+    DealerRelations.log(
+        "Demo offer accepted: " ..
+        tostring(offer.name)
+    )
+
+    DealerRelations.Data:clearActiveDemoOffer()
+end
+
+function DealerRelations.UI:declineActiveDemoOffer()
+    local offer = DealerRelations.Data:getActiveDemoOffer()
+
+    if offer == nil then
+        DealerRelations.warning("Cannot decline demo offer: no active offer exists")
+        return
+    end
+
+    DealerRelations.log(
+        "Demo offer declined: " ..
+        tostring(offer.name)
+    )
+
+    DealerRelations.Data:clearActiveDemoOffer()
+end
+
+function DealerRelations.UI:cancelDemoOfferScreen()
+    DealerRelations.log("Demo offer screen cancelled")
+end
