@@ -197,3 +197,41 @@ Store Data
 ### Cleanup
 - Additional logging review and refinement.
 - Consistent formatting across updated modules.
+
+## v0.9.0 - Demo Offer Interaction System
+
+### New Features
+
+* Added custom Dealer Relations demo offer dialog.
+* Added Accept, Decline, and Cancel response options for demo offers.
+* Added keyboard and mouse support for offer responses.
+* Added reminder notification when loading a save that contains an active demo offer.
+* Added configurable input action for opening the active demo offer.
+
+### User Interface
+
+* Added custom XML-based offer dialog.
+* Added offer details display including equipment name, brand, category, power, and price.
+* Added dedicated keyboard shortcuts:
+
+  * Enter = Accept
+  * X = Decline
+  * Esc = Cancel
+* Added localization support for the demo offer input action.
+
+### Persistence
+
+* Active demo offers now remain available after saving and reloading the game.
+* Offer reminder notification appears when an active offer is loaded from a save.
+
+### Internal Changes
+
+* Added DealerRelationsDemoOfferDialog controller and XML layout.
+* Expanded DealerRelationsUI module to manage offer notifications and dialog interaction.
+* Improved separation between persistence, UI, and offer interaction systems.
+
+### Known Limitations
+
+* Accepting a demo offer currently records the acceptance but does not yet spawn demo equipment.
+* Relationship impacts for accepting or declining offers are planned for a future update.
+* Demo equipment tracking and return workflows are planned for a future update.
