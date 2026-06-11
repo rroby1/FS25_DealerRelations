@@ -54,8 +54,8 @@ end
 -------------------------------------------------------------------------------
 
 function DealerRelations.UI:onOpenDemoOfferInput()
-    if DealerRelations.Data:hasActiveDemoOffer() then
-        DealerRelations.log("Opening active demo offer screen")
+     if DealerRelations.Data:hasActiveDemoOffer() then
+        self:openActiveDemoOffer()
     else
         g_currentMission:addIngameNotification(
             FSBaseMission.INGAME_NOTIFICATION_INFO,
@@ -102,4 +102,39 @@ end
 
 function DealerRelations.UI:cancelDemoOfferScreen()
     DealerRelations.log("Demo offer screen cancelled")
+end
+
+-------------------------------------------------------------------------------
+-- Demo Offer Screen
+-------------------------------------------------------------------------------
+
+function DealerRelations.UI:openActiveDemoOffer()
+    local offer = DealerRelations.Data:getActiveDemoOffer()
+
+    if offer == nil then
+        g_currentMission:addIngameNotification(
+            FSBaseMission.INGAME_NOTIFICATION_INFO,
+            "Dealer Relations: No active demo offer is available."
+        )
+        return
+    end
+    
+    DealerRelations.log("Opening active demo offer screen")
+
+    local powerText = tostring(offer.displayPower or "Unknown")
+
+    if offer.powerMin ~= nil and offer.powerMax ~= nil and offer.powerMin ~= offer.powerMax then
+        powerText = string.format("%d - %d", offer.powerMin, offer.powerMax)
+    end
+
+    local message = string.format(
+        "Dealer Demo Offer\n\nEquipment: %s\nBrand: %s\nCategory: %s\nPower: %s HP\nPrice: $%s\n\nOffer expires at the end of the current month.",
+        tostring(offer.name),
+        tostring(offer.brand),
+        tostring(offer.category),
+        powerText,
+        tostring(offer.price)
+    )
+    
+    InfoDialog.show(message)
 end
