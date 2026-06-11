@@ -142,3 +142,22 @@ function DealerRelations.UI:openActiveDemoOffer()
     
     DealerRelationsDemoOfferDialog.show(message)
 end
+
+-------------------------------------------------------------------------------
+-- Active Offer Notification
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- Displays a notification when an active demo offer is available.
+--
+-- Called during game load so players are reminded about offers that
+-- were saved in a previous session.
+-------------------------------------------------------------------------------
+function DealerRelations.UI:notifyActiveDemoOfferAvailable()
+    if DealerRelations.Data:hasActiveDemoOffer() then
+        g_currentMission:addIngameNotification(
+            FSBaseMission.INGAME_NOTIFICATION_INFO,
+            "Dealer Relations: A demo offer is currently available."
+        )
+    end
+end
