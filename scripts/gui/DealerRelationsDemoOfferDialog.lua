@@ -83,17 +83,17 @@ end
 -- Button Callbacks
 -------------------------------------------------------------------------------
 function DealerRelationsDemoOfferDialog:onClickAccept()
-    DealerRelations.log("Accept pressed")
+    DealerRelations.UI:acceptActiveDemoOffer()
     self:close()
 end
 
 function DealerRelationsDemoOfferDialog:onClickDecline()
-    DealerRelations.log("Decline pressed")
+    DealerRelations.UI:declineActiveDemoOffer()
     self:close()
 end
 
 function DealerRelationsDemoOfferDialog:onClickCancel()
-    DealerRelations.log("Cancel pressed")
+    DealerRelations.UI:cancelDemoOfferScreen()
     self:close()
 end
 
