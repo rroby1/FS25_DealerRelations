@@ -127,38 +127,40 @@ function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState,
     -- Save active demo information to dealerRelations.xml.
 end
 
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Checks all active demo vehicles for expiration.
 --
 -- A demo expires when the current game month reaches or exceeds the
 -- vehicle's configured end month.
 --
--- v0.10.0:
---   * Detect expiration only.
---   * No vehicle removal yet.
---   * No active demo cleanup yet.
-------------------------------------------------------------------------------
+-- Expired demos are not removed automatically. They remain open and continue
+-- blocking new demo offers until the player chooses Return or Buy.
+-------------------------------------------------------------------------------
 function DealerRelations.DemoManager:checkExpiredDemos()
-
-    local activeDemoVehicles =
-        DealerRelations.Data:getActiveDemoVehicles()
-
-    local currentMonth =
-        g_currentMission.environment.currentPeriod
+    local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+    local currentMonth = g_currentMission.environment.currentPeriod
 
     for _, demoVehicle in ipairs(activeDemoVehicles) do
 
-        if currentMonth >= demoVehicle.endMonth then
+        -- Only active demos should transition to expired.
+        -- This prevents the same expired demo from logging every update cycle.
+        if demoVehicle.state == "ACTIVE"
+            and demoVehicle.endMonth ~= nil
+            and currentMonth >= demoVehicle.endMonth then
+
+            -- Keep the demo record, but mark it unresolved.
+            -- This is the "open demo" state that blocks future offers.
+            demoVehicle.state = "EXPIRED"
 
             DealerRelations.log(string.format(
-                "Demo expired: %s (uniqueId=%s)",
+                "Demo expired and remains open: %s (uniqueId=%s)",
                 tostring(demoVehicle.name),
                 tostring(demoVehicle.uniqueId)
             ))
 
-            local vehicle = self:findVehicleByUniqueId(
-                demoVehicle.uniqueId
-            )
+            -- Confirm whether the expired demo vehicle still exists in-game.
+            -- Removal will happen later from the Return dialog, not here.
+            local vehicle = self:findVehicleByUniqueId(demoVehicle.uniqueId)
 
             if vehicle ~= nil then
                 DealerRelations.log(string.format(
@@ -171,7 +173,6 @@ function DealerRelations.DemoManager:checkExpiredDemos()
                     tostring(demoVehicle.uniqueId)
                 ))
             end
-
         end
     end
 end

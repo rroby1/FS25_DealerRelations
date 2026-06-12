@@ -256,3 +256,25 @@ end
 function DealerRelations.Data:getActiveDemoVehicles()
     return DealerRelations.dealerData.activeDemoVehicles or {}
 end
+
+-------------------------------------------------------------------------------
+-- Open Demo State
+-------------------------------------------------------------------------------
+
+-- Returns true if the player currently has a demo that has not been resolved.
+--
+-- Open demos block new demo offers. This includes demos that are still active
+-- and demos that have expired but have not yet been returned or purchased.
+function DealerRelations.Data:hasOpenDemo()
+    local activeDemoVehicles = self:getActiveDemoVehicles()
+
+    for _, demoVehicle in ipairs(activeDemoVehicles) do
+        if demoVehicle.state == "ACTIVE"
+            or demoVehicle.state == "EXPIRED"
+            or demoVehicle.state == "RETURN_PENDING" then
+            return true
+        end
+    end
+
+    return false
+end

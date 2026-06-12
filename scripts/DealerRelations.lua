@@ -91,10 +91,19 @@ function DealerRelations:checkMonthlyDemo()
         DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
 
         self:expireDemoOffer(currentMonth)
-        
-        -- Check active demo vehicles for expiration.
-        -- This only detects/logs expiration in v0.10.0.
+
+        -- Update demo vehicle states before deciding whether a new offer
+        -- is allowed this month.
         DealerRelations.DemoManager:checkExpiredDemos()
+
+        -- Prevent new demo offers while the player still has a demo that
+        -- has not been returned or purchased.
+        if DealerRelations.Data:hasOpenDemo() then
+            DealerRelations.log(
+                "Monthly demo offer skipped: an open demo already exists"
+            )
+            return
+        end
 
         DealerRelations.log(string.format(
             "Monthly demo check triggered for month %d",
@@ -129,7 +138,7 @@ function DealerRelations:checkMonthlyDemo()
             candidate.category,
             tostring(candidate.displayPower or "Unknown")
         ))
-        
+
         g_currentMission:addIngameNotification(
             FSBaseMission.INGAME_NOTIFICATION_INFO,
             "Dealer Relations: The dealer has a demo offer available. Check with the dealer before the end of the month."
