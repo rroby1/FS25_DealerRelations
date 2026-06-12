@@ -30,21 +30,30 @@ function DealerRelations.UI:registerInput()
         DealerRelations.warning("Cannot register demo offer input: DR_OPEN_DEMO_OFFER is missing")
         return
     end
-
     local _, actionEventId = g_inputBinding:registerActionEvent(
         InputAction.DR_OPEN_DEMO_OFFER,
-        self,
-        self.onOpenDemoOfferInput,
+        DealerRelations.UI,
+        DealerRelations.UI.onOpenDemoOfferInput,
         false,
         true,
         false,
-        true
+        false
     )
     
     DealerRelations.log(string.format(
         "Demo offer actionEventId=%s",
         tostring(actionEventId)
     ))
+    
+    if actionEventId == nil then
+        DealerRelations.warning("Demo offer input registration failed: actionEventId is nil")
+        return
+    end
+    
+    if actionEventId == nil then
+        DealerRelations.warning("Demo offer input registration failed: actionEventId is nil")
+        return
+    end
 
     g_inputBinding:setActionEventText(actionEventId, "Open Dealer Demo Offer")
     g_inputBinding:setActionEventTextVisibility(actionEventId, false)
@@ -60,8 +69,16 @@ end
 -- Input Callbacks
 -------------------------------------------------------------------------------
 
-function DealerRelations.UI:onOpenDemoOfferInput()
-     if DealerRelations.Data:hasActiveDemoOffer() then
+function DealerRelations.UI:onOpenDemoOfferInput(actionName, inputValue, callbackState, isAnalog)
+    DealerRelations.log(string.format(
+        "Demo offer input callback fired: action=%s value=%s state=%s analog=%s",
+        tostring(actionName),
+        tostring(inputValue),
+        tostring(callbackState),
+        tostring(isAnalog)
+    ))
+
+    if DealerRelations.Data:hasActiveDemoOffer() then
         self:openActiveDemoOffer()
     else
         g_currentMission:addIngameNotification(

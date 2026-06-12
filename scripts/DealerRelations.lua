@@ -165,7 +165,20 @@ end
 
 function DealerRelations:update(dt)
     self:checkMonthlyDemo()
-    
+
+    -- TEMP v0.10.0 debug:
+    -- Direct key test to confirm NUMPAD 9 is detected on a new save.
+    if Input.isKeyPressed(Input.KEY_KP_9) then
+        if not self.debugNumpad9Pressed then
+            self.debugNumpad9Pressed = true
+
+            DealerRelations.log("Raw NUMPAD 9 key press detected")
+            DealerRelations.UI:onOpenDemoOfferInput()
+        end
+    else
+    self.debugNumpad9Pressed = false
+end
+
     if not DealerRelations.UI.inputRegistered then
         DealerRelations.UI:registerInput()
     end
