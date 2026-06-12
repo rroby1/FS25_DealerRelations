@@ -213,6 +213,40 @@ function DealerRelations.Persistence:load(savegameDirectory)
             "Confidence missing from dealerRelations.xml; using default confidence"
         )
     end
+    
+    -- Load active demo vehicles.
+    DealerRelations.dealerData.activeDemoVehicles = {}
+
+    local demoVehicleIndex = 0
+
+    while true do
+        local key = string.format(
+            "dealerRelations.activeDemoVehicles.activeDemoVehicle(%d)",
+            demoVehicleIndex
+        )
+
+        local uniqueId = getXMLString(xmlFile, key .. "#uniqueId")
+
+        if uniqueId == nil then
+            break
+        end
+
+        table.insert(
+            DealerRelations.dealerData.activeDemoVehicles,
+            {
+                uniqueId = uniqueId,
+                name = getXMLString(xmlFile, key .. "#name"),
+                brand = getXMLString(xmlFile, key .. "#brand"),
+                xmlFilename = getXMLString(xmlFile, key .. "#xmlFilename"),
+                startMonth = getXMLInt(xmlFile, key .. "#startMonth") or 0,
+                endMonth = getXMLInt(xmlFile, key .. "#endMonth") or 0,
+                state = getXMLString(xmlFile, key .. "#state") or "ACTIVE",
+                role = getXMLString(xmlFile, key .. "#role") or "PRIMARY"
+            }
+        )
+
+        demoVehicleIndex = demoVehicleIndex + 1
+    end
 
     delete(xmlFile)
 
@@ -220,6 +254,8 @@ function DealerRelations.Persistence:load(savegameDirectory)
         "Loaded confidence: " ..
         tostring(DealerRelations.Data:getConfidence()) ..
         ", relationship level: " ..
-        tostring(DealerRelations.Data:getRelationshipLevel())
+        tostring(DealerRelations.Data:getRelationshipLevel()) ..
+        ", active demo vehicles: " ..
+        tostring(#DealerRelations.dealerData.activeDemoVehicles)
     )
 end
