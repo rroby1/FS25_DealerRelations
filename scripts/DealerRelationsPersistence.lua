@@ -74,6 +74,24 @@ function DealerRelations.Persistence:save(savegameDirectory)
         setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#offerMonth", activeOffer.offerMonth or 0)
     end
 
+    local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+
+    for index, demoVehicle in ipairs(activeDemoVehicles) do
+        local key = string.format(
+            "dealerRelations.activeDemoVehicles.activeDemoVehicle(%d)",
+            index - 1
+        )
+
+        setXMLString(xmlFile, key .. "#uniqueId", demoVehicle.uniqueId)
+        setXMLString(xmlFile, key .. "#name", demoVehicle.name)
+        setXMLString(xmlFile, key .. "#brand", demoVehicle.brand)
+        setXMLString(xmlFile, key .. "#xmlFilename", demoVehicle.xmlFilename)
+        setXMLInt(xmlFile, key .. "#startMonth", demoVehicle.startMonth or 0)
+        setXMLInt(xmlFile, key .. "#endMonth", demoVehicle.endMonth or 0)
+        setXMLString(xmlFile, key .. "#state", demoVehicle.state or "ACTIVE")
+        setXMLString(xmlFile, key .. "#role", demoVehicle.role or "PRIMARY")
+    end
+
     saveXMLFile(xmlFile)
     delete(xmlFile)
 end

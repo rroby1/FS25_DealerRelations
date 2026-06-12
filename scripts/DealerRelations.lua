@@ -15,7 +15,7 @@
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.9.0"
+DealerRelations.version = "0.10.0"
 
 -------------------------------------------------------------------------------
 -- Load supporting modules.
@@ -29,6 +29,7 @@ source(g_currentModDirectory .. "scripts/DealerRelationsPersistence.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsUI.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsDemoOfferDialog.lua")
+source(g_currentModDirectory .. "scripts/DealerRelationsDemoManager.lua")
 
 -------------------------------------------------------------------------------
 -- Called by the game when a map is loaded.

@@ -10,6 +10,8 @@
 DealerRelations = DealerRelations or {}
 DealerRelations.Data = DealerRelations.Data or {}
 
+activeDemoVehicles = {}
+
 -------------------------------------------------------------------------------
 -- Constants
 -------------------------------------------------------------------------------
@@ -216,4 +218,41 @@ end
 -------------------------------------------------------------------------------
 function DealerRelations.Data:hasActiveDemoOffer()
     return DealerRelations.dealerData.activeDemoOffer ~= nil
+end
+
+-- Adds a vehicle to the active demo vehicle list.
+-- Demo vehicles are tracked separately from the game's ownership system.
+function DealerRelations.Data:addActiveDemoVehicle(demoVehicle)
+
+    -- Ignore invalid demo records.
+    if demoVehicle == nil then
+        DealerRelations.warning("Cannot add active demo vehicle: demoVehicle is nil")
+        return false
+    end
+
+    -- A unique vehicle ID is required so the demo can be found later.
+    if demoVehicle.uniqueId == nil then
+        DealerRelations.warning("Cannot add active demo vehicle: uniqueId is nil")
+        return false
+    end
+
+    -- Create the active demo vehicle list if it does not exist yet.
+    if DealerRelations.dealerData.activeDemoVehicles == nil then
+        DealerRelations.dealerData.activeDemoVehicles = {}
+    end
+
+    table.insert(DealerRelations.dealerData.activeDemoVehicles, demoVehicle)
+
+    DealerRelations.log(string.format(
+        "Active demo vehicle added: uniqueId=%s name=%s",
+        tostring(demoVehicle.uniqueId),
+        tostring(demoVehicle.name)
+    ))
+
+    return true
+end
+
+-- Returns the list of active demo vehicles.
+function DealerRelations.Data:getActiveDemoVehicles()
+    return DealerRelations.dealerData.activeDemoVehicles or {}
 end

@@ -40,6 +40,11 @@ function DealerRelations.UI:registerInput()
         false,
         true
     )
+    
+    DealerRelations.log(string.format(
+        "Demo offer actionEventId=%s",
+        tostring(actionEventId)
+    ))
 
     g_inputBinding:setActionEventText(actionEventId, "Open Dealer Demo Offer")
     g_inputBinding:setActionEventTextVisibility(actionEventId, false)
@@ -82,8 +87,8 @@ function DealerRelations.UI:acceptActiveDemoOffer()
         "Demo offer accepted: " ..
         tostring(offer.name)
     )
-
-    DealerRelations.Data:clearActiveDemoOffer()
+    
+    DealerRelations.DemoManager:startDemoFromOffer(offer)
 end
 
 function DealerRelations.UI:declineActiveDemoOffer()
@@ -98,7 +103,7 @@ function DealerRelations.UI:declineActiveDemoOffer()
         "Demo offer declined: " ..
         tostring(offer.name)
     )
-
+    
     DealerRelations.Data:clearActiveDemoOffer()
 end
 
