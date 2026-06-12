@@ -12,6 +12,22 @@
 -- orchestration layer for the mod.
 -------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------
+-- Demo Lifecycle
+--
+-- ACTIVE
+--     Demo is currently within its evaluation period.
+--
+-- EXPIRED
+--     Demo period has ended. Awaiting player action.
+--
+-- RETURNED
+--     Demo vehicle returned to dealer and removed from game.
+--
+-- PURCHASED
+--     Demo vehicle purchased by player and converted to owned equipment.
+-------------------------------------------------------------------------------
+
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
@@ -29,6 +45,7 @@ source(g_currentModDirectory .. "scripts/DealerRelationsPersistence.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsUI.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsDemoOfferDialog.lua")
+source(g_currentModDirectory .. "scripts/gui/DealerRelationsDemoReturnDialog.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsDemoManager.lua")
 
 -------------------------------------------------------------------------------
@@ -185,18 +202,15 @@ function DealerRelations:update(dt)
     DealerRelations.DemoManager:checkEndingDemoNotices()
     DealerRelations.DemoManager:checkReturnDemoNotices()
 
-    -- TEMP v0.10.0 debug:
-    -- Direct key test to confirm NUMPAD 9 is detected on a new save.
-    if Input.isKeyPressed(Input.KEY_KP_9) then
-        if not self.debugNumpad9Pressed then
-            self.debugNumpad9Pressed = true
-
-            DealerRelations.log("Raw NUMPAD 9 key press detected")
-            DealerRelations.UI:onOpenDemoOfferInput()
-        end
-    else
-    self.debugNumpad9Pressed = false
-end
+    -- TEMP TEST HOOK:
+    -- Raw NUMPAD 9 fallback used only while debugging the new-save input binding issue.
+    -- Disable this when testing on existing saves because the normal input action also fires,
+    -- which causes the dealer dialog to open twice.
+    --[[if Input.isKeyPressed(Input.KEY_KP_9) then
+        DealerRelations.log("Raw NUMPAD 9 key press detected")
+        DealerRelations.UI:onOpenDemoOfferInput()
+    end
+    ]]
 
     if not DealerRelations.UI.inputRegistered then
         DealerRelations.UI:registerInput()

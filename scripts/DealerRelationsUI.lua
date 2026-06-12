@@ -69,23 +69,25 @@ end
 -- Input Callbacks
 -------------------------------------------------------------------------------
 
-function DealerRelations.UI:onOpenDemoOfferInput(actionName, inputValue, callbackState, isAnalog)
-    DealerRelations.log(string.format(
-        "Demo offer input callback fired: action=%s value=%s state=%s analog=%s",
-        tostring(actionName),
-        tostring(inputValue),
-        tostring(callbackState),
-        tostring(isAnalog)
-    ))
-
+function DealerRelations.UI:onOpenDemoOfferInput()
+    -- Demo offers take priority because they expire at the end of the month.
+    -- If no offer exists, check whether an expired demo needs player action.
     if DealerRelations.Data:hasActiveDemoOffer() then
         self:openActiveDemoOffer()
-    else
-        g_currentMission:addIngameNotification(
-            FSBaseMission.INGAME_NOTIFICATION_INFO,
-            "Dealer Relations: No active demo offer is available."
-        )
+        return
     end
+
+    local expiredDemo = DealerRelations.Data:getFirstExpiredDemo()
+
+    if expiredDemo ~= nil then
+        self:openExpiredDemoDialog(expiredDemo)
+        return
+    end
+
+    g_currentMission:addIngameNotification(
+        FSBaseMission.INGAME_NOTIFICATION_INFO,
+        "Dealer Relations: No active demo offer or return action is available."
+    )
 end
 
 -------------------------------------------------------------------------------
@@ -182,4 +184,38 @@ function DealerRelations.UI:notifyActiveDemoOfferAvailable()
             "Dealer Relations: A demo offer is currently available."
         )
     end
+end
+
+-------------------------------------------------------------------------------
+-- Expired Demo Return / Buy Screen
+-------------------------------------------------------------------------------
+
+-- Opens the expired demo dialog.
+--
+-- This first implementation is intentionally a shell only. The buttons only
+-- log which action was selected so we can test UI routing before adding
+-- vehicle removal or purchase behavior.
+function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
+    if demoVehicle == nil then
+        DealerRelations.warning("Cannot open expired demo dialog: demoVehicle is nil")
+        return
+    end
+
+    DealerRelations.log("Opening expired demo return/buy dialog")
+
+    local message = string.format(
+        "Dealer Demo Return\n\nEquipment: %s\nBrand: %s\nStatus: Expired\n\nThis demo period has ended. Return the machine or discuss purchase options with the dealer.",
+        tostring(demoVehicle.name),
+        tostring(demoVehicle.brand)
+    )
+
+    -- Register and show the expired demo dialog.
+    -- The dialog buttons are log-only for this test step.
+    DealerRelationsDemoReturnDialog.register()
+    DealerRelationsDemoReturnDialog.show(message)
+
+    g_currentMission:addIngameNotification(
+        FSBaseMission.INGAME_NOTIFICATION_INFO,
+        "Dealer Relations: Expired demo action is available. Return / Buy dialog shell opened."
+    )
 end

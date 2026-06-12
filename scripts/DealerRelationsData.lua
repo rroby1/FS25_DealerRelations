@@ -278,3 +278,23 @@ function DealerRelations.Data:hasOpenDemo()
 
     return false
 end
+
+-------------------------------------------------------------------------------
+-- Expired Demo Lookup
+-------------------------------------------------------------------------------
+
+-- Returns the first expired demo waiting for player action.
+--
+-- This is used by the UI to decide whether the dealer should show the
+-- Return / Buy dialog instead of the normal demo offer dialog.
+function DealerRelations.Data:getFirstExpiredDemo()
+    local activeDemoVehicles = self:getActiveDemoVehicles()
+
+    for _, demoVehicle in ipairs(activeDemoVehicles) do
+        if demoVehicle.state == "EXPIRED" then
+            return demoVehicle
+        end
+    end
+
+    return nil
+end
