@@ -178,6 +178,12 @@ end
 
 function DealerRelations:update(dt)
     self:checkMonthlyDemo()
+    
+    -- Check player-facing demo notices during normal update processing.
+    -- These are separate from monthly demo generation because notices are
+    -- time-of-day based, not just month-change based.
+    DealerRelations.DemoManager:checkEndingDemoNotices()
+    DealerRelations.DemoManager:checkReturnDemoNotices()
 
     -- TEMP v0.10.0 debug:
     -- Direct key test to confirm NUMPAD 9 is detected on a new save.

@@ -113,7 +113,15 @@ function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState,
         startMonth = g_currentMission.environment.currentPeriod,
         endMonth = g_currentMission.environment.currentPeriod + 1,
         state = "ACTIVE",
-        role = "PRIMARY"
+        role = "PRIMARY",
+
+        -- Tracks whether the final-day 5 PM warning has already been shown.
+        -- This prevents the reminder from repeating every update cycle.
+        endingNoticeSent = false,
+
+        -- Tracks whether the post-expiration 8 AM return reminder has been shown.
+        -- This will be used by the next reminder step.
+        returnNoticeSent = false
     })
     
     DealerRelations.Data:clearActiveDemoOffer()
@@ -195,4 +203,91 @@ function DealerRelations.DemoManager:findVehicleByUniqueId(uniqueId)
     end
 
     return g_currentMission.vehicleSystem:getVehicleByUniqueId(uniqueId)
+end
+
+-------------------------------------------------------------------------------
+-- Checks whether any active demo needs the 5 PM final-day notice.
+--
+-- This notice is intentionally separate from expiration. The demo may expire
+-- at the month transition, but the player-facing warning should happen during
+-- a visible play window so it is not missed while sleeping through the night.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:checkEndingDemoNotices()
+    local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+    local currentMonth = g_currentMission.environment.currentPeriod
+
+    -- FS stores dayTime as milliseconds since midnight.
+    -- Converting to a whole hour gives us a simple "at or after 5 PM" check.
+    local currentHour = math.floor(g_currentMission.environment.dayTime / 1000 / 60 / 60)
+
+    for _, demoVehicle in ipairs(activeDemoVehicles) do
+
+        -- The demo is still active during the month before endMonth.
+        -- Example: startMonth=3, endMonth=4 means month 3 is the final
+        -- active month, and month 4 is when the demo becomes expired.
+        local isFinalDemoMonth = demoVehicle.endMonth ~= nil
+            and currentMonth == demoVehicle.endMonth - 1
+
+        if demoVehicle.state == "ACTIVE"
+            and isFinalDemoMonth
+            and demoVehicle.endingNoticeSent ~= true
+            and currentHour >= 17 then
+
+            g_currentMission:addIngameNotification(
+                FSBaseMission.INGAME_NOTIFICATION_INFO,
+                string.format(
+                    "Dealer Relations: Your demo period for %s ends today. Please return the machine tomorrow morning or discuss purchase options with the dealer.",
+                    tostring(demoVehicle.name)
+                )
+            )
+
+            -- Mark the notice as sent immediately so it cannot repeat
+            -- during later update cycles in the same evening.
+            demoVehicle.endingNoticeSent = true
+
+            DealerRelations.log(string.format(
+                "Ending notice sent for demo: %s",
+                tostring(demoVehicle.name)
+            ))
+        end
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Checks whether any expired demo needs the 8 AM return notice.
+--
+-- This notice is intentionally separate from the expiration state change.
+-- A demo may expire during a month transition or sleep period, but the player
+-- should receive the return reminder during a visible morning play window.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:checkReturnDemoNotices()
+    local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+
+    -- FS stores dayTime as milliseconds since midnight.
+    -- Converting to a whole hour gives us a simple "at or after 8 AM" check.
+    local currentHour = math.floor(g_currentMission.environment.dayTime / 1000 / 60 / 60)
+
+    for _, demoVehicle in ipairs(activeDemoVehicles) do
+        if demoVehicle.state == "EXPIRED"
+            and demoVehicle.returnNoticeSent ~= true
+            and currentHour >= 8 then
+
+            g_currentMission:addIngameNotification(
+                FSBaseMission.INGAME_NOTIFICATION_INFO,
+                string.format(
+                    "Dealer Relations: Your demo period for %s has ended. Please return the machine or discuss purchase options with the dealer.",
+                    tostring(demoVehicle.name)
+                )
+            )
+
+            -- Mark the notice as sent immediately so it cannot repeat
+            -- during later update cycles after 8 AM.
+            demoVehicle.returnNoticeSent = true
+
+            DealerRelations.log(string.format(
+                "Return notice sent for expired demo: %s",
+                tostring(demoVehicle.name)
+            ))
+        end
+    end
 end
