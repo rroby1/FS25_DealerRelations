@@ -91,6 +91,10 @@ function DealerRelations:checkMonthlyDemo()
         DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
 
         self:expireDemoOffer(currentMonth)
+        
+        -- Check active demo vehicles for expiration.
+        -- This only detects/logs expiration in v0.10.0.
+        DealerRelations.DemoManager:checkExpiredDemos()
 
         DealerRelations.log(string.format(
             "Monthly demo check triggered for month %d",

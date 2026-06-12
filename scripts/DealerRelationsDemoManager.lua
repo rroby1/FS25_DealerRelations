@@ -126,3 +126,72 @@ function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState,
     -- TODO v0.10.0:
     -- Save active demo information to dealerRelations.xml.
 end
+
+------------------------------------------------------------------------------
+-- Checks all active demo vehicles for expiration.
+--
+-- A demo expires when the current game month reaches or exceeds the
+-- vehicle's configured end month.
+--
+-- v0.10.0:
+--   * Detect expiration only.
+--   * No vehicle removal yet.
+--   * No active demo cleanup yet.
+------------------------------------------------------------------------------
+function DealerRelations.DemoManager:checkExpiredDemos()
+
+    local activeDemoVehicles =
+        DealerRelations.Data:getActiveDemoVehicles()
+
+    local currentMonth =
+        g_currentMission.environment.currentPeriod
+
+    for _, demoVehicle in ipairs(activeDemoVehicles) do
+
+        if currentMonth >= demoVehicle.endMonth then
+
+            DealerRelations.log(string.format(
+                "Demo expired: %s (uniqueId=%s)",
+                tostring(demoVehicle.name),
+                tostring(demoVehicle.uniqueId)
+            ))
+
+            local vehicle = self:findVehicleByUniqueId(
+                demoVehicle.uniqueId
+            )
+
+            if vehicle ~= nil then
+                DealerRelations.log(string.format(
+                    "Found expired demo vehicle: %s",
+                    tostring(vehicle:getName())
+                ))
+            else
+                DealerRelations.warning(string.format(
+                    "Could not find expired demo vehicle: %s",
+                    tostring(demoVehicle.uniqueId)
+                ))
+            end
+
+        end
+    end
+end
+
+------------------------------------------------------------------------------
+-- Finds a vehicle by unique ID.
+--
+-- Returns:
+--   vehicle if found
+--   nil if not found
+------------------------------------------------------------------------------
+function DealerRelations.DemoManager:findVehicleByUniqueId(uniqueId)
+
+    if uniqueId == nil then
+        return nil
+    end
+
+    if g_currentMission == nil or g_currentMission.vehicleSystem == nil then
+        return nil
+    end
+
+    return g_currentMission.vehicleSystem:getVehicleByUniqueId(uniqueId)
+end
