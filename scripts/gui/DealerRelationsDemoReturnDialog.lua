@@ -67,9 +67,10 @@ end
 -------------------------------------------------------------------------------
 -- Display
 -------------------------------------------------------------------------------
--- Shows the expired demo return dialog for one specific demo vehicle.
--- Rationale: the button handlers need the demo record later so they can locate
--- the actual in-game vehicle by uniqueId.
+-- Shows the expired demo return/buy dialog.
+--
+-- The demoVehicle record is stored on the dialog instance so
+-- Return and Buy actions can operate on the correct vehicle.
 function DealerRelationsDemoReturnDialog.show(text, demoVehicle)
     if DealerRelationsDemoReturnDialog.INSTANCE == nil then
         DealerRelationsDemoReturnDialog.register()
@@ -81,10 +82,6 @@ function DealerRelationsDemoReturnDialog.show(text, demoVehicle)
     -- Rationale: onClickReturn runs later, after the dialog is already open.
     dialog.demoVehicle = demoVehicle
     
-    DealerRelations.log(
-        "Expired demo dialog received demoVehicle: " .. tostring(demoVehicle ~= nil and demoVehicle.name or nil)
-    )
-
     dialog.dialogTitleElement:setText("Dealer Demo Offer")
     dialog.messageTextElement:setText(text or "")
 
@@ -94,7 +91,13 @@ end
 -------------------------------------------------------------------------------
 -- Button Callbacks
 -------------------------------------------------------------------------------
--- Handles the Return button during the first wiring test.
+-- Handles the Return button for an expired demo.
+--
+-- Workflow:
+-- 1. Locate the tracked demo vehicle.
+-- 2. Remove the vehicle from the game.
+-- 3. Mark the demo as RETURNED.
+-- 4. Remove the demo from active tracking.
 function DealerRelationsDemoReturnDialog:onClickReturn()
     DealerRelations.log("Expired demo dialog Return button pressed")
 
@@ -111,8 +114,10 @@ function DealerRelationsDemoReturnDialog:onClickReturn()
         return
     end
 
-    -- Locate the actual in-game vehicle from the saved uniqueId.
-    -- Rationale: the demo record is only tracking data; removal must act on the spawned vehicle object.
+   -- Removes an active demo tracking record by uniqueId.
+    --
+    -- Used when a demo lifecycle is complete and should no longer
+    -- participate in open-demo checks or future processing.
     local vehicle = DealerRelations.DemoManager:findVehicleByUniqueId(demoVehicle.uniqueId)
 
     if vehicle == nil then
@@ -122,8 +127,9 @@ function DealerRelationsDemoReturnDialog:onClickReturn()
 
     DealerRelations.log("Return vehicle located: " .. tostring(vehicle:getName()))
 
-    -- Remove only the in-game vehicle for this test step.
-    -- Rationale: tracking cleanup is a separate future step.
+    -- Removes a demo vehicle from the game world.
+    --
+    -- Used when a player returns an expired demo rather than purchasing it.
     DealerRelations.DemoManager:removeDemoVehicle(vehicle)
     
     -- Mark the demo as returned.
@@ -140,7 +146,14 @@ function DealerRelationsDemoReturnDialog:onClickReturn()
     DealerRelations.Data:removeActiveDemoVehicleByUniqueId(demoVehicle.uniqueId)
 end
 
--- Handles the Buy button during the first wiring test.
+-- Handles the Buy button for an expired demo.
+--
+-- Workflow:
+-- 1. Locate the tracked demo vehicle.
+-- 2. Convert the vehicle to OWNED.
+-- 3. Calculate the discounted purchase price.
+-- 4. Charge the player's farm.
+-- 5. Mark the demo as PURCHASED.
 function DealerRelationsDemoReturnDialog:onClickBuy()
     DealerRelations.log("Expired demo dialog Buy button pressed")
 
@@ -165,19 +178,11 @@ function DealerRelationsDemoReturnDialog:onClickBuy()
     end
 
     DealerRelations.log("Buy vehicle located: " .. tostring(vehicle:getName()))
-    
-    DealerRelations.log(
-        "Current vehicle propertyState: " .. tostring(vehicle.propertyState)
-    )
-    
+
     -- Change the live vehicle property state to owned.
     -- Rationale: the live vehicle object does not expose setPropertyState(),
     -- but it does have a propertyState field.
     vehicle.propertyState = VehiclePropertyState.OWNED
-
-    DealerRelations.log(
-        "Vehicle propertyState after buy conversion: " .. tostring(vehicle.propertyState)
-    )
 
     -- Calculate the demo purchase price from the live vehicle price.
     -- Rationale: the active demo tracking record does not currently store price,
