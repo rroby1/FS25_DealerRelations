@@ -121,6 +121,10 @@ function DealerRelationsDemoReturnDialog:onClickReturn()
     end
 
     DealerRelations.log("Return vehicle located: " .. tostring(vehicle:getName()))
+
+    -- Remove only the in-game vehicle for this test step.
+    -- Rationale: tracking cleanup and state changes are separate future steps.
+    DealerRelations.DemoManager:removeDemoVehicle(vehicle)
 end
 
 -- Handles the Buy button during the first wiring test.

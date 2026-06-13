@@ -291,3 +291,32 @@ function DealerRelations.DemoManager:checkReturnDemoNotices()
         end
     end
 end
+
+-------------------------------------------------------------------------------
+-- Removes a demo vehicle from the game world.
+--
+-- Returns:
+-- true  = removal call was made
+-- false = vehicle was not valid for removal
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:removeDemoVehicle(vehicle)
+    -- Stop if lookup failed before this point.
+    -- Rationale: removal must only run against a confirmed vehicle object.
+    if vehicle == nil then
+        DealerRelations.warning("Cannot remove demo vehicle: vehicle is nil")
+        return false
+    end
+
+    DealerRelations.log(
+        "Removing demo vehicle: " .. tostring(vehicle:getName())
+    )
+
+    -- Delete the in-game vehicle object.
+    -- Rationale: this is the smallest testable return action.
+    -- No Dealer Relations tracking state is changed in this step.
+    vehicle:delete()
+
+    DealerRelations.log("Demo vehicle removal call completed")
+
+    return true
+end
