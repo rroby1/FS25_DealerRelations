@@ -320,3 +320,31 @@ function DealerRelations.DemoManager:removeDemoVehicle(vehicle)
 
     return true
 end
+
+-------------------------------------------------------------------------------
+-- Converts a demo vehicle into an owned vehicle.
+--
+-- Returns:
+-- true  = ownership conversion call was made
+-- false = vehicle was not valid for conversion
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:buyDemoVehicle(vehicle)
+    -- Stop if lookup failed before this point.
+    -- Rationale: buying must only run against a confirmed vehicle object.
+    if vehicle == nil then
+        DealerRelations.warning("Cannot buy demo vehicle: vehicle is nil")
+        return false
+    end
+
+    DealerRelations.log(
+        "Converting demo vehicle to owned: " .. tostring(vehicle:getName())
+    )
+
+    -- Change the in-game property state from MISSION/demo behavior to OWNED.
+    -- Rationale: the player is choosing to keep the machine instead of returning it.
+    vehicle:setPropertyState(VehiclePropertyState.OWNED)
+
+    DealerRelations.log("Demo vehicle ownership conversion call completed")
+
+    return true
+end

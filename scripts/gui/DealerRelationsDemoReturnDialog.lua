@@ -165,6 +165,25 @@ function DealerRelationsDemoReturnDialog:onClickBuy()
     end
 
     DealerRelations.log("Buy vehicle located: " .. tostring(vehicle:getName()))
+    
+    DealerRelations.log(
+        "Current vehicle propertyState: " .. tostring(vehicle.propertyState)
+    )
+    
+    -- Change the live vehicle property state to owned.
+    -- Rationale: the live vehicle object does not expose setPropertyState(),
+    -- but it does have a propertyState field.
+    vehicle.propertyState = VehiclePropertyState.OWNED
+
+    DealerRelations.log(
+        "Vehicle propertyState after buy conversion: " .. tostring(vehicle.propertyState)
+    )
+    
+    demoVehicle.state = "PURCHASED"
+
+    DealerRelations.log(
+        "Demo marked PURCHASED: " .. tostring(demoVehicle.name)
+    )
 end
 
 -------------------------------------------------------------------------------
