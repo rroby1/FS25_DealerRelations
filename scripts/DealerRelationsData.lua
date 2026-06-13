@@ -257,6 +257,36 @@ function DealerRelations.Data:getActiveDemoVehicles()
     return DealerRelations.dealerData.activeDemoVehicles or {}
 end
 
+-- Removes one active demo vehicle tracking record by uniqueId.
+-- Rationale: once a returned demo has been removed from the game world,
+-- its Dealer Relations tracking record should no longer remain open.
+function DealerRelations.Data:removeActiveDemoVehicleByUniqueId(uniqueId)
+    if uniqueId == nil then
+        DealerRelations.warning("Cannot remove active demo vehicle: uniqueId is nil")
+        return false
+    end
+
+    local activeDemoVehicles = self:getActiveDemoVehicles()
+
+    for index, demoVehicle in ipairs(activeDemoVehicles) do
+        if demoVehicle.uniqueId == uniqueId then
+            table.remove(activeDemoVehicles, index)
+
+            DealerRelations.log(
+                "Removed active demo tracking record: " .. tostring(demoVehicle.name)
+            )
+
+            return true
+        end
+    end
+
+    DealerRelations.warning(
+        "Could not remove active demo tracking record: uniqueId not found " .. tostring(uniqueId)
+    )
+
+    return false
+end
+
 -------------------------------------------------------------------------------
 -- Open Demo State
 -------------------------------------------------------------------------------

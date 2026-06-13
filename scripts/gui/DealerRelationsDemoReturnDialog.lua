@@ -134,6 +134,10 @@ function DealerRelationsDemoReturnDialog:onClickReturn()
     DealerRelations.log(
         "Demo marked RETURNED: " .. tostring(demoVehicle.name)
     )
+
+    -- Remove the returned demo from active tracking.
+    -- Rationale: RETURNED demos are resolved and should no longer block future demo offers.
+    DealerRelations.Data:removeActiveDemoVehicleByUniqueId(demoVehicle.uniqueId)
 end
 
 -- Handles the Buy button during the first wiring test.
