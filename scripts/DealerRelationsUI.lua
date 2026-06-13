@@ -212,10 +212,5 @@ function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
     -- Register and show the expired demo dialog.
     -- The dialog buttons are log-only for this test step.
     DealerRelationsDemoReturnDialog.register()
-    DealerRelationsDemoReturnDialog.show(message)
-
-    g_currentMission:addIngameNotification(
-        FSBaseMission.INGAME_NOTIFICATION_INFO,
-        "Dealer Relations: Expired demo action is available. Return / Buy dialog shell opened."
-    )
+    DealerRelationsDemoReturnDialog.show(message, demoVehicle)
 end

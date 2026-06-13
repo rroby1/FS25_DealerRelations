@@ -67,12 +67,23 @@ end
 -------------------------------------------------------------------------------
 -- Display
 -------------------------------------------------------------------------------
-function DealerRelationsDemoReturnDialog.show(text)
+-- Shows the expired demo return dialog for one specific demo vehicle.
+-- Rationale: the button handlers need the demo record later so they can locate
+-- the actual in-game vehicle by uniqueId.
+function DealerRelationsDemoReturnDialog.show(text, demoVehicle)
     if DealerRelationsDemoReturnDialog.INSTANCE == nil then
         DealerRelationsDemoReturnDialog.register()
     end
 
     local dialog = DealerRelationsDemoReturnDialog.INSTANCE
+
+    -- Store the tracking record on the dialog instance.
+    -- Rationale: onClickReturn runs later, after the dialog is already open.
+    dialog.demoVehicle = demoVehicle
+    
+    DealerRelations.log(
+        "Expired demo dialog received demoVehicle: " .. tostring(demoVehicle ~= nil and demoVehicle.name or nil)
+    )
 
     dialog.dialogTitleElement:setText("Dealer Demo Offer")
     dialog.messageTextElement:setText(text or "")
@@ -86,7 +97,30 @@ end
 -- Handles the Return button during the first wiring test.
 function DealerRelationsDemoReturnDialog:onClickReturn()
     DealerRelations.log("Expired demo dialog Return button pressed")
+
+    -- Keep a local copy before closing the dialog.
+    -- Rationale: once the dialog closes, UI state may be cleared later.
+    local demoVehicle = self.demoVehicle
+
     self:close()
+
+    -- Stop here if the dialog was opened without a demo record.
+    -- Rationale: Return must operate on one known active demo.
+    if demoVehicle == nil then
+        DealerRelations.warning("Cannot return expired demo: demoVehicle is nil")
+        return
+    end
+
+    -- Locate the actual in-game vehicle from the saved uniqueId.
+    -- Rationale: the demo record is only tracking data; removal must act on the spawned vehicle object.
+    local vehicle = DealerRelations.DemoManager:findVehicleByUniqueId(demoVehicle.uniqueId)
+
+    if vehicle == nil then
+        DealerRelations.warning("Cannot return expired demo: vehicle not found for uniqueId " .. tostring(demoVehicle.uniqueId))
+        return
+    end
+
+    DealerRelations.log("Return vehicle located: " .. tostring(vehicle:getName()))
 end
 
 -- Handles the Buy button during the first wiring test.
