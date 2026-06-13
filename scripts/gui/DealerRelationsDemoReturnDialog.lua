@@ -123,8 +123,17 @@ function DealerRelationsDemoReturnDialog:onClickReturn()
     DealerRelations.log("Return vehicle located: " .. tostring(vehicle:getName()))
 
     -- Remove only the in-game vehicle for this test step.
-    -- Rationale: tracking cleanup and state changes are separate future steps.
+    -- Rationale: tracking cleanup is a separate future step.
     DealerRelations.DemoManager:removeDemoVehicle(vehicle)
+    
+    -- Mark the demo as returned.
+    -- Rationale: the vehicle has been successfully removed from the game,
+    -- so the demo lifecycle can advance from EXPIRED to RETURNED.
+    demoVehicle.state = "RETURNED"
+
+    DealerRelations.log(
+        "Demo marked RETURNED: " .. tostring(demoVehicle.name)
+    )
 end
 
 -- Handles the Buy button during the first wiring test.
