@@ -143,7 +143,28 @@ end
 -- Handles the Buy button during the first wiring test.
 function DealerRelationsDemoReturnDialog:onClickBuy()
     DealerRelations.log("Expired demo dialog Buy button pressed")
+
+    -- Keep a local copy before closing the dialog.
+    -- Rationale: once the dialog closes, UI state may be cleared later.
+    local demoVehicle = self.demoVehicle
+
     self:close()
+
+    if demoVehicle == nil then
+        DealerRelations.warning("Cannot buy expired demo: demoVehicle is nil")
+        return
+    end
+
+    -- Locate the actual in-game vehicle from the saved uniqueId.
+    -- Rationale: buying must operate on the spawned demo vehicle object.
+    local vehicle = DealerRelations.DemoManager:findVehicleByUniqueId(demoVehicle.uniqueId)
+
+    if vehicle == nil then
+        DealerRelations.warning("Cannot buy expired demo: vehicle not found for uniqueId " .. tostring(demoVehicle.uniqueId))
+        return
+    end
+
+    DealerRelations.log("Buy vehicle located: " .. tostring(vehicle:getName()))
 end
 
 -------------------------------------------------------------------------------
