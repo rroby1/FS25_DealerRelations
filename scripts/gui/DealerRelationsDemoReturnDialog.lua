@@ -178,7 +178,20 @@ function DealerRelationsDemoReturnDialog:onClickBuy()
     DealerRelations.log(
         "Vehicle propertyState after buy conversion: " .. tostring(vehicle.propertyState)
     )
-    
+
+    -- Calculate the demo purchase price from the live vehicle price.
+    -- Rationale: the active demo tracking record does not currently store price,
+    -- but the live vehicle object has the original list price.
+    local purchasePrice = math.floor(vehicle.price * 0.90)
+
+    DealerRelations.log(
+        string.format(
+            "Demo purchase price calculated: $%d (list price $%d)",
+            purchasePrice,
+            vehicle.price
+        )
+    )
+
     demoVehicle.state = "PURCHASED"
 
     DealerRelations.log(
