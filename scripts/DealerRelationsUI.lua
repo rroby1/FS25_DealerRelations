@@ -13,8 +13,6 @@
 DealerRelations = DealerRelations or {}
 DealerRelations.UI = DealerRelations.UI or {}
 
-DealerRelations.log("DealerRelationsDemoOfferDialog loaded")
-
 -------------------------------------------------------------------------------
 -- Input Registration
 -------------------------------------------------------------------------------
@@ -117,7 +115,6 @@ function DealerRelations.UI:declineActiveDemoOffer()
 end
 
 function DealerRelations.UI:cancelDemoOfferScreen()
-    DealerRelations.log("Demo offer screen cancelled")
 end
 
 -------------------------------------------------------------------------------
