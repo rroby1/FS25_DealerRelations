@@ -235,3 +235,103 @@ Store Data
 * Accepting a demo offer currently records the acceptance but does not yet spawn demo equipment.
 * Relationship impacts for accepting or declining offers are planned for a future update.
 * Demo equipment tracking and return workflows are planned for a future update.
+
+# v0.10.0
+
+## Added
+
+### Complete Demo Machine Lifecycle
+
+Implemented the full demo equipment workflow from offer generation through final disposition.
+
+#### Demo Offer System
+- Monthly demo offer generation.
+- Demo offer persistence across save/load.
+- Demo offer expiration handling.
+- Prevention of duplicate active offers.
+- Open demo tracking to prevent overlapping offers.
+
+#### Demo Acceptance
+- Accept demo offers through the Dealer Relations UI.
+- Spawn demo equipment at the dealer location.
+- Track spawned demo vehicles using vehicle unique IDs.
+- Persist active demo vehicle data across save/load.
+
+#### Demo Notifications
+- End-of-demo reminder notification.
+- Return reminder notification.
+- Time-based demo lifecycle messaging.
+
+#### Demo Return Workflow
+- Return demo equipment through the demo management dialog.
+- Locate demo vehicles by unique ID.
+- Remove returned demo vehicles from the game.
+- Clear active demo tracking after successful return.
+- Allow future demo offers once no active demos remain.
+
+#### Demo Purchase Workflow
+- Purchase demo equipment instead of returning it.
+- Convert demo equipment ownership from demo status to owned status.
+- Calculate purchase price from original vehicle value.
+- Deduct purchase cost from the player's farm account.
+- Mark demo records as purchased.
+- Allow future demo offers once the active demo is resolved.
+
+## Persistence
+
+### Active Demo Vehicle Tracking
+- Save active demo vehicle records to `dealerRelations.xml`.
+- Load active demo vehicle records on game load.
+- Track demo state using vehicle unique IDs rather than runtime object references.
+- Support return and purchase actions after save/load cycles.
+
+## Verification
+
+Successfully tested:
+
+- Demo offer generation.
+- Demo offer persistence.
+- Demo acceptance.
+- Demo vehicle spawning.
+- Active demo tracking.
+- Save/load of active demos.
+- Demo expiration handling.
+- Demo return workflow.
+- Demo purchase workflow.
+- Ownership conversion.
+- Purchase price calculation.
+- Farm money deduction.
+- Future offer generation after return.
+- Future offer generation after purchase.
+
+# v0.10.1
+
+## Fixed
+
+### Demo Offer Input Registration
+
+Resolved an issue where the `DR_OPEN_DEMO_OFFER` input action behaved inconsistently between new and existing saves.
+
+#### Symptoms
+- New saves: demo offer hotkey did not respond.
+- Existing saves: demo offer hotkey responded correctly.
+- Input action appeared in the Controls menu but was not reliably firing the callback.
+
+#### Root Cause
+Dealer Relations was registering its input action from the mod update loop rather than through the GIANTS player input registration lifecycle. Additionally, the `registerActionEvent()` parameter configuration did not match the pattern used by known-working FS25 player action registrations.
+
+#### Changes
+- Removed update-loop based input registration.
+- Integrated demo offer input registration into the GIANTS player input registration flow using:
+  - `PlayerInputComponent.registerGlobalPlayerActionEvents`
+- Updated `registerActionEvent()` parameters to match the working player-action pattern used by other FS25 mods.
+
+#### Verification
+Tested successfully on:
+- New save games
+- Existing save games
+
+Results:
+- Demo offer hotkey appears in Controls.
+- NUMPAD 9 opens the demo offer dialog.
+- No errors or warnings generated during testing.

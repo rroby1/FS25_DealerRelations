@@ -26,10 +26,16 @@ DealerRelations.UI.inputRegistered = false
 -------------------------------------------------------------------------------
 
 function DealerRelations.UI:registerInput()
+    -- Confirm that the custom input action from modDesc.xml was loaded
+    -- before asking GIANTS to register an action event for it.
     if InputAction.DR_OPEN_DEMO_OFFER == nil then
         DealerRelations.warning("Cannot register demo offer input: DR_OPEN_DEMO_OFFER is missing")
         return
     end
+
+    -- Register the demo offer hotkey as a player action event.
+    -- This function is now called from the player input registration flow,
+    -- so we do not need update-loop retry logic here.
     local _, actionEventId = g_inputBinding:registerActionEvent(
         InputAction.DR_OPEN_DEMO_OFFER,
         DealerRelations.UI,
@@ -37,32 +43,22 @@ function DealerRelations.UI:registerInput()
         false,
         true,
         false,
-        false
+        true
     )
-    
-    DealerRelations.log(string.format(
-        "Demo offer actionEventId=%s",
-        tostring(actionEventId)
-    ))
-    
-    if actionEventId == nil then
-        DealerRelations.warning("Demo offer input registration failed: actionEventId is nil")
-        return
-    end
-    
+
     if actionEventId == nil then
         DealerRelations.warning("Demo offer input registration failed: actionEventId is nil")
         return
     end
 
+    -- Keep the action hidden from the F1 help menu for now.
+    -- The key is meant as a direct shortcut, not an always-visible prompt.
     g_inputBinding:setActionEventText(actionEventId, "Open Dealer Demo Offer")
     g_inputBinding:setActionEventTextVisibility(actionEventId, false)
-    g_inputBinding:setActionEventActive(actionEventId, true)
 
     self.openDemoOfferActionEventId = actionEventId
 
     DealerRelations.log("Dealer Relations demo offer input registered")
-    self.inputRegistered = true
 end
 
 -------------------------------------------------------------------------------

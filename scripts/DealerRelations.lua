@@ -31,7 +31,7 @@
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.10.0"
+DealerRelations.version = "0.10.1"
 
 -------------------------------------------------------------------------------
 -- Load supporting modules.
@@ -195,28 +195,34 @@ end
 
 function DealerRelations:update(dt)
     self:checkMonthlyDemo()
-    
+
     -- Check player-facing demo notices during normal update processing.
     -- These are separate from monthly demo generation because notices are
     -- time-of-day based, not just month-change based.
     DealerRelations.DemoManager:checkEndingDemoNotices()
     DealerRelations.DemoManager:checkReturnDemoNotices()
-
-    -- TEMP TEST HOOK:
-    -- Raw NUMPAD 9 fallback used only while debugging the new-save input binding issue.
-    -- Disable this when testing on existing saves because the normal input action also fires,
-    -- which causes the dealer dialog to open twice.
-    --[[if Input.isKeyPressed(Input.KEY_KP_9) then
-        DealerRelations.log("Raw NUMPAD 9 key press detected")
-        DealerRelations.UI:onOpenDemoOfferInput()
-    end
-    ]]
-
-    if not DealerRelations.UI.inputRegistered then
-        DealerRelations.UI:registerInput()
-    end
 end
 
+-- Hook into GIANTS' player action registration lifecycle.
+-- Global player hotkeys are registered here by the base game, so Dealer
+-- Relations registers its demo-offer shortcut during the same process
+-- rather than attempting registration from the update loop.
+local function registerDealerRelationsPlayerActionEvents(self, superFunc, ...)
+    -- Allow the base game to register its normal player actions first.
+    superFunc(self, ...)
+
+    -- Register the Dealer Relations demo-offer hotkey.
+    -- This should execute whenever GIANTS builds the local player's
+    -- action event list.
+    DealerRelations.UI:registerInput()
+end
+
+-- Append Dealer Relations input registration to the standard player
+-- action registration flow used by GIANTS.
+PlayerInputComponent.registerGlobalPlayerActionEvents = Utils.overwrittenFunction(
+    PlayerInputComponent.registerGlobalPlayerActionEvents,
+    registerDealerRelationsPlayerActionEvents
+)
 -------------------------------------------------------------------------------
 -- Register Dealer Relations as a mod event listener.
 -------------------------------------------------------------------------------
