@@ -17,8 +17,14 @@ DealerRelations.Persistence = DealerRelations.Persistence or {}
 DealerRelations.Persistence.FILE_NAME = "dealerRelations.xml"
 
 -------------------------------------------------------------------------------
--- Save
+-- File Path
 -------------------------------------------------------------------------------
+
+function DealerRelations.Persistence:getFilePath(savegameDirectory)
+    -- Build the full path to dealerRelations.xml for the
+    -- specified savegame directory.
+    return savegameDirectory .. "/" .. self.FILE_NAME
+end
 
 -------------------------------------------------------------------------------
 -- Saves Dealer Relations data to XML in the active savegame directory.
@@ -31,7 +37,7 @@ function DealerRelations.Persistence:save(savegameDirectory)
         return
     end
 
-    local filePath = savegameDirectory .. "/" .. self.FILE_NAME
+    local filePath = self:getFilePath(savegameDirectory)
     local xmlFile = createXMLFile("dealerRelationsXML", filePath, "dealerRelations")
 
     -- Keep save() as the orchestration point only.
