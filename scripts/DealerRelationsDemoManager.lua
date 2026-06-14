@@ -137,6 +137,11 @@ function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState,
     
     DealerRelations.Data:clearActiveDemoOffer()
     
+    DealerRelations.Data:addConfidence(
+        DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_ACCEPT_DEMO,
+        "Accepted demo offer"
+    )
+    
     DealerRelations.log(string.format(
         "Active demo count: %d",
         #DealerRelations.dealerData.activeDemoVehicles

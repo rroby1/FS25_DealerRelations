@@ -112,6 +112,11 @@ function DealerRelations.UI:declineActiveDemoOffer()
     )
     
     DealerRelations.Data:clearActiveDemoOffer()
+    
+    DealerRelations.Data:addConfidence(
+        DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_DECLINE_DEMO,
+        "Declined demo offer"
+    )
 end
 
 function DealerRelations.UI:cancelDemoOfferScreen()

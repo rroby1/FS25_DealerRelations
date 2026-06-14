@@ -143,6 +143,11 @@ function DealerRelationsDemoReturnDialog:onClickReturn()
     -- Remove the returned demo from active tracking.
     -- Rationale: RETURNED demos are resolved and should no longer block future demo offers.
     DealerRelations.Data:removeActiveDemoVehicleByUniqueId(demoVehicle.uniqueId)
+    
+    DealerRelations.Data:addConfidence(
+        DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_RETURN_DEMO,
+        "Returned demo vehicle"
+    )
 end
 
 -- Handles the Buy button for an expired demo.
@@ -228,5 +233,10 @@ function DealerRelationsDemoReturnDialog:onClickBuy()
 
     DealerRelations.log(
         "Demo marked PURCHASED: " .. tostring(demoVehicle.name)
+    )
+    
+    DealerRelations.Data:addConfidence(
+        DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_BUY_DEMO,
+        "Purchased demo vehicle"
     )
 end

@@ -17,8 +17,13 @@ activeDemoVehicles = {}
 -------------------------------------------------------------------------------
 
 DealerRelations.CONSTANTS = {
-    MIN_CONFIDENCE = 0,
-    MAX_CONFIDENCE = 100
+    MIN_CONFIDENCE = -100,
+    MAX_CONFIDENCE = 100,
+
+    CONFIDENCE_IMPACT_ACCEPT_DEMO = 1,
+    CONFIDENCE_IMPACT_DECLINE_DEMO = -1,
+    CONFIDENCE_IMPACT_RETURN_DEMO = 3,
+    CONFIDENCE_IMPACT_BUY_DEMO = 5
 }
 
 -------------------------------------------------------------------------------
@@ -76,6 +81,22 @@ function DealerRelations.Data:setConfidence(value)
         DealerRelations.CONSTANTS.MIN_CONFIDENCE,
         DealerRelations.CONSTANTS.MAX_CONFIDENCE
     )
+end
+
+function DealerRelations.Data:addConfidence(amount, reason)
+    -- Apply a confidence change through the data layer so every gameplay
+    -- impact uses the same clamping rules and stays within the supported range.
+    local oldConfidence = self:getConfidence()
+    local newConfidence = oldConfidence + (tonumber(amount) or 0)
+
+    self:setConfidence(newConfidence)
+
+    DealerRelations.log(string.format(
+        "Confidence changed: %d -> %d (%s)",
+        oldConfidence,
+        self:getConfidence(),
+        tostring(reason or "No reason provided")
+    ))
 end
 
 -------------------------------------------------------------------------------
