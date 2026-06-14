@@ -47,13 +47,7 @@ function DealerRelations.DemoManager:startDemoFromOffer(offer)
         return false
     end
 
-    -- Get the current farm ID.
-    -- If no valid farm is available, fall back to the single-player farm.
-    local farmId = g_currentMission:getFarmId()
-
-    if farmId == nil or farmId == FarmManager.SPECTATOR_FARM_ID then
-        farmId = FarmManager.SINGLEPLAYER_FARM_ID
-    end
+    local farmId = self:getDemoOwnerFarmId()
 
     DealerRelations.log(string.format(
         "Starting demo vehicle: %s",
@@ -147,6 +141,20 @@ function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState,
         "Active demo count: %d",
         #DealerRelations.dealerData.activeDemoVehicles
     ))
+end
+
+-- Gets the farm ID that should own the spawned demo vehicle.
+-- Rationale: demo spawning should always attach the machine to a valid farm.
+-- If the current mission reports no farm or spectator farm, fall back to the
+-- single-player farm so the vehicle is usable in normal gameplay.
+function DealerRelations.DemoManager:getDemoOwnerFarmId()
+    local farmId = g_currentMission:getFarmId()
+
+    if farmId == nil or farmId == FarmManager.SPECTATOR_FARM_ID then
+        farmId = FarmManager.SINGLEPLAYER_FARM_ID
+    end
+
+    return farmId
 end
 
 -------------------------------------------------------------------------------
