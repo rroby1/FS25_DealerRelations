@@ -118,19 +118,9 @@ function DealerRelations:checkMonthlyDemo()
             return
         end
 
-        DealerRelations.Data:setActiveDemoOffer({
-            candidateKey = DealerRelations.Equipment:getDemoCandidateKey(candidate),
-            name = candidate.name,
-            brand = candidate.brand,
-            category = candidate.category,
-            price = candidate.price,
-            xmlFilename = candidate.xmlFilename,
-            powerRole = candidate.powerRole,
-            displayPower = candidate.displayPower,
-            powerMin = candidate.powerMin,
-            powerMax = candidate.powerMax,
-            offerMonth = currentMonth
-        })
+        DealerRelations.Data:setActiveDemoOffer(
+            self:createDemoOfferFromCandidate(candidate, currentMonth)
+        )
 
         DealerRelations.log(string.format(
             "Demo offer created: %s | Brand=%s | Category=%s | HP=%s",
@@ -145,6 +135,25 @@ function DealerRelations:checkMonthlyDemo()
             "Dealer Relations: The dealer has a demo offer available. Check with the dealer before the end of the month."
         )
     end
+end
+
+-- Builds the saved demo offer data from a selected equipment candidate.
+-- Rationale: checkMonthlyDemo() should decide when an offer is created;
+-- this helper owns the shape of the offer data that gets persisted.
+function DealerRelations:createDemoOfferFromCandidate(candidate, currentMonth)
+    return {
+        candidateKey = DealerRelations.Equipment:getDemoCandidateKey(candidate),
+        name = candidate.name,
+        brand = candidate.brand,
+        category = candidate.category,
+        price = candidate.price,
+        xmlFilename = candidate.xmlFilename,
+        powerRole = candidate.powerRole,
+        displayPower = candidate.displayPower,
+        powerMin = candidate.powerMin,
+        powerMax = candidate.powerMax,
+        offerMonth = currentMonth
+    }
 end
 
 -------------------------------------------------------------------------------
