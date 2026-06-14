@@ -95,7 +95,3 @@ function DealerRelationsDemoOfferDialog:onClickCancel()
     DealerRelations.UI:cancelDemoOfferScreen()
     self:close()
 end
-
--------------------------------------------------------------------------------
--- Close Handling
--------------------------------------------------------------------------------

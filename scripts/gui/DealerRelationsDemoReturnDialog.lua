@@ -230,7 +230,3 @@ function DealerRelationsDemoReturnDialog:onClickBuy()
         "Demo marked PURCHASED: " .. tostring(demoVehicle.name)
     )
 end
-
--------------------------------------------------------------------------------
--- Close Handling
--------------------------------------------------------------------------------
