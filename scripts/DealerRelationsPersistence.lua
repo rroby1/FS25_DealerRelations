@@ -140,13 +140,25 @@ end
 --
 -- @param savegameDirectory string Active savegame directory.
 -------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Load
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- Loads Dealer Relations data from XML in the active savegame directory.
+--
+-- If the XML file does not exist or cannot be loaded, the default values already
+-- defined in DealerRelationsData.lua remain in use.
+--
+-- @param savegameDirectory string Active savegame directory.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:load(savegameDirectory)
     if savegameDirectory == nil then
         DealerRelations.warning("Cannot load dealerRelations.xml: savegameDirectory is nil")
         return
     end
 
-    local filePath = savegameDirectory .. "/" .. self.FILE_NAME
+    local filePath = self:getFilePath(savegameDirectory)
 
     if not fileExists(filePath) then
         return
@@ -159,12 +171,39 @@ function DealerRelations.Persistence:load(savegameDirectory)
         return
     end
 
-    local confidence = getXMLFloat(xmlFile, "dealerRelations.confidence")
+    -- Keep load() as the orchestration point only.
+    -- Each helper restores one saved data group so future persistence changes
+    -- can be added without turning load() into one large mixed block.
+    self:loadCoreData(xmlFile)
+    self:loadRecentDemoCandidates(xmlFile)
+    self:loadActiveDemoOffer(xmlFile)
+    self:loadActiveDemoVehicles(xmlFile)
 
+    delete(xmlFile)
+
+    DealerRelations.log(
+        "Loaded confidence: " .. tostring(DealerRelations.Data:getConfidence()) ..
+        ", relationship level: " .. tostring(DealerRelations.Data:getRelationshipLevel()) ..
+        ", active demo vehicles: " .. tostring(#DealerRelations.Data:getActiveDemoVehicles())
+    )
+end
+
+function DealerRelations.Persistence:loadCoreData(xmlFile)
+    -- Load core dealer state values.
+    -- Relationship level is derived from confidence and is not saved directly.
+    local confidence = getXMLFloat(xmlFile, "dealerRelations.confidence")
     local lastDemoCheckMonth = getXMLInt(
         xmlFile,
         "dealerRelations.lastDemoCheckMonth"
     )
+
+    if confidence ~= nil then
+        DealerRelations.Data:setConfidence(confidence)
+    else
+        DealerRelations.warning(
+            "Confidence missing from dealerRelations.xml; using default confidence"
+        )
+    end
 
     if lastDemoCheckMonth ~= nil then
         DealerRelations.Data:setLastDemoCheckMonth(lastDemoCheckMonth)
@@ -173,7 +212,12 @@ function DealerRelations.Persistence:load(savegameDirectory)
             "lastDemoCheckMonth missing from dealerRelations.xml; using default value"
         )
     end
+end
 
+function DealerRelations.Persistence:loadRecentDemoCandidates(xmlFile)
+    -- Reset and reload the recent demo candidate history.
+    -- DealerRelationsData currently exposes add/get helpers for this list,
+    -- so loading resets the backing table and then reuses the normal add path.
     DealerRelations.dealerData.recentDemoCandidates = {}
 
     local index = 0
@@ -189,7 +233,6 @@ function DealerRelations.Persistence:load(savegameDirectory)
         DealerRelations.Data:addRecentDemoCandidate(key)
 
         index = index + 1
-
         key = getXMLString(
             xmlFile,
             string.format(
@@ -203,49 +246,48 @@ function DealerRelations.Persistence:load(savegameDirectory)
         "Loaded recent demo candidates: " ..
         tostring(#DealerRelations.Data:getRecentDemoCandidates())
     )
+end
 
+function DealerRelations.Persistence:loadActiveDemoOffer(xmlFile)
+    -- Load the active demo offer if one was saved.
+    -- If no offer is present, clear the runtime value so old state cannot linger.
     local activeOfferCandidateKey = getXMLString(
         xmlFile,
         "dealerRelations.activeDemoOffer#candidateKey"
     )
 
-    if activeOfferCandidateKey ~= nil then
-        DealerRelations.Data:setActiveDemoOffer({
-            candidateKey = activeOfferCandidateKey,
-            name = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#name"),
-            brand = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#brand"),
-            category = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#category"),
-            price = getXMLFloat(xmlFile, "dealerRelations.activeDemoOffer#price"),
-            xmlFilename = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#xmlFilename"),
-            powerRole = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#powerRole"),
-            displayPower = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#displayPower"),
-            powerMin = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMin"),
-            powerMax = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMax"),
-            offerMonth = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#offerMonth")
-        })
-
-        local activeOffer = DealerRelations.Data:getActiveDemoOffer()
-
-        DealerRelations.log(string.format(
-            "Loaded active demo offer: %s | Brand=%s | Category=%s | HP=%s | Month=%s",
-            tostring(activeOffer.name),
-            tostring(activeOffer.brand),
-            tostring(activeOffer.category),
-            tostring(activeOffer.displayPower or "Unknown"),
-            tostring(activeOffer.offerMonth)
-        ))
-    else
+    if activeOfferCandidateKey == nil then
         DealerRelations.Data:clearActiveDemoOffer()
+        return
     end
 
-    if confidence ~= nil then
-        DealerRelations.Data:setConfidence(confidence)
-    else
-        DealerRelations.warning(
-            "Confidence missing from dealerRelations.xml; using default confidence"
-        )
-    end
-    
+    DealerRelations.Data:setActiveDemoOffer({
+        candidateKey = activeOfferCandidateKey,
+        name = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#name"),
+        brand = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#brand"),
+        category = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#category"),
+        price = getXMLFloat(xmlFile, "dealerRelations.activeDemoOffer#price"),
+        xmlFilename = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#xmlFilename"),
+        powerRole = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#powerRole"),
+        displayPower = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#displayPower"),
+        powerMin = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMin"),
+        powerMax = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMax"),
+        offerMonth = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#offerMonth")
+    })
+
+    local activeOffer = DealerRelations.Data:getActiveDemoOffer()
+
+    DealerRelations.log(string.format(
+        "Loaded active demo offer: %s | Brand=%s | Category=%s | HP=%s | Month=%s",
+        tostring(activeOffer.name),
+        tostring(activeOffer.brand),
+        tostring(activeOffer.category),
+        tostring(activeOffer.displayPower or "Unknown"),
+        tostring(activeOffer.offerMonth)
+    ))
+end
+
+function DealerRelations.Persistence:loadActiveDemoVehicles(xmlFile)
     -- Load active demo vehicle records.
     -- Runtime vehicle objects are not saved; vehicles are looked up later by uniqueId.
     DealerRelations.dealerData.activeDemoVehicles = {}
@@ -280,15 +322,4 @@ function DealerRelations.Persistence:load(savegameDirectory)
 
         demoVehicleIndex = demoVehicleIndex + 1
     end
-
-    delete(xmlFile)
-
-    DealerRelations.log(
-        "Loaded confidence: " ..
-        tostring(DealerRelations.Data:getConfidence()) ..
-        ", relationship level: " ..
-        tostring(DealerRelations.Data:getRelationshipLevel()) ..
-        ", active demo vehicles: " ..
-        tostring(#DealerRelations.dealerData.activeDemoVehicles)
-    )
 end
