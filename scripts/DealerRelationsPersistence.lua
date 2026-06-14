@@ -32,9 +32,23 @@ function DealerRelations.Persistence:save(savegameDirectory)
     end
 
     local filePath = savegameDirectory .. "/" .. self.FILE_NAME
-
     local xmlFile = createXMLFile("dealerRelationsXML", filePath, "dealerRelations")
 
+    -- Keep save() as the orchestration point only.
+    -- Each helper owns one saved data group so future persistence changes
+    -- can be added without turning save() into one large mixed block.
+    self:saveCoreData(xmlFile)
+    self:saveRecentDemoCandidates(xmlFile)
+    self:saveActiveDemoOffer(xmlFile)
+    self:saveActiveDemoVehicles(xmlFile)
+
+    saveXMLFile(xmlFile)
+    delete(xmlFile)
+end
+
+function DealerRelations.Persistence:saveCoreData(xmlFile)
+    -- Save core dealer state values that are always present.
+    -- Derived values, such as relationship level, are recalculated at runtime.
     setXMLFloat(xmlFile, "dealerRelations.confidence", DealerRelations.Data:getConfidence())
 
     setXMLInt(
@@ -42,7 +56,11 @@ function DealerRelations.Persistence:save(savegameDirectory)
         "dealerRelations.lastDemoCheckMonth",
         DealerRelations.Data:getLastDemoCheckMonth()
     )
+end
 
+function DealerRelations.Persistence:saveRecentDemoCandidates(xmlFile)
+    -- Save the recent demo candidate keys used to reduce repeated offers.
+    -- Only the stable candidate key is persisted, not the full equipment record.
     local recentCandidates = DealerRelations.Data:getRecentDemoCandidates()
 
     for index, candidateKey in ipairs(recentCandidates) do
@@ -57,23 +75,34 @@ function DealerRelations.Persistence:save(savegameDirectory)
             candidateKey
         )
     end
+end
 
+function DealerRelations.Persistence:saveActiveDemoOffer(xmlFile)
+    -- Save the currently open demo offer, if one exists.
+    -- If there is no open offer, this section is omitted from the XML.
     local activeOffer = DealerRelations.Data:getActiveDemoOffer()
 
-    if activeOffer ~= nil then
-        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#candidateKey", activeOffer.candidateKey)
-        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#name", activeOffer.name)
-        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#brand", activeOffer.brand)
-        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#category", activeOffer.category)
-        setXMLFloat(xmlFile, "dealerRelations.activeDemoOffer#price", activeOffer.price or 0)
-        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#xmlFilename", activeOffer.xmlFilename)
-        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#powerRole", activeOffer.powerRole)
-        setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#displayPower", activeOffer.displayPower or 0)
-        setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMin", activeOffer.powerMin or 0)
-        setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMax", activeOffer.powerMax or 0)
-        setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#offerMonth", activeOffer.offerMonth or 0)
+    if activeOffer == nil then
+        return
     end
 
+    setXMLString(xmlFile, "dealerRelations.activeDemoOffer#candidateKey", activeOffer.candidateKey)
+    setXMLString(xmlFile, "dealerRelations.activeDemoOffer#name", activeOffer.name)
+    setXMLString(xmlFile, "dealerRelations.activeDemoOffer#brand", activeOffer.brand)
+    setXMLString(xmlFile, "dealerRelations.activeDemoOffer#category", activeOffer.category)
+    setXMLFloat(xmlFile, "dealerRelations.activeDemoOffer#price", activeOffer.price or 0)
+    setXMLString(xmlFile, "dealerRelations.activeDemoOffer#xmlFilename", activeOffer.xmlFilename)
+    setXMLString(xmlFile, "dealerRelations.activeDemoOffer#powerRole", activeOffer.powerRole)
+    setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#displayPower", activeOffer.displayPower or 0)
+    setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMin", activeOffer.powerMin or 0)
+    setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMax", activeOffer.powerMax or 0)
+    setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#offerMonth", activeOffer.offerMonth or 0)
+end
+
+function DealerRelations.Persistence:saveActiveDemoVehicles(xmlFile)
+    -- Save active demo vehicle records.
+    -- Runtime vehicle objects are not persisted; vehicles are restored later
+    -- by looking up their saved uniqueId.
     local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
 
     for index, demoVehicle in ipairs(activeDemoVehicles) do
@@ -91,9 +120,6 @@ function DealerRelations.Persistence:save(savegameDirectory)
         setXMLString(xmlFile, key .. "#state", demoVehicle.state or "ACTIVE")
         setXMLString(xmlFile, key .. "#role", demoVehicle.role or "PRIMARY")
     end
-
-    saveXMLFile(xmlFile)
-    delete(xmlFile)
 end
 
 -------------------------------------------------------------------------------
