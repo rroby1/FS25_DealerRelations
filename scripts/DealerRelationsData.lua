@@ -23,7 +23,18 @@ DealerRelations.CONSTANTS = {
     CONFIDENCE_IMPACT_ACCEPT_DEMO = 1,
     CONFIDENCE_IMPACT_DECLINE_DEMO = -1,
     CONFIDENCE_IMPACT_RETURN_DEMO = 3,
-    CONFIDENCE_IMPACT_BUY_DEMO = 5
+    CONFIDENCE_IMPACT_BUY_DEMO = 5,
+    
+    RELATIONSHIP_PARTNER_MIN = 80,
+    RELATIONSHIP_PREFERRED_MIN = 60,
+    RELATIONSHIP_TRUSTED_MIN = 40,
+    RELATIONSHIP_FAMILIAR_MIN = 20,
+    RELATIONSHIP_NEUTRAL_MIN = 0,
+
+    RELATIONSHIP_COOLING_MIN = -20,
+    RELATIONSHIP_STRAINED_MIN = -40,
+    RELATIONSHIP_POOR_MIN = -60,
+    RELATIONSHIP_CONCERNED_MIN = -80
 }
 
 -------------------------------------------------------------------------------
@@ -113,19 +124,61 @@ end
 function DealerRelations.Data:getRelationshipLevel()
     local confidence = self:getConfidence()
 
-    if confidence >= 80 then
+    if confidence >= DealerRelations.CONSTANTS.RELATIONSHIP_PARTNER_MIN then
         return 5
-    elseif confidence >= 60 then
+    elseif confidence >= DealerRelations.CONSTANTS.RELATIONSHIP_PREFERRED_MIN then
         return 4
-    elseif confidence >= 40 then
+    elseif confidence >= DealerRelations.CONSTANTS.RELATIONSHIP_TRUSTED_MIN then
         return 3
-    elseif confidence >= 20 then
+    elseif confidence >= DealerRelations.CONSTANTS.RELATIONSHIP_FAMILIAR_MIN then
         return 2
-    elseif confidence >= 10 then
+    elseif confidence >= DealerRelations.CONSTANTS.RELATIONSHIP_NEUTRAL_MIN then
         return 1
+    elseif confidence >= DealerRelations.CONSTANTS.RELATIONSHIP_COOLING_MIN then
+        return 0
+    elseif confidence >= DealerRelations.CONSTANTS.RELATIONSHIP_STRAINED_MIN then
+        return -1
+    elseif confidence >= DealerRelations.CONSTANTS.RELATIONSHIP_POOR_MIN then
+        return -2
+    elseif confidence >= DealerRelations.CONSTANTS.RELATIONSHIP_CONCERNED_MIN then
+        return -3
     end
 
-    return 0
+    return -4
+end
+
+-- Returns the player-facing relationship name derived from the
+-- current relationship level.
+--
+-- Rationale:
+-- Gameplay systems should use getRelationshipLevel() when they need
+-- a numeric value for calculations. UI screens and notifications
+-- should use this function to display a meaningful relationship
+-- description to the player.
+function DealerRelations.Data:getRelationshipName()
+    local level = self:getRelationshipLevel()
+
+    if level == 5 then
+        return "Partner"
+    elseif level == 4 then
+        return "Preferred"
+    elseif level == 3 then
+        return "Trusted"
+    elseif level == 2 then
+        return "Familiar"
+    elseif level == 1 then
+        return "Neutral"
+    elseif level == 0 then
+        return "Cooling"
+    elseif level == -1 then
+        return "Strained"
+    elseif level == -2 then
+        return "Poor"
+    elseif level == -3 then
+        return "Concerned"
+    end
+
+    return "At Risk"
 end
 
 -------------------------------------------------------------------------------
