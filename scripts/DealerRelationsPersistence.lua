@@ -214,7 +214,8 @@ function DealerRelations.Persistence:load(savegameDirectory)
         )
     end
     
-    -- Load active demo vehicles.
+    -- Load active demo vehicle records.
+    -- Runtime vehicle objects are not saved; vehicles are looked up later by uniqueId.
     DealerRelations.dealerData.activeDemoVehicles = {}
 
     local demoVehicleIndex = 0

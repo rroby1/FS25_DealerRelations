@@ -1,13 +1,13 @@
 -------------------------------------------------------------------------------
 -- DealerRelationsDemoReturnDialog.lua
 --
--- Custom dialog used to display an active dealer demo offer.
+-- Custom dialog used to resolve an expired demo vehicle.
 --
 -- Responsibilities:
---   * Display active offer information
---   * Allow player to accept the offer
---   * Allow player to decline the offer
---   * Allow player to close the dialog without responding
+-- * Display expired demo information
+-- * Return the demo vehicle
+-- * Purchase the demo vehicle
+-- * Close the dialog without taking action
 --
 -- This dialog extends MessageDialog and is loaded from
 -- DealerRelationsDemoReturnDialog.xml.
@@ -31,12 +31,7 @@ local DealerRelationsDemoReturnDialog_mt =
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
--- Creates a new Dealer Relations demo offer dialog instance.
---
--- @param target table Optional target object.
--- @param customMt table Optional custom metatable.
---
--- @return table New dialog instance.
+-- Creates the demo return dialog instance used by GIANTS' GUI system.
 -------------------------------------------------------------------------------
 function DealerRelationsDemoReturnDialog.new(target, customMt)
     local dialog = MessageDialog.new(
@@ -49,6 +44,8 @@ end
 
 -------------------------------------------------------------------------------
 -- Registration
+--
+-- Loads the dialog XML and stores the singleton instance used by show().
 -------------------------------------------------------------------------------
 function DealerRelationsDemoReturnDialog.register()
     local dialog = DealerRelationsDemoReturnDialog.new()
@@ -66,6 +63,8 @@ end
 
 -------------------------------------------------------------------------------
 -- Display
+--
+-- Populates the dialog with expired demo information and opens it.
 -------------------------------------------------------------------------------
 -- Shows the expired demo return/buy dialog.
 --

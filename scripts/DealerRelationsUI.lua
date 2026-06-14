@@ -186,11 +186,10 @@ end
 -- Expired Demo Return / Buy Screen
 -------------------------------------------------------------------------------
 
--- Opens the expired demo dialog.
+-- Opens the return/buy dialog for an expired demo vehicle.
 --
--- This first implementation is intentionally a shell only. The buttons only
--- log which action was selected so we can test UI routing before adding
--- vehicle removal or purchase behavior.
+-- The dialog lets the player resolve the active demo by either returning
+-- the machine or purchasing it.
 function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
     if demoVehicle == nil then
         DealerRelations.warning("Cannot open expired demo dialog: demoVehicle is nil")
@@ -206,7 +205,6 @@ function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
     )
 
     -- Register and show the expired demo dialog.
-    -- The dialog buttons are log-only for this test step.
     DealerRelationsDemoReturnDialog.register()
     DealerRelationsDemoReturnDialog.show(message, demoVehicle)
 end

@@ -30,12 +30,7 @@ local DealerRelationsDemoOfferDialog_mt =
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
--- Creates a new Dealer Relations demo offer dialog instance.
---
--- @param target table Optional target object.
--- @param customMt table Optional custom metatable.
---
--- @return table New dialog instance.
+-- Creates the demo offer dialog instance used by GIANTS' GUI system.
 -------------------------------------------------------------------------------
 function DealerRelationsDemoOfferDialog.new(target, customMt)
     local dialog = MessageDialog.new(
@@ -48,6 +43,8 @@ end
 
 -------------------------------------------------------------------------------
 -- Registration
+--
+-- Loads the dialog XML and stores the singleton instance used by show().
 -------------------------------------------------------------------------------
 function DealerRelationsDemoOfferDialog.register()
     local dialog = DealerRelationsDemoOfferDialog.new()
@@ -65,6 +62,8 @@ end
 
 -------------------------------------------------------------------------------
 -- Display
+--
+-- Ensures the dialog is loaded, fills in the current offer text, and opens it.
 -------------------------------------------------------------------------------
 function DealerRelationsDemoOfferDialog.show(text)
     if DealerRelationsDemoOfferDialog.INSTANCE == nil then

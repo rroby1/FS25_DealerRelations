@@ -12,26 +12,10 @@
 -- orchestration layer for the mod.
 -------------------------------------------------------------------------------
 
--------------------------------------------------------------------------------
--- Demo Lifecycle
---
--- ACTIVE
---     Demo is currently within its evaluation period.
---
--- EXPIRED
---     Demo period has ended. Awaiting player action.
---
--- RETURNED
---     Demo vehicle returned to dealer and removed from game.
---
--- PURCHASED
---     Demo vehicle purchased by player and converted to owned equipment.
--------------------------------------------------------------------------------
-
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.10.1"
+DealerRelations.version = "0.11.0"
 
 -------------------------------------------------------------------------------
 -- Load supporting modules.
@@ -51,8 +35,8 @@ source(g_currentModDirectory .. "scripts/DealerRelationsDemoManager.lua")
 -------------------------------------------------------------------------------
 -- Called by the game when a map is loaded.
 --
--- Registers Dealer Relations callbacks and loads persisted
--- Dealer Relations data from the active savegame.
+-- Registers Dealer Relations callbacks, loads persisted data,
+-- discovers eligible equipment, and restores any active offer notice.
 -------------------------------------------------------------------------------
 function DealerRelations:loadMap()
     DealerRelations.log("Version " .. DealerRelations.version .. " loaded")
@@ -164,13 +148,7 @@ function DealerRelations:checkMonthlyDemo()
 end
 
 -------------------------------------------------------------------------------
--- Demo Offer Expiration
--------------------------------------------------------------------------------
-
--------------------------------------------------------------------------------
 -- Expires the active demo offer if it is from a previous month.
---
--- Future versions may apply confidence changes when an offer expires.
 -------------------------------------------------------------------------------
 function DealerRelations:expireDemoOffer(currentMonth)
     local offer = DealerRelations.Data:getActiveDemoOffer()

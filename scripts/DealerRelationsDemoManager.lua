@@ -4,11 +4,28 @@
 -- Handles Dealer Relations demo vehicle functionality.
 --
 -- Responsibilities:
---   * Spawn accepted demo offer vehicles
---   * Set demo vehicles to mission property state
---   * Track active demo vehicle unique IDs
---   * Support future demo expiration and return handling
+-- * Spawn accepted demo offer vehicles
+-- * Set demo vehicles to mission property state
+-- * Track active demo vehicle unique IDs
+-- * Detect demo expiration
+-- * Support demo return and purchase workflows
 ------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- Demo Lifecycle
+--
+-- ACTIVE
+--     Demo is currently within its evaluation period.
+--
+-- EXPIRED
+--     Demo period has ended. Awaiting player action.
+--
+-- RETURNED
+--     Demo vehicle returned to dealer and removed from game.
+--
+-- PURCHASED
+--     Demo vehicle purchased by player and converted to owned equipment.
+-------------------------------------------------------------------------------
 
 DealerRelations.DemoManager = {}
 
@@ -56,8 +73,8 @@ function DealerRelations.DemoManager:startDemoFromOffer(offer)
     -- Assign the vehicle to the current farm.
     data:setOwnerFarmId(farmId)
 
-    -- Temporary test spawn location near the vehicle dealer.
-    -- This will be replaced later with a proper dealer spawn point.
+    -- Spawn the demo near the dealer area.
+    -- A configurable dealer spawn point can replace this later.
     data:setPosition(-120, nil, -135, 0.2)
 
     -- Spawn facing north for now.
@@ -120,7 +137,7 @@ function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState,
         endingNoticeSent = false,
 
         -- Tracks whether the post-expiration 8 AM return reminder has been shown.
-        -- This will be used by the next reminder step.
+        -- Prevents the return reminder from repeating after it has been shown..
         returnNoticeSent = false
     })
     
@@ -130,9 +147,6 @@ function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState,
         "Active demo count: %d",
         #DealerRelations.dealerData.activeDemoVehicles
     ))
-
-    -- TODO v0.10.0:
-    -- Save active demo information to dealerRelations.xml.
 end
 
 -------------------------------------------------------------------------------

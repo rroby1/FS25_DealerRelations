@@ -3,8 +3,8 @@
 --
 -- Discovers equipment information from the Farming Simulator store data.
 --
--- Builds an in-memory equipment list used by future Dealer Relations systems.
--- This module does not save equipment data and does not select demo equipment.
+-- Builds an in-memory equipment list used by Dealer Relations demo selection.
+-- This module does not save equipment data.
 -------------------------------------------------------------------------------
 
 DealerRelations = DealerRelations or {}
@@ -245,8 +245,11 @@ end
 -- Used by Dealer Relations to access XML attributes that are not available
 -- from store manager data alone.
 --
--- Currently reads:
---   - Brand
+-- -- Currently reads:
+--    - Brand
+--    - Self-propelled display horsepower
+--    - Implement required horsepower
+--    - Min/max motor configuration horsepower when available
 --
 -- Additional attributes may be added in future versions for equipment cache
 -- generation and demo selection logic.
@@ -330,7 +333,7 @@ end
 -------------------------------------------------------------------------------
 -- Discovers eligible Dealer Relations demo equipment from the FS25 store.
 --
--- Builds an in-memory list only. This does not save equipment data and does
+-- Builds an in-memory list only. This does not save equipment data.
 -- not select demo equipment.
 -------------------------------------------------------------------------------
 function DealerRelations.Equipment:discover()
@@ -577,10 +580,6 @@ function DealerRelations.Equipment:getRandomDemoCandidate()
 
     return candidate
 end
-
--------------------------------------------------------------------------------
--- Demo Candidate Key
--------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 -- Builds a unique key for a demo candidate.
