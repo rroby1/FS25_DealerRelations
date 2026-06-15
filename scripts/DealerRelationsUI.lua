@@ -151,7 +151,7 @@ function DealerRelations.UI:openActiveDemoOffer()
         DealerRelations.Utils:formatMoney(offer.price)
 
     local message = string.format(
-        "Dealer Relationship: %s (%d)\n\nEquipment: %s\nBrand: %s\nCategory: %s\nPower: %s HP\nPrice: $%s\n\nOffer expires at the end of the current month.",
+        "Dealer Relationship: %s (Confidence %d)\n\nEquipment: %s\nBrand: %s\nCategory: %s\nPower: %s HP\nList Price: $%s\n\nThis offer expires at the end of the current month.",
         relationshipName,
         confidence,
         tostring(offer.name),
@@ -220,7 +220,7 @@ function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
         DealerRelations.Utils:formatMoney(purchasePrice)
 
     local message = string.format(
-        "Dealer Relationship: %s (%d)\nPurchase Discount: %d%%\n\nEquipment: %s\nBrand: %s\nStatus: Expired\nPurchase Price: $%s\n\nThis demo period has ended. Return the machine or purchase it at the discounted dealer price.",
+        "Dealer Relationship: %s (Confidence %d)\nPurchase Discount: %d%%\n\nEquipment: %s\nBrand: %s\nStatus: Demo Expired\nPurchase Price: $%s\n\nThis demo period has ended. Return the machine or purchase it at your dealer discount.",
         relationshipName,
         confidence,
         discountPercent,
