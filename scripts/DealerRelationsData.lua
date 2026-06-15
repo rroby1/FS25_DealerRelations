@@ -34,7 +34,12 @@ DealerRelations.CONSTANTS = {
     RELATIONSHIP_COOLING_MIN = -20,
     RELATIONSHIP_STRAINED_MIN = -40,
     RELATIONSHIP_POOR_MIN = -60,
-    RELATIONSHIP_CONCERNED_MIN = -80
+    RELATIONSHIP_CONCERNED_MIN = -80,
+    
+    RELATIONSHIP_DISCOUNT_FAMILIAR = 10,
+    RELATIONSHIP_DISCOUNT_TRUSTED = 15,
+    RELATIONSHIP_DISCOUNT_PREFERRED = 20,
+    RELATIONSHIP_DISCOUNT_PARTNER = 25
 }
 
 -------------------------------------------------------------------------------
@@ -76,6 +81,30 @@ function DealerRelations.Data:clamp(value, minValue, maxValue)
     end
 
     return value
+end
+
+-- Returns the purchase discount percentage associated with the
+-- player's current dealer relationship.
+--
+-- Rationale:
+-- Purchase discounts are awarded based on relationship level rather
+-- than raw confidence. This allows relationship thresholds and discount
+-- values to be tuned independently while keeping gameplay effects
+-- consistent and easy for players to understand.
+function DealerRelations.Data:getDiscountPercent()
+    local level = self:getRelationshipLevel()
+
+    if level == 5 then
+        return DealerRelations.CONSTANTS.RELATIONSHIP_DISCOUNT_PARTNER
+    elseif level == 4 then
+        return DealerRelations.CONSTANTS.RELATIONSHIP_DISCOUNT_PREFERRED
+    elseif level == 3 then
+        return DealerRelations.CONSTANTS.RELATIONSHIP_DISCOUNT_TRUSTED
+    elseif level == 2 then
+        return DealerRelations.CONSTANTS.RELATIONSHIP_DISCOUNT_FAMILIAR
+    end
+
+    return 0
 end
 
 -------------------------------------------------------------------------------

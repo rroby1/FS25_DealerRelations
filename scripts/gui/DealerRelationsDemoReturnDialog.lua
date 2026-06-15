@@ -191,13 +191,17 @@ function DealerRelationsDemoReturnDialog:onClickBuy()
     -- Calculate the demo purchase price from the live vehicle price.
     -- Rationale: the active demo tracking record does not currently store price,
     -- but the live vehicle object has the original list price.
-    local purchasePrice = math.floor(vehicle.price * 0.90)
+    local discountPercent = DealerRelations.Data:getDiscountPercent()
+    local discountMultiplier = 1 - (discountPercent / 100)
+
+    local purchasePrice = math.floor(vehicle.price * discountMultiplier)
 
     DealerRelations.log(
         string.format(
-            "Demo purchase price calculated: $%d (list price $%d)",
+            "Demo purchase price calculated: $%d (list price $%d, discount %d%%)",
             purchasePrice,
-            vehicle.price
+            vehicle.price,
+            discountPercent
         )
     )
 
