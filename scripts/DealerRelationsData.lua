@@ -431,3 +431,22 @@ function DealerRelations.Data:getFirstExpiredDemo()
 
     return nil
 end
+
+-------------------------------------------------------------------------------
+-- Demo Purchase Price
+-------------------------------------------------------------------------------
+
+-- Calculates the demo purchase price after applying the current
+-- relationship-based dealer discount.
+--
+-- Rationale:
+-- The return/buy dialog and the actual buy workflow must use the same
+-- pricing logic so the price shown to the player matches the amount
+-- charged when the demo is purchased.
+function DealerRelations.Data:getDemoPurchasePrice(listPrice)
+    local price = tonumber(listPrice) or 0
+    local discountPercent = self:getDiscountPercent()
+    local discountMultiplier = 1 - (discountPercent / 100)
+
+    return math.floor(price * discountMultiplier)
+end

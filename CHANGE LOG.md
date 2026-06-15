@@ -1,12 +1,19 @@
 # Changelog
 
+## v0.12.0
+* Added relationship-based confidence changes from demo actions.
+* Added relationship levels and player-facing relationship names.
+* Added relationship status display to startup, offer, and return/purchase dialogs.
+* Added relationship-based demo purchase discounts.
+* Added formatted money display for dealer prices.
+
 ## v0.11.0
-Refactored persistence save/load architecture.
-Improved code organization through helper extraction and modularization.
-Standardized persistence handling for demo offers and active demo vehicles.
-Improved code readability and maintainability.
-Updated project documentation and README.
-No gameplay changes.
+* Refactored persistence save/load architecture.
+* Improved code organization through helper extraction and modularization.
+* Standardized persistence handling for demo offers and active demo vehicles.
+* Improved code readability and maintainability.
+* Updated project documentation and README.
+* No gameplay changes.
 
 ## v0.10.1
 

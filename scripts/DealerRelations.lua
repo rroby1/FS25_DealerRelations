@@ -24,6 +24,7 @@ DealerRelations.version = "0.12.0"
 -- modDesc compact and centralize module dependencies.
 -------------------------------------------------------------------------------
 source(g_currentModDirectory .. "scripts/DealerRelationsDebug.lua")
+source(g_currentModDirectory .. "scripts/DealerRelationsUtils.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsData.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsPersistence.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")

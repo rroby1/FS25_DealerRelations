@@ -147,6 +147,8 @@ function DealerRelations.UI:openActiveDemoOffer()
 
     local relationshipName = DealerRelations.Data:getRelationshipName()
     local confidence = DealerRelations.Data:getConfidence()
+    local formattedPrice =
+        DealerRelations.Utils:formatMoney(offer.price)
 
     local message = string.format(
         "Dealer Relationship: %s (%d)\n\nEquipment: %s\nBrand: %s\nCategory: %s\nPower: %s HP\nPrice: $%s\n\nOffer expires at the end of the current month.",
@@ -156,7 +158,7 @@ function DealerRelations.UI:openActiveDemoOffer()
         tostring(offer.brand),
         tostring(offer.category),
         powerText,
-        tostring(offer.price)
+        formattedPrice
     )
     
     DealerRelationsDemoOfferDialog.register()
@@ -199,15 +201,32 @@ function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
 
     DealerRelations.log("Opening expired demo return/buy dialog")
     
+    local vehicle = DealerRelations.DemoManager:findVehicleByUniqueId(demoVehicle.uniqueId)
+
+    if vehicle == nil then
+        DealerRelations.warning(
+            "Cannot calculate expired demo purchase price: vehicle not found for uniqueId "
+            .. tostring(demoVehicle.uniqueId)
+        )
+        return
+    end
+    
     local relationshipName = DealerRelations.Data:getRelationshipName()
     local confidence = DealerRelations.Data:getConfidence()
+    local discountPercent = DealerRelations.Data:getDiscountPercent()
+    local purchasePrice =
+        DealerRelations.Data:getDemoPurchasePrice(vehicle.price)
+    local formattedPurchasePrice =
+        DealerRelations.Utils:formatMoney(purchasePrice)
 
     local message = string.format(
-        "Dealer Relationship: %s (%d)\n\nEquipment: %s\nBrand: %s\nStatus: Expired\n\nThis demo period has ended. Return the machine or discuss purchase options with the dealer.",
+        "Dealer Relationship: %s (%d)\nPurchase Discount: %d%%\n\nEquipment: %s\nBrand: %s\nStatus: Expired\nPurchase Price: $%s\n\nThis demo period has ended. Return the machine or purchase it at the discounted dealer price.",
         relationshipName,
         confidence,
+        discountPercent,
         tostring(demoVehicle.name),
-        tostring(demoVehicle.brand)
+        tostring(demoVehicle.brand),
+        formattedPurchasePrice
     )
 
     -- Register and show the expired demo dialog.

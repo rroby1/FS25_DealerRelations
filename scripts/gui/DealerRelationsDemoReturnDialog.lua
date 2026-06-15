@@ -188,13 +188,8 @@ function DealerRelationsDemoReturnDialog:onClickBuy()
     -- but it does have a propertyState field.
     vehicle.propertyState = VehiclePropertyState.OWNED
 
-    -- Calculate the demo purchase price from the live vehicle price.
-    -- Rationale: the active demo tracking record does not currently store price,
-    -- but the live vehicle object has the original list price.
     local discountPercent = DealerRelations.Data:getDiscountPercent()
-    local discountMultiplier = 1 - (discountPercent / 100)
-
-    local purchasePrice = math.floor(vehicle.price * discountMultiplier)
+    local purchasePrice = DealerRelations.Data:getDemoPurchasePrice(vehicle.price)
 
     DealerRelations.log(
         string.format(

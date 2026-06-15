@@ -9,7 +9,10 @@ Dealer Relations is a Farming Simulator 25 mod that adds dealer relationship mec
 ### Relationship System
 
 * Dealer confidence tracking
+* Confidence gains and losses from player actions
 * Relationship level calculation
+* Relationship status names
+* Relationship-based purchase discounts
 * Save/load persistence
 
 ### Equipment Discovery
@@ -35,8 +38,17 @@ Dealer Relations is a Farming Simulator 25 mod that adds dealer relationship mec
 * Open demo detection
 * Return workflow
 * Purchase workflow
+* Relationship-based purchase pricing
 * Demo vehicle removal on return
 * Demo ownership conversion on purchase
+
+### User Interface
+
+* Startup relationship notifications
+* Relationship display in demo offer dialogs
+* Relationship display in return/purchase dialogs
+* Purchase discount display
+* Purchase price display
 
 ## Development Status
 
@@ -44,10 +56,10 @@ Dealer Relations is under active development and is not yet considered feature c
 
 Several planned systems are not yet implemented, including:
 
-* Confidence gains and losses from player actions
-* Relationship-based discounts
-* User-configurable settings
+* User-configurable category filters
+* User-configurable brand filters
 * Advanced demo selection logic
+* Relationship-influenced demo offers
 * Additional dealer relationship features
 
 Current releases are intended for development and testing.
