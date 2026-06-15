@@ -47,6 +47,9 @@ function DealerRelations.Persistence:save(savegameDirectory)
     self:saveRecentDemoCandidates(xmlFile)
     self:saveActiveDemoOffer(xmlFile)
     self:saveActiveDemoVehicles(xmlFile)
+    
+    -- Player settings
+    self:saveCategoryFilters(xmlFile)
 
     saveXMLFile(xmlFile)
     delete(xmlFile)
@@ -128,6 +131,30 @@ function DealerRelations.Persistence:saveActiveDemoVehicles(xmlFile)
     end
 end
 
+function DealerRelations.Persistence:saveCategoryFilters(xmlFile)
+    -- Save per-save category filter settings.
+    -- Only configurable equipment categories are saved here; hard-excluded
+    -- categories remain code-defined in Equipment.lua.
+    local categoryFilters = DealerRelations.Data:getCategoryFilters()
+    local categories = {}
+
+    for category, _ in pairs(categoryFilters) do
+        table.insert(categories, category)
+    end
+
+    table.sort(categories)
+
+    for index, category in ipairs(categories) do
+        local key = string.format(
+            "dealerRelations.categoryFilters.category(%d)",
+            index - 1
+        )
+
+        setXMLString(xmlFile, key .. "#name", category)
+        setXMLBool(xmlFile, key .. "#enabled", categoryFilters[category] == true)
+    end
+end
+
 -------------------------------------------------------------------------------
 -- Load
 -------------------------------------------------------------------------------
@@ -154,6 +181,11 @@ end
 -------------------------------------------------------------------------------
 function DealerRelations.Persistence:load(savegameDirectory)
     if savegameDirectory == nil then
+        -- New saves may not have a savegame directory available yet.
+        -- Initialize category filters so equipment discovery can still use
+        -- valid default settings before the first save creates the XML file.
+        DealerRelations.Data:initializeCategoryFilters()
+
         DealerRelations.warning("Cannot load dealerRelations.xml: savegameDirectory is nil")
         return
     end
@@ -161,12 +193,18 @@ function DealerRelations.Persistence:load(savegameDirectory)
     local filePath = self:getFilePath(savegameDirectory)
 
     if not fileExists(filePath) then
+        -- New saves have no Dealer Relations XML yet.
+        -- Initialize configurable category filters from defaults so discovery and
+        -- the first save both have valid per-save settings to use.
+        DealerRelations.Data:initializeCategoryFilters()
         return
     end
 
     local xmlFile = loadXMLFile("dealerRelationsXML", filePath)
 
     if xmlFile == nil or xmlFile == 0 then
+        DealerRelations.Data:initializeCategoryFilters()
+
         DealerRelations.warning("Could not load dealerRelations.xml; using default dealer data")
         return
     end
@@ -178,6 +216,9 @@ function DealerRelations.Persistence:load(savegameDirectory)
     self:loadRecentDemoCandidates(xmlFile)
     self:loadActiveDemoOffer(xmlFile)
     self:loadActiveDemoVehicles(xmlFile)
+    
+    -- Player settings
+    self:loadCategoryFilters(xmlFile)
 
     delete(xmlFile)
 
@@ -322,4 +363,49 @@ function DealerRelations.Persistence:loadActiveDemoVehicles(xmlFile)
 
         demoVehicleIndex = demoVehicleIndex + 1
     end
+end
+
+function DealerRelations.Persistence:loadCategoryFilters(xmlFile)
+    -- Load per-save category filter settings.
+    -- If this section is missing, initialize defaults so existing saves
+    -- continue behaving exactly as they did before settings were added.
+    DealerRelations.dealerData.categoryFilters = {}
+
+    local index = 0
+
+    while true do
+        local key = string.format(
+            "dealerRelations.categoryFilters.category(%d)",
+            index
+        )
+
+        local category = getXMLString(xmlFile, key .. "#name")
+
+        if category == nil then
+            break
+        end
+
+        local enabled = getXMLBool(xmlFile, key .. "#enabled")
+
+        DealerRelations.Data:setCategoryEnabled(
+            category,
+            enabled == true
+        )
+
+        index = index + 1
+    end
+
+    if index == 0 then
+        DealerRelations.Data:initializeCategoryFilters()
+    end
+
+    local count = 0
+
+    for _, _ in pairs(DealerRelations.Data:getCategoryFilters()) do
+        count = count + 1
+    end
+
+    DealerRelations.log(
+        "Loaded category filters: " .. tostring(count)
+    )
 end

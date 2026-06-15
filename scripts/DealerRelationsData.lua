@@ -62,7 +62,9 @@ DealerRelations.dealerData = {
     -- Currently active demo offer.
     -- Only one offer may exist at a time.
     -- Nil indicates no active offer is available.
-    activeDemoOffer = nil
+    activeDemoOffer = nil,
+    
+    categoryFilters = {},
 }
 
 -------------------------------------------------------------------------------
@@ -449,4 +451,55 @@ function DealerRelations.Data:getDemoPurchasePrice(listPrice)
     local discountMultiplier = 1 - (discountPercent / 100)
 
     return math.floor(price * discountMultiplier)
+end
+
+    -- Initialize per-save category filters from the default equipment category list.
+    -- These values represent player-configurable categories, not hard exclusions.
+function DealerRelations.Data:initializeCategoryFilters()
+    DealerRelations.dealerData.categoryFilters = {}
+
+    for category, enabled in pairs(DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS) do
+        DealerRelations.dealerData.categoryFilters[category] = enabled == true
+    end
+end
+
+function DealerRelations.Data:getCategoryFilters()
+    return DealerRelations.dealerData.categoryFilters
+end
+
+    -- Unknown or missing category settings default to false here.
+    -- New/loaded saves should be initialized before discovery uses this.
+function DealerRelations.Data:isCategoryEnabled(category)
+    if category == nil then
+        return false
+    end
+    
+    return DealerRelations.dealerData.categoryFilters[tostring(category)] == true
+end
+
+    -- Store player preference for one configurable equipment category.
+    -- Hard exclusions are handled by Equipment.lua and should not be written here.
+function DealerRelations.Data:setCategoryEnabled(category, enabled)
+    if category == nil then
+        return
+    end
+
+    DealerRelations.dealerData.categoryFilters[tostring(category)] = enabled == true
+end
+
+-------------------------------------------------------------------------------
+-- Returns whether a configurable equipment category is currently enabled.
+--
+-- Category filter settings are stored per save and determine whether
+-- otherwise eligible equipment categories may be considered for demo offers.
+--
+-- @param category string Equipment category name.
+-- @return boolean True when the category is enabled.
+-----------------------------------------------------------------------------
+function DealerRelations.Data:isCategoryEnabled(category)
+    if category == nil then
+        return false
+    end
+
+    return DealerRelations.dealerData.categoryFilters[tostring(category)] == true
 end

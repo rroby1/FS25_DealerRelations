@@ -226,7 +226,7 @@ function DealerRelations.Equipment:isDemoCandidate(item)
         return false
     end
 
-    return DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS[category] == true
+    return DealerRelations.Data:isCategoryEnabled(category)
 end
 
 -------------------------------------------------------------------------------
