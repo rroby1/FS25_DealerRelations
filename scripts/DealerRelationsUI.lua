@@ -151,6 +151,8 @@ function DealerRelations.UI:openActiveDemoOffer()
         DealerRelations.Utils:formatMoney(offer.price)
     local brandDisplayName =
         DealerRelations.Utils:getBrandDisplayName(offer.brand)
+    local categoryDisplayName =
+        DealerRelations.Utils:getCategoryDisplayName(offer.category)
 
     local message = string.format(
         "Dealer Relationship: %s (Confidence %d)\n\nEquipment: %s\nBrand: %s\nCategory: %s\nPower: %s HP\nList Price: $%s\n\nThis offer expires at the end of the current month.",
@@ -158,7 +160,7 @@ function DealerRelations.UI:openActiveDemoOffer()
         confidence,
         tostring(offer.name),
         brandDisplayName,
-        tostring(offer.category),
+        categoryDisplayName,
         powerText,
         formattedPrice
     )

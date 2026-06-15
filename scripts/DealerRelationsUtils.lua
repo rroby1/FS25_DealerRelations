@@ -55,3 +55,15 @@ function DealerRelations.Utils:getBrandDisplayName(brandName)
 
     return brand ~= nil and brand.title or brandKey
 end
+
+    -- Convert the stored category key used by GIANTS and Dealer Relations
+    -- into the player-facing category title shown in dialogs.
+    -- If the category cannot be resolved, fall back to the stored key so the
+    -- dialog still displays useful information instead of failing.
+function DealerRelations.Utils:getCategoryDisplayName(categoryName)
+
+    local categoryKey = tostring(categoryName)
+    local category = g_storeManager:getCategoryByName(categoryKey)
+
+    return category ~= nil and category.title or categoryKey
+end
