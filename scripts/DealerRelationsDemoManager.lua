@@ -263,7 +263,7 @@ function DealerRelations.DemoManager:checkEndingDemoNotices()
             g_currentMission:addIngameNotification(
                 FSBaseMission.INGAME_NOTIFICATION_INFO,
                 string.format(
-                    "Dealer Relations: Your demo period for %s ends today. Please return the machine tomorrow morning or discuss purchase options with the dealer.",
+                    "Dealer Relations: Demo for %s ends today. Return or purchase tomorrow.",
                     tostring(demoVehicle.name)
                 )
             )
@@ -302,7 +302,7 @@ function DealerRelations.DemoManager:checkReturnDemoNotices()
             g_currentMission:addIngameNotification(
                 FSBaseMission.INGAME_NOTIFICATION_INFO,
                 string.format(
-                    "Dealer Relations: Your demo period for %s has ended. Please return the machine or discuss purchase options with the dealer.",
+                    "Dealer Relations: Demo for %s has ended. Return or purchase the machine.",
                     tostring(demoVehicle.name)
                 )
             )

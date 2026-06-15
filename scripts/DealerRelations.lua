@@ -135,7 +135,7 @@ function DealerRelations:checkMonthlyDemo()
 
         g_currentMission:addIngameNotification(
             FSBaseMission.INGAME_NOTIFICATION_INFO,
-            "Dealer Relations: The dealer has a demo offer available. Check with the dealer before the end of the month."
+            "Dealer Relations: A demo offer is available. Review it before the end of the month."
         )
     end
 end

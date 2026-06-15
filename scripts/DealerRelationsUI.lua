@@ -74,7 +74,7 @@ function DealerRelations.UI:onOpenDemoOfferInput()
 
     g_currentMission:addIngameNotification(
         FSBaseMission.INGAME_NOTIFICATION_INFO,
-        "Dealer Relations: No active demo offer or return action is available."
+        "Dealer Relations: No offers or demo actions are currently available."
     )
 end
 
@@ -132,7 +132,7 @@ function DealerRelations.UI:openActiveDemoOffer()
     if offer == nil then
         g_currentMission:addIngameNotification(
             FSBaseMission.INGAME_NOTIFICATION_INFO,
-            "Dealer Relations: No active demo offer is available."
+            "Dealer Relations: No demo offer is currently available."
         )
         return
     end
@@ -180,7 +180,7 @@ function DealerRelations.UI:notifyActiveDemoOfferAvailable()
     if DealerRelations.Data:hasActiveDemoOffer() then
         g_currentMission:addIngameNotification(
             FSBaseMission.INGAME_NOTIFICATION_INFO,
-            "Dealer Relations: A demo offer is currently available."
+            "Dealer Relations: A demo offer is available."
         )
     end
 end
@@ -250,7 +250,7 @@ function DealerRelations.UI:notifyRelationshipStatus()
     g_currentMission:addIngameNotification(
         FSBaseMission.INGAME_NOTIFICATION_INFO,
         string.format(
-            "Dealer Relations: Relationship %s (Confidence %d)",
+            "Dealer Relations: %s relationship (Confidence %d)",
             DealerRelations.Data:getRelationshipName(),
             DealerRelations.Data:getConfidence()
         )
