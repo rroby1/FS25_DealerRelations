@@ -17,59 +17,87 @@ DealerRelations.Equipment = DealerRelations.Equipment or {}
 DealerRelations.equipmentList = {}
 
 -------------------------------------------------------------------------------
--- Category Classification
+-- Categories that Dealer Relations should never offer as equipment demos.
 --
--- Determines whether a store category is eligible for Dealer Relations
--- demo consideration.
---
--- true  = Eligible
--- false = Excluded
---
--- Categories not present in this table are considered unclassified and
--- will be excluded by default.
+-- These are hard exclusions, not player settings. They represent store
+-- categories that do not fit the purpose of an equipment demo system.
 -------------------------------------------------------------------------------
+DealerRelations.Equipment.EXCLUDED_CATEGORIES = {
+    ANIMALPENS = true,
+    ANIMALTRANSPORT = true,
 
-DealerRelations.Equipment.CATEGORIES = {
+    BALES = true,
+    BIGBAGPALLETS = true,
+    BIGBAGS = true,
 
-    -- Animal
-    ANIMALPENS = false,
-    ANIMALTRANSPORT = false,
+    CARS = true,
+    TRUCKS = true,
 
-    -- Harvest & Crop Handling
+    CHAINSAWS = true,
+    FLASHLIGHTS = true,
+    HANDTOOLSANIMALS = true,
+    HANDTOOLSMISC = true,
+    MARKINGSPRAY = true,
+
+    DECORATION = true,
+    DIESELTANKS = true,
+    FARMHOUSES = true,
+    FENCES = true,
+    FLOODLIGHTING = true,
+    GARDENSHEDS = true,
+    GENERATORS = true,
+    PLACEABLEMISC = true,
+    PRODUCTIONPOINTS = true,
+    SELLINGPOINTS = true,
+    SHEDS = true,
+    SHIPPINGCONTAINERS = true,
+    SILOEXTENSIONS = true,
+    SILOS = true,
+    STORAGES = true,
+    TREES = true,
+    BEEHIVES = true,
+
+    FILLABLETANKS = true,
+    IBC = true,
+    PALLETS = true,
+    PALLETSILAGE = true,
+    WATERTANKS = true,
+
+    LEVELER = true,
+    MISC = true,
+    MISCDRIVABLES = true,
+    OBJECTANIMAL = true,
+    SILOCOMPACTION = true,
+    BARRELS = true,
+
+    TRAILERSCHANGINGSYSTEM = true,
+    TRAILERSSEMI = true,
+
+    BALINGMISC = true
+}
+
+-------------------------------------------------------------------------------
+-- Default player-configurable category filters.
+--
+-- These categories are valid equipment-demo categories. New saves will start
+-- with these enabled, and later save-specific settings can override them.
+-------------------------------------------------------------------------------
+DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
     AUGERWAGONS = true,
-    BALES = false,
     BEETHARVESTERCUTTERS = true,
     BEETHARVESTERS = true,
     BEETLOADING = true,
     BELTS = true,
 
-    -- Consumables
-    BIGBAGPALLETS = false,
-    BIGBAGS = false,
-
-    -- Vehicles
-    CARS = false,
-    TRUCKS = false,
-
-    -- Hand Tools
-    CHAINSAWS = false,
-    FLASHLIGHTS = false,
-    HANDTOOLSANIMALS = false,
-    HANDTOOLSMISC = false,
-    MARKINGSPRAY = false,
-
-    -- Headers
     COMBINEWINDROWER = true,
     CORNHEADERS = true,
     CUTTERS = true,
     FORAGEHARVESTERCUTTERS = true,
     SPECIALHEADERS = true,
 
-    -- Cotton
     COTTONHARVESTERS = true,
     COTTONTRANSPORT = true,
 
-    -- Tillage
     CULTIVATORS = true,
     DISCHARROWS = true,
     MULCHERS = true,
@@ -81,41 +109,14 @@ DealerRelations.Equipment.CATEGORIES = {
     SUBSOILERS = true,
     WEEDERS = true,
 
-    -- Placeables
-    DECORATION = false,
-    DIESELTANKS = false,
-    FARMHOUSES = false,
-    FENCES = false,
-    FLOODLIGHTING = false,
-    GARDENSHEDS = false,
-    GENERATORS = false,
-    PLACEABLEMISC = false,
-    PRODUCTIONPOINTS = false,
-    SELLINGPOINTS = false,
-    SHEDS = false,
-    SHIPPINGCONTAINERS = false,
-    SILOEXTENSIONS = false,
-    SILOS = false,
-    STORAGES = false,
-    TREES = false,
-    BEEHIVES = false,
-
-    -- Fertilizing & Spraying
     FERTILIZERSPREADERS = true,
     MANURESPREADERS = true,
     SLURRYTOOLS = true,
     SPRAYERS = true,
 
-    -- Fillables
-    FILLABLETANKS = false,
-    IBC = false,
-    PALLETS = false,
-    PALLETSILAGE = false,
     SEEDTANKS = true,
     SLURRYTANKS = true,
-    WATERTANKS = false,
 
-    -- Forage
     FORAGEHARVESTERS = true,
     FORAGEHARVESTERCUTTERTRAILERS = true,
     FORAGEMIXERS = true,
@@ -126,7 +127,6 @@ DealerRelations.Equipment.CATEGORIES = {
     TEDDERS = true,
     WINDROWERS = true,
 
-    -- Forestry
     FORESTRYEXCAVATORS = true,
     FORESTRYEXCAVATORTOOLS = true,
     FORESTRYFORWARDERS = true,
@@ -139,7 +139,6 @@ DealerRelations.Equipment.CATEGORIES = {
     WOODCHIPPERS = true,
     WOODTRANSPORT = true,
 
-    -- Loaders
     FORKLIFTS = true,
     FRONTLOADERS = true,
     FRONTLOADERTOOLS = true,
@@ -151,13 +150,11 @@ DealerRelations.Equipment.CATEGORIES = {
     WHEELLOADERTOOLS = true,
     WHEELLOADERVEHICLES = true,
 
-    -- Grapes & Olives
     GRAPEHARVESTERS = true,
     GRAPETOOLS = true,
     GRAPETRAILERS = true,
     OLIVEHARVESTERS = true,
 
-    -- Harvesters
     GREENBEANHARVESTERS = true,
     HARVESTERS = true,
     PEAHARVESTERS = true,
@@ -167,7 +164,6 @@ DealerRelations.Equipment.CATEGORIES = {
     SUGARCANEHARVESTERS = true,
     VEGETABLEHARVESTERS = true,
 
-    -- Planting
     PLANTERS = true,
     POTATOPLANTING = true,
     RICEPLANTERS = true,
@@ -175,35 +171,21 @@ DealerRelations.Equipment.CATEGORIES = {
     SUGARCANEPLANTERS = true,
     VEGETABLEPLANTERS = true,
 
-    -- Misc
     CUTTERTRAILERS = true,
-    LEVELER = false,
-    MISC = false,
-    MISCDRIVABLES = false,
-    OBJECTANIMAL = false,
-    SILOCOMPACTION = false,
     WEIGHTS = true,
     WINTEREQUIPMENT = true,
-    BARRELS = false,
 
-    -- Transport
     LOWLOADERS = true,
     SLURRYTRANSPORT = true,
     SUGARCANETRANSPORT = true,
     TRAILERS = true,
-    TRAILERSCHANGINGSYSTEM = false,
-    TRAILERSSEMI = false,
 
-    -- Baling
-    BALES = false,
-    BALINGMISC = false,
     BALERSSQUARE = true,
     BALERSROUND = true,
     BALELOADERS = true,
     BALEWRAPPERS = true,
     BALETRANSPORT = true,
 
-    -- Tractors
     TRACTORSS = true,
     TRACTORSM = true,
     TRACTORSL = true
@@ -211,6 +193,11 @@ DealerRelations.Equipment.CATEGORIES = {
 
 -------------------------------------------------------------------------------
 -- Returns true when a store item should be considered for dealer demos.
+--
+-- Categories are evaluated in two stages:
+-- 1. Hard exclusions remove known non-equipment categories.
+-- 2. Default category filters define equipment categories that may later become
+--    player-configurable per save.
 --
 -- Unknown categories are excluded by default and logged so new FS25/mod
 -- categories can be reviewed later.
@@ -229,14 +216,17 @@ function DealerRelations.Equipment:isDemoCandidate(item)
     end
 
     local category = tostring(item.categoryName)
-    local allowed = DealerRelations.Equipment.CATEGORIES[category]
 
-    if allowed == nil then
+    if DealerRelations.Equipment.EXCLUDED_CATEGORIES[category] == true then
+        return false
+    end
+
+    if DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS[category] == nil then
         DealerRelations.warning("Unclassified equipment category: " .. category)
         return false
     end
 
-    return allowed == true
+    return DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS[category] == true
 end
 
 -------------------------------------------------------------------------------
