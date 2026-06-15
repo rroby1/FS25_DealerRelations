@@ -43,3 +43,15 @@ function DealerRelations.Utils:formatMoney(amount)
 
     return formatted
 end
+
+    -- Convert the stored brand key used by GIANTS and Dealer Relations
+    -- into the player-facing brand title shown in dialogs.
+    -- If the brand cannot be resolved, fall back to the stored key so the
+    -- dialog still displays useful information instead of failing.
+function DealerRelations.Utils:getBrandDisplayName(brandName)
+
+    local brandKey = tostring(brandName)
+    local brand = g_brandManager:getBrandByName(brandKey)
+
+    return brand ~= nil and brand.title or brandKey
+end
