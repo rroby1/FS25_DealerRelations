@@ -145,8 +145,13 @@ function DealerRelations.UI:openActiveDemoOffer()
         powerText = string.format("%d - %d", offer.powerMin, offer.powerMax)
     end
 
+    local relationshipName = DealerRelations.Data:getRelationshipName()
+    local confidence = DealerRelations.Data:getConfidence()
+
     local message = string.format(
-        "Dealer Demo Offer\n\nEquipment: %s\nBrand: %s\nCategory: %s\nPower: %s HP\nPrice: $%s\n\nOffer expires at the end of the current month.",
+        "Dealer Relationship: %s (%d)\n\nEquipment: %s\nBrand: %s\nCategory: %s\nPower: %s HP\nPrice: $%s\n\nOffer expires at the end of the current month.",
+        relationshipName,
+        confidence,
         tostring(offer.name),
         tostring(offer.brand),
         tostring(offer.category),
@@ -193,9 +198,14 @@ function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
     end
 
     DealerRelations.log("Opening expired demo return/buy dialog")
+    
+    local relationshipName = DealerRelations.Data:getRelationshipName()
+    local confidence = DealerRelations.Data:getConfidence()
 
     local message = string.format(
-        "Dealer Demo Return\n\nEquipment: %s\nBrand: %s\nStatus: Expired\n\nThis demo period has ended. Return the machine or discuss purchase options with the dealer.",
+        "Dealer Relationship: %s (%d)\n\nEquipment: %s\nBrand: %s\nStatus: Expired\n\nThis demo period has ended. Return the machine or discuss purchase options with the dealer.",
+        relationshipName,
+        confidence,
         tostring(demoVehicle.name),
         tostring(demoVehicle.brand)
     )
@@ -203,4 +213,27 @@ function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
     -- Register and show the expired demo dialog.
     DealerRelationsDemoReturnDialog.register()
     DealerRelationsDemoReturnDialog.show(message, demoVehicle)
+end
+
+
+
+
+-- Displays the player's current dealer relationship status when a save
+-- is loaded.
+--
+-- Rationale:
+-- Dealer relationship is a long-term progression system that changes
+-- gradually through demo interactions. Showing the current relationship
+-- and confidence score at startup reminds the player of their standing
+-- with the dealership and provides visibility into relationship changes
+-- that may have occurred during previous play sessions.
+function DealerRelations.UI:notifyRelationshipStatus()
+    g_currentMission:addIngameNotification(
+        FSBaseMission.INGAME_NOTIFICATION_INFO,
+        string.format(
+            "Dealer Relations: Relationship %s (Confidence %d)",
+            DealerRelations.Data:getRelationshipName(),
+            DealerRelations.Data:getConfidence()
+        )
+    )
 end

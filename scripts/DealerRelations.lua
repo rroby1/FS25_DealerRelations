@@ -58,6 +58,8 @@ function DealerRelations:loadMap()
     -- Build the eligible equipment list.
     DealerRelations.Equipment:discover()
     
+    DealerRelations.UI:notifyRelationshipStatus()
+    
     DealerRelations.UI:notifyActiveDemoOfferAvailable()
 end
 
