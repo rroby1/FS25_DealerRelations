@@ -27,22 +27,7 @@
 
                 <Text
                     profile="fs25_settingsSectionHeader"
-                    text="Dealer Relations"/>
-
-                <Bitmap profile="fs25_multiTextOptionContainer" id="drPlaceholderOption">
-                    <BinaryOption
-                        profile="fs25_settingsBinaryOption"
-                        id="drPlaceholderToggle">
-
-                        <Text
-                            profile="fs25_multiTextOptionTooltip"
-                            name="ignore"/>
-                    </BinaryOption>
-
-                    <Text
-                        profile="fs25_settingsMultiTextOptionTitle"
-                        text="Dealer Relations Placeholder"/>
-                </Bitmap>
+                    text="DEALER RELATIONS SETTINGS PAGE LOADED"/>
 
             </ScrollingLayout>
 

@@ -35,6 +35,7 @@ source(g_currentModDirectory .. "scripts/DealerRelationsPersistence.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsUI.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsSettingsPage.lua")
+source(g_currentModDirectory .. "scripts/gui/DealerRelationsSettingsManager.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsDemoOfferDialog.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsDemoReturnDialog.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsDemoManager.lua")
@@ -68,6 +69,11 @@ function DealerRelations:loadMap()
     DealerRelations.UI:notifyRelationshipStatus()
     
     DealerRelations.UI:notifyActiveDemoOfferAvailable()
+    
+    -- Initialize settings menu integration.
+    -- This currently only proves that the settings manager is sourced and callable.
+    DealerRelations.settingsManager = DealerRelations.SettingsManager.new()
+    DealerRelations.settingsManager:init()
 end
 
 -------------------------------------------------------------------------------

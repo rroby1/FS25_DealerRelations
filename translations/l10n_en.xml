@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<l10n>
+    <texts>
+        <text name ="input_DR_OPEN_DEMO_OFFER" text="Open Dealer Demo Offer" />
+        <text name="dealerRelations_settingsTitle" text="Dealer Relations" />
+    </texts>
+</l10n>
