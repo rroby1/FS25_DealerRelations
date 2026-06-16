@@ -509,3 +509,71 @@ function DealerRelations.Data:isCategoryEnabled(category)
 
     return DealerRelations.dealerData.categoryFilters[tostring(category)] == true
 end
+
+-------------------------------------------------------------------------------
+-- Returns the per-save brand filter settings.
+--
+-- Brand filters are populated during equipment discovery. Newly discovered
+-- brands default to enabled so base-game and mod-added brands remain eligible
+-- unless the player disables them later.
+--
+-- @return table Brand filter settings keyed by brand name.
+-------------------------------------------------------------------------------
+function DealerRelations.Data:getBrandFilters()
+    return DealerRelations.dealerData.brandFilters
+end
+
+-------------------------------------------------------------------------------
+-- Ensures a discovered brand has a per-save filter entry.
+--
+-- Newly discovered brands are enabled by default so base-game and mod-added
+-- equipment remain eligible for demo offers until the player explicitly
+-- disables the brand through Dealer Relations settings.
+--
+-- @param brand string Brand name/key.
+-------------------------------------------------------------------------------
+function DealerRelations.Data:ensureBrandFilter(brand)
+    if brand == nil then
+        return
+    end
+
+    local brandKey = tostring(brand)
+
+    if DealerRelations.dealerData.brandFilters[brandKey] == nil then
+        DealerRelations.dealerData.brandFilters[brandKey] = true
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Returns whether a discovered brand is currently enabled.
+--
+-- Brand filter settings are stored per save and determine whether equipment
+-- from a given manufacturer may be considered for demo offers.
+--
+-- @param brand string Brand name/key.
+-- @return boolean True when the brand is enabled.
+-------------------------------------------------------------------------------
+function DealerRelations.Data:isBrandEnabled(brand)
+    if brand == nil then
+        return false
+    end
+
+    return DealerRelations.dealerData.brandFilters[tostring(brand)] == true
+end
+
+-------------------------------------------------------------------------------
+-- Sets whether a discovered brand is enabled for demo offers.
+--
+-- This stores the per-save brand preference used by equipment discovery.
+-- Future settings UI will call this when the player enables or disables a brand.
+--
+-- @param brand string Brand name/key.
+-- @param enabled boolean True to allow the brand, false to exclude it.
+-------------------------------------------------------------------------------
+function DealerRelations.Data:setBrandEnabled(brand, enabled)
+    if brand == nil then
+        return
+    end
+
+    DealerRelations.dealerData.brandFilters[tostring(brand)] = enabled == true
+end

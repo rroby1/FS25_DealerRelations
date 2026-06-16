@@ -50,6 +50,7 @@ function DealerRelations.Persistence:save(savegameDirectory)
     
     -- Player settings
     self:saveCategoryFilters(xmlFile)
+    self:saveBrandFilters(xmlFile)
 
     saveXMLFile(xmlFile)
     delete(xmlFile)
@@ -155,6 +156,30 @@ function DealerRelations.Persistence:saveCategoryFilters(xmlFile)
     end
 end
 
+function DealerRelations.Persistence:saveBrandFilters(xmlFile)
+    -- Save per-save brand filter settings.
+    -- Brands are discovered dynamically during equipment discovery, so this
+    -- saves only the brands that have actually been seen in the current save.
+    local brandFilters = DealerRelations.Data:getBrandFilters()
+    local brands = {}
+
+    for brand, _ in pairs(brandFilters) do
+        table.insert(brands, brand)
+    end
+
+    table.sort(brands)
+
+    for index, brand in ipairs(brands) do
+        local key = string.format(
+            "dealerRelations.brandFilters.brand(%d)",
+            index - 1
+        )
+
+        setXMLString(xmlFile, key .. "#name", brand)
+        setXMLBool(xmlFile, key .. "#enabled", brandFilters[brand] == true)
+    end
+end
+
 -------------------------------------------------------------------------------
 -- Load
 -------------------------------------------------------------------------------
@@ -219,6 +244,7 @@ function DealerRelations.Persistence:load(savegameDirectory)
     
     -- Player settings
     self:loadCategoryFilters(xmlFile)
+    self:loadBrandFilters(xmlFile)
 
     delete(xmlFile)
 
@@ -407,5 +433,40 @@ function DealerRelations.Persistence:loadCategoryFilters(xmlFile)
 
     DealerRelations.log(
         "Loaded category filters: " .. tostring(count)
+    )
+end
+
+function DealerRelations.Persistence:loadBrandFilters(xmlFile)
+    -- Load per-save brand filter settings.
+    -- Brands are discovered dynamically, so missing brand settings are not
+    -- initialized here. Discovery will add any newly found brands as enabled.
+    DealerRelations.dealerData.brandFilters = {}
+
+    local index = 0
+
+    while true do
+        local key = string.format(
+            "dealerRelations.brandFilters.brand(%d)",
+            index
+        )
+
+        local brand = getXMLString(xmlFile, key .. "#name")
+
+        if brand == nil then
+            break
+        end
+
+        local enabled = getXMLBool(xmlFile, key .. "#enabled")
+
+        DealerRelations.Data:setBrandEnabled(
+            brand,
+            enabled == true
+        )
+
+        index = index + 1
+    end
+
+    DealerRelations.log(
+        "Loaded brand filters: " .. tostring(index)
     )
 end
