@@ -64,7 +64,13 @@ DealerRelations.dealerData = {
     -- Nil indicates no active offer is available.
     activeDemoOffer = nil,
     
+    -- Per-save category filter settings.
+    -- Controls which equipment categories are eligible for demo offers.
     categoryFilters = {},
+
+    -- Per-save brand filter settings.
+    -- Controls which equipment brands are eligible for demo offers.
+    brandFilters = {},
 }
 
 -------------------------------------------------------------------------------
