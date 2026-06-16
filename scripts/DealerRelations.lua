@@ -17,6 +17,11 @@ DealerRelations = DealerRelations or {}
 -- Current mod version displayed in startup logging.
 DealerRelations.version = "0.13.0"
 
+-- Store the mod directory for later runtime use.
+-- Rationale: g_currentModDirectory is available while sourcing files,
+-- but may not be reliable later inside loadMap().
+DealerRelations.directory = g_currentModDirectory
+
 -------------------------------------------------------------------------------
 -- Load supporting modules.
 --
@@ -29,6 +34,7 @@ source(g_currentModDirectory .. "scripts/DealerRelationsData.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsPersistence.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsUI.lua")
+source(g_currentModDirectory .. "scripts/gui/DealerRelationsSettingsPage.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsDemoOfferDialog.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsDemoReturnDialog.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsDemoManager.lua")

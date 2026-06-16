@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+
+<GUI name="DRSettings">
+    <GuiElement profile="fs25_menuContainer">
+
+        <BoxLayout profile="fs25_subCategorySelectorTabbedBox">
+            <Button
+                profile="fs25_subCategorySelectorTabbedTab"
+                id="drTab"
+                text="Dealer Relations"
+                onClick="onClickDealerRelations"
+                textUpperCase="false">
+
+                <ThreePartBitmap
+                    profile="fs25_subCategorySelectorTabbedTabBg"
+                    name="background"/>
+            </Button>
+        </BoxLayout>
+
+        <GuiElement
+            profile="fs25_subCategorySelectorTabbedContainer"
+            id="drPage">
+
+            <ScrollingLayout
+                profile="fs25_settingsLayout"
+                id="settingsLayout">
+
+                <Text
+                    profile="fs25_settingsSectionHeader"
+                    text="Dealer Relations"/>
+
+                <Bitmap profile="fs25_multiTextOptionContainer" id="drPlaceholderOption">
+                    <BinaryOption
+                        profile="fs25_settingsBinaryOption"
+                        id="drPlaceholderToggle">
+
+                        <Text
+                            profile="fs25_multiTextOptionTooltip"
+                            name="ignore"/>
+                    </BinaryOption>
+
+                    <Text
+                        profile="fs25_settingsMultiTextOptionTitle"
+                        text="Dealer Relations Placeholder"/>
+                </Bitmap>
+
+            </ScrollingLayout>
+
+        </GuiElement>
+
+    </GuiElement>
+</GUI>
