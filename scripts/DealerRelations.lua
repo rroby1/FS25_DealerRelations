@@ -98,27 +98,26 @@ function DealerRelations:checkMonthlyDemo()
     local lastMonth = DealerRelations.Data:getLastDemoCheckMonth()
 
     if currentMonth ~= lastMonth then
+        DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
+
+        -- Existing active demos must continue to age/expire even when the mod is
+        -- disabled, otherwise the player can become stuck with a demo they cannot
+        -- return or buy.
+        DealerRelations.DemoManager:checkExpiredDemos()
+
         -- Dealer Relations may be disabled by player settings.
         --
         -- Rationale:
-        -- When disabled, the mod should not start new monthly activity.
-        -- We intentionally do this before updating lastDemoCheckMonth so a
-        -- disabled month is not marked as processed. If the player enables the
-        -- mod later, the next valid monthly cycle can still run normally.
+        -- Disabled blocks new monthly activity, but does not freeze existing demo
+        -- obligations or delete existing state.
         if not DealerRelations.Data:isEnabled() then
             DealerRelations.log(
-                "Monthly demo check skipped: Dealer Relations is disabled"
+                "Monthly demo offer skipped: Dealer Relations is disabled"
             )
             return
         end
 
-        DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
-
         self:expireDemoOffer(currentMonth)
-
-        -- Update demo vehicle states before deciding whether a new offer
-        -- is allowed this month.
-        DealerRelations.DemoManager:checkExpiredDemos()
 
         -- Prevent new demo offers while the player still has a demo that
         -- has not been returned or purchased.
