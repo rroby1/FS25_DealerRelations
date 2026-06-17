@@ -42,7 +42,6 @@ function DealerRelations.SettingsManager:init()
 
     self:insertSettingsPage()
     self:registerHeader()
-
     DealerRelations.log("Settings manager initialized")
 end
 

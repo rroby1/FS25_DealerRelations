@@ -20,20 +20,6 @@
         <GuiElement
             profile="fs25_subCategorySelectorTabbedContainer"
             id="drPage">
-            
-            <Bitmap
-                profile="fs25_multiTextOptionContainer"
-                id="binaryPrefab"
-                visible="false">
-
-                <BinaryOption
-                    profile="fs25_settingsBinaryOption">
-
-                    <Text profile="fs25_multiTextOptionTooltip"/>
-                </BinaryOption>
-
-                <Text profile="fs25_settingsMultiTextOptionTitle"/>
-            </Bitmap>            
 
             <ScrollingLayout
                 profile="fs25_settingsLayout"
@@ -42,6 +28,23 @@
                 <Text
                     profile="fs25_settingsSectionHeader"
                     text="Dealer Relations"/>
+
+                <Bitmap
+                    profile="fs25_multiTextOptionContainer"
+                    id="binaryPrefab"
+                    visible="false">
+                    
+                    <BinaryOption
+                        profile="fs25_settingsBinaryOption"
+                        id="drCheckPrefab">
+
+                        <Text
+                            profile="fs25_multiTextOptionTooltip"
+                            name="ignore"/>
+                    </BinaryOption>
+
+                    <Text profile="fs25_settingsMultiTextOptionTitle"/>
+                </Bitmap>
 
             </ScrollingLayout>
 
