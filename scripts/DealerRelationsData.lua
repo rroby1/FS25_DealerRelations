@@ -71,6 +71,14 @@ DealerRelations.dealerData = {
     -- Per-save brand filter settings.
     -- Controls which equipment brands are eligible for demo offers.
     brandFilters = {},
+    
+    -- Per-save Dealer Relations settings.
+    -- These values represent player-configurable mod behavior.
+    -- Persistence and UI wiring will be added in later steps.
+    settings = {
+        enabled = false,
+        debug = false,
+    },
 }
 
 -------------------------------------------------------------------------------
@@ -576,4 +584,40 @@ function DealerRelations.Data:setBrandEnabled(brand, enabled)
     end
 
     DealerRelations.dealerData.brandFilters[tostring(brand)] = enabled == true
+end
+
+-------------------------------------------------------------------------------
+-- Settings
+-------------------------------------------------------------------------------
+
+-- Returns the Dealer Relations enabled setting.
+--
+-- Rationale:
+-- Gameplay systems should ask the data layer whether Dealer Relations is enabled
+-- instead of reading the settings table directly.
+function DealerRelations.Data:isEnabled()
+    return DealerRelations.dealerData.settings.enabled == true
+end
+
+-- Stores the Dealer Relations enabled setting.
+--
+-- Rationale:
+-- Setters keep future validation, persistence hooks, or UI side effects in one
+-- place instead of spreading direct table writes across the codebase.
+function DealerRelations.Data:setEnabled(enabled)
+    DealerRelations.dealerData.settings.enabled = enabled == true
+end
+
+-- Returns whether Dealer Relations debug behavior is enabled.
+--
+-- Rationale:
+-- Debug behavior should be controlled through the data layer so logging and
+-- diagnostics can later share the same persisted setting.
+function DealerRelations.Data:isDebugEnabled()
+    return DealerRelations.dealerData.settings.debug == true
+end
+
+-- Stores the Dealer Relations debug setting.
+function DealerRelations.Data:setDebugEnabled(enabled)
+    DealerRelations.dealerData.settings.debug = enabled == true
 end

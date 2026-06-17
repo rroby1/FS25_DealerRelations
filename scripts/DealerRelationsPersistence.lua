@@ -44,6 +44,7 @@ function DealerRelations.Persistence:save(savegameDirectory)
     -- Each helper owns one saved data group so future persistence changes
     -- can be added without turning save() into one large mixed block.
     self:saveCoreData(xmlFile)
+    self:saveSettings(xmlFile)
     self:saveRecentDemoCandidates(xmlFile)
     self:saveActiveDemoOffer(xmlFile)
     self:saveActiveDemoVehicles(xmlFile)
@@ -65,6 +66,25 @@ function DealerRelations.Persistence:saveCoreData(xmlFile)
         xmlFile,
         "dealerRelations.lastDemoCheckMonth",
         DealerRelations.Data:getLastDemoCheckMonth()
+    )
+end
+
+function DealerRelations.Persistence:saveSettings(xmlFile)
+    -- Save player-configurable Dealer Relations settings.
+    --
+    -- Rationale:
+    -- Settings are saved as their own group so future settings can be added
+    -- without mixing configuration data into core relationship state.
+    setXMLBool(
+        xmlFile,
+        "dealerRelations.settings#enabled",
+        DealerRelations.Data:isEnabled()
+    )
+
+    setXMLBool(
+        xmlFile,
+        "dealerRelations.settings#debug",
+        DealerRelations.Data:isDebugEnabled()
     )
 end
 
@@ -238,6 +258,7 @@ function DealerRelations.Persistence:load(savegameDirectory)
     -- Each helper restores one saved data group so future persistence changes
     -- can be added without turning load() into one large mixed block.
     self:loadCoreData(xmlFile)
+    self:loadSettings(xmlFile)
     self:loadRecentDemoCandidates(xmlFile)
     self:loadActiveDemoOffer(xmlFile)
     self:loadActiveDemoVehicles(xmlFile)
@@ -279,6 +300,38 @@ function DealerRelations.Persistence:loadCoreData(xmlFile)
             "lastDemoCheckMonth missing from dealerRelations.xml; using default value"
         )
     end
+end
+
+function DealerRelations.Persistence:loadSettings(xmlFile)
+    -- Load player-configurable Dealer Relations settings.
+    --
+    -- Rationale:
+    -- Missing settings should not break older saves. Defaults remain owned by
+    -- DealerRelationsData, so this loader only applies values that actually
+    -- exist in dealerRelations.xml.
+    local enabled = getXMLBool(
+        xmlFile,
+        "dealerRelations.settings#enabled"
+    )
+
+    local debug = getXMLBool(
+        xmlFile,
+        "dealerRelations.settings#debug"
+    )
+
+    if enabled ~= nil then
+        DealerRelations.Data:setEnabled(enabled)
+    end
+
+    if debug ~= nil then
+        DealerRelations.Data:setDebugEnabled(debug)
+    end
+
+    DealerRelations.log(string.format(
+        "Loaded settings: enabled=%s, debug=%s",
+        tostring(DealerRelations.Data:isEnabled()),
+        tostring(DealerRelations.Data:isDebugEnabled())
+    ))
 end
 
 function DealerRelations.Persistence:loadRecentDemoCandidates(xmlFile)
