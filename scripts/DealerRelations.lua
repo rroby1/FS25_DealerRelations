@@ -34,6 +34,7 @@ source(g_currentModDirectory .. "scripts/DealerRelationsData.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsPersistence.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsUI.lua")
+source(g_currentModDirectory .. "scripts/gui/DealerRelationsScreen.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsDemoOfferDialog.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsDemoReturnDialog.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsDemoManager.lua")
@@ -63,6 +64,11 @@ function DealerRelations:loadMap()
 
     -- Build the eligible equipment list.
     DealerRelations.Equipment:discover()
+    
+    -- TEMP v0.13.0 screen test:
+    -- Create the Dealer Relations screen instance without loading XML or
+    -- registering it with the ESC menu.
+    DealerRelations.Screen:loadGui()
     
     DealerRelations.UI:notifyModDisabled()
     DealerRelations.UI:notifyRelationshipStatus()

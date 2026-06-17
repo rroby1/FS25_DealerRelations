@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+
+<GUI name="menuDealerRelations">
+    <GuiElement profile="fs25_menuContainer">
+
+        <Text
+            profile="fs25_menuHeaderTitle"
+            text="Dealer Relations"
+        />
+
+    </GuiElement>
+</GUI>
