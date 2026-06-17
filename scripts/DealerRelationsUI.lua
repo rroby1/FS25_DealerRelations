@@ -190,6 +190,27 @@ function DealerRelations.UI:notifyActiveDemoOfferAvailable()
 end
 
 -------------------------------------------------------------------------------
+-- Disabled Mod Notification
+-------------------------------------------------------------------------------
+
+-- Displays a startup notification when Dealer Relations is disabled.
+--
+-- Rationale:
+-- The mod now defaults to disabled so players do not receive demo offers before
+-- reviewing settings and filters. This reminder makes that state visible without
+-- changing gameplay behavior yet.
+function DealerRelations.UI:notifyModDisabled()
+    if DealerRelations.Data:isEnabled() then
+        return
+    end
+
+    g_currentMission:addIngameNotification(
+        FSBaseMission.INGAME_NOTIFICATION_INFO,
+        "Dealer Relations is currently disabled."
+    )
+end
+
+-------------------------------------------------------------------------------
 -- Expired Demo Return / Buy Screen
 -------------------------------------------------------------------------------
 

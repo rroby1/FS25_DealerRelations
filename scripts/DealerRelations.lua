@@ -64,6 +64,7 @@ function DealerRelations:loadMap()
     -- Build the eligible equipment list.
     DealerRelations.Equipment:discover()
     
+    DealerRelations.UI:notifyModDisabled()
     DealerRelations.UI:notifyRelationshipStatus()
     
     DealerRelations.UI:notifyActiveDemoOfferAvailable()
@@ -97,6 +98,20 @@ function DealerRelations:checkMonthlyDemo()
     local lastMonth = DealerRelations.Data:getLastDemoCheckMonth()
 
     if currentMonth ~= lastMonth then
+        -- Dealer Relations may be disabled by player settings.
+        --
+        -- Rationale:
+        -- When disabled, the mod should not start new monthly activity.
+        -- We intentionally do this before updating lastDemoCheckMonth so a
+        -- disabled month is not marked as processed. If the player enables the
+        -- mod later, the next valid monthly cycle can still run normally.
+        if not DealerRelations.Data:isEnabled() then
+            DealerRelations.log(
+                "Monthly demo check skipped: Dealer Relations is disabled"
+            )
+            return
+        end
+
         DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
 
         self:expireDemoOffer(currentMonth)
