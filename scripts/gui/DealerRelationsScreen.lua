@@ -179,6 +179,14 @@ function DealerRelations.Screen:register()
     )
     
     screen.enabledOption:setIsChecked(DealerRelations.Data:isEnabled())
+    
+    screen.debugOption = screen:addBinaryOption(
+        "onClickDebugOption",
+        "Debug",
+        "Enable or disable Dealer Relations debug logging."
+    )
+
+    screen.debugOption:setIsChecked(DealerRelations.Data:isDebugEnabled())
 
     DealerRelations.log("Dealer Relations ESC menu page registered")
 end
@@ -239,7 +247,10 @@ function DealerRelations.Screen:formatBoolean(value)
 end
 
 function DealerRelations.Screen:updateConfigurationValues()
-    self.debugValueText:setText(self:formatBoolean(DealerRelations.Data:isDebugEnabled()))
+    -- Configuration values are now represented by native BinaryOption rows.
+    -- Rationale:
+    -- The rows are initialized directly after creation, so no text placeholders
+    -- need to be refreshed here.
 end
 
 --- Creates a native FS25 binary settings row.
@@ -302,4 +313,21 @@ end
 -- updates Dealer Relations runtime data to match the UI selection.
 function DealerRelations.Screen:onClickEnabledOption(option, element, isChecked)
     DealerRelations.Data:setEnabled(not isChecked)
+end
+
+--- Handles changes to the Debug setting.
+--
+-- Rationale:
+-- The BinaryOption manages its own visual Yes/No state. This callback keeps
+-- Dealer Relations runtime configuration synchronized with the user's
+-- selection. Debug logging behavior is not modified here; that integration
+-- will be implemented in a later step. For now, the callback only updates
+-- the stored setting value so it can be persisted across save/load.
+function DealerRelations.Screen:onClickDebugOption(option, element, isChecked)
+    DealerRelations.Data:setDebugEnabled(not isChecked)
+
+    DealerRelations.log(
+        "Dealer Relations debug set to "
+        .. tostring(not isChecked)
+    )
 end
