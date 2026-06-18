@@ -170,6 +170,15 @@ function DealerRelations.Screen:register()
     -- Initialize the paging control and visible page.
     screen.subCategoryPaging:setState(1)
     screen:updateSubCategoryPages(1)
+    screen:updateConfigurationValues()
+    
+    screen.enabledOption = screen:addBinaryOption(
+        "onClickEnabledOption",
+        "Enabled",
+        "Enable or disable Dealer Relations systems."
+    )
+    
+    screen.enabledOption:setIsChecked(DealerRelations.Data:isEnabled())
 
     DealerRelations.log("Dealer Relations ESC menu page registered")
 end
@@ -213,4 +222,84 @@ function DealerRelations.Screen:onClickSubCategoryPaging(state, element)
     -- Use that state as the source of truth so arrow clicks and direct tab clicks
     -- drive the same page switching path.
     self:updateSubCategoryPages(state)
+end
+
+--- Updates Configuration page setting display values.
+--
+-- Rationale:
+-- Settings are stored in DealerRelations.Data and persisted per save.
+-- The Configuration page should display the current saved runtime values
+-- instead of static XML placeholder text.
+function DealerRelations.Screen:formatBoolean(value)
+    if value == true then
+        return "Yes"
+    end
+
+    return "No"
+end
+
+function DealerRelations.Screen:updateConfigurationValues()
+    self.debugValueText:setText(self:formatBoolean(DealerRelations.Data:isDebugEnabled()))
+end
+
+--- Creates a native FS25 binary settings row.
+--
+-- Rationale:
+-- GIANTS settings pages and Advanced Damage System build boolean settings
+-- from Lua using fs25_multiTextOptionContainer plus fs25_settingsBinaryOption.
+-- Keeping row creation in one helper lets Configuration add Enabled/Debug
+-- controls later without hand-placing fragile XML controls.
+function DealerRelations.Screen:addBinaryOption(onClickCallback, title, tooltip)
+    local row = BitmapElement.new()
+    row:loadProfile(g_gui:getProfile("fs25_multiTextOptionContainer"), true)
+    
+    -- Keep the generated settings row transparent.
+    -- Rationale:
+    -- Dealer Relations already draws its own page background, so the row
+    -- container should only provide layout for the option and title.
+    row:setImageColor(0, 0, 0, 0)
+
+    local option = BinaryOptionElement.new()
+    option.useYesNoTexts = true
+    option:loadProfile(g_gui:getProfile("fs25_settingsBinaryOption"), true)
+    option.target = self
+    option:setCallback("onClickCallback", onClickCallback)
+
+    local titleText = TextElement.new()
+    titleText:loadProfile(g_gui:getProfile("fs25_settingsMultiTextOptionTitle"), true)
+    titleText:setText(title)
+
+    local tooltipText = TextElement.new()
+    tooltipText.name = "ignore"
+    tooltipText:loadProfile(g_gui:getProfile("fs25_multiTextOptionTooltip"), true)
+    tooltipText:setText(tooltip or "")
+
+    option:addElement(tooltipText)
+    row:addElement(option)
+    row:addElement(titleText)
+
+    option:onGuiSetupFinished()
+    titleText:onGuiSetupFinished()
+    tooltipText:onGuiSetupFinished()
+
+    self.settingsLayout:addElement(row)
+    row:onGuiSetupFinished()
+
+    -- Recalculate the scrolling layout after adding a dynamic settings row.
+    -- Rationale:
+    -- Advanced Damage System invalidates the settings layout after generating
+    -- dynamic settings controls. Without this, the row can exist as a child but
+    -- not be positioned/drawn by the layout.
+    self.settingsLayout:invalidateLayout()
+
+    return option
+end
+
+--- Handles changes to the Enabled setting.
+--
+-- Rationale:
+-- The BinaryOption already manages its own visual state. This callback
+-- updates Dealer Relations runtime data to match the UI selection.
+function DealerRelations.Screen:onClickEnabledOption(option, element, isChecked)
+    DealerRelations.Data:setEnabled(not isChecked)
 end

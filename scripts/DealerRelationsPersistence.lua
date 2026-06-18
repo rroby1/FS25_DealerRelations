@@ -75,6 +75,7 @@ function DealerRelations.Persistence:saveSettings(xmlFile)
     -- Rationale:
     -- Settings are saved as their own group so future settings can be added
     -- without mixing configuration data into core relationship state.
+
     setXMLBool(
         xmlFile,
         "dealerRelations.settings#enabled",
