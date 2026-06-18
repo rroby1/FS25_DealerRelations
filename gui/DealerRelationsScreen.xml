@@ -30,14 +30,18 @@
             <ThreePartBitmap width="900px" height="520px" position="0px 0px">
                 <GuiElement profile="fs25_subCategoryContainer" width="860px">
                     <Text profile="dr_textDefaultTopLeft" text="Overview" position="20px -20px" size="400px 32px"/>
+
                     <Text profile="dr_textDefaultTopLeft" text="Relationship Level:" position="20px -80px" size="260px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" text="Neutral" position="300px -80px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="relationshipLevelValueText" text="Neutral" position="300px -80px" size="260px 28px"/>
+
                     <Text profile="dr_textDefaultTopLeft" text="Confidence:" position="20px -120px" size="260px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" text="0" position="300px -120px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="confidenceValueText" text="0" position="300px -120px" size="260px 28px"/>
+
                     <Text profile="dr_textDefaultTopLeft" text="Active Demo:" position="20px -180px" size="260px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" text="None" position="300px -180px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="activeDemoValueText" text="None" position="300px -180px" size="260px 28px"/>
+
                     <Text profile="dr_textDefaultTopLeft" text="Current Offer:" position="20px -220px" size="260px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" text="None" position="300px -220px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="currentOfferValueText" text="None" position="300px -220px" size="260px 28px"/>
                 </GuiElement>
             </ThreePartBitmap>
         </GuiElement>

@@ -171,6 +171,7 @@ function DealerRelations.Screen:register()
     screen.subCategoryPaging:setState(1)
     screen:updateSubCategoryPages(1)
     screen:updateConfigurationValues()
+    screen:updateOverviewValues()
     
     screen.enabledOption = screen:addBinaryOption(
         "onClickEnabledOption",
@@ -197,6 +198,8 @@ end
 --  toggles visibility of child panels; it does not change the FS25 menu page.
 function DealerRelations.Screen:onClickOverviewTab()
     self:updateSubCategoryPages(1)
+    self:updateOverviewValues()
+
     DealerRelations.log("Dealer Relations Overview tab selected")
 end
 
@@ -330,4 +333,48 @@ function DealerRelations.Screen:onClickDebugOption(option, element, isChecked)
         "Dealer Relations debug set to "
         .. tostring(not isChecked)
     )
+end
+
+--- Updates Overview page display values.
+--
+-- Rationale:
+-- Overview values are displayed through GUI text controls. This helper
+-- centralizes all Overview field updates so future refreshes only need to
+-- call one function.
+function DealerRelations.Screen:updateOverviewValues()
+    self.relationshipLevelValueText:setText(
+        DealerRelations.Data:getRelationshipName()
+    )
+
+    self.confidenceValueText:setText(
+        tostring(DealerRelations.Data:getConfidence())
+    )
+
+    local offer = DealerRelations.Data:getActiveDemoOffer()
+
+    if offer ~= nil then
+        self.currentOfferValueText:setText(tostring(offer.name))
+    else
+        self.currentOfferValueText:setText("None")
+    end
+    
+    local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+    local activeDemoText = "None"
+
+    if activeDemoVehicles ~= nil and #activeDemoVehicles > 0 then
+        activeDemoText = tostring(activeDemoVehicles[1].name)
+    end
+
+    self.activeDemoValueText:setText(activeDemoText)
+end
+
+function DealerRelations.Screen:onFrameOpen()
+    DealerRelations.Screen:superClass().onFrameOpen(self)
+
+    -- Refresh Overview values when the ESC page is opened.
+    -- Rationale:
+    -- Demo offers can be created after the screen is registered, so the
+    -- Overview page must read current runtime data whenever the player opens
+    -- the Dealer Relations page.
+    self:updateOverviewValues()
 end
