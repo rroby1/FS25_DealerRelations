@@ -1,21 +1,31 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 
 <GUI name="menuDealerRelations">
-    <GuiElement profile="fs25_menuContainer">
+<GuiElement profile="fs25_menuContainer">
 
-        <GuiElement profile="fs25_menuHeaderPanel" position="-200px 90px" width="800px">
-            <Text profile="fs25_menuHeaderTitle" text="Dealer Relations" id="dealerRelationsHeaderText"/>
-        </GuiElement>
+    <GuiElement profile="fs25_menuHeaderPanel" position="-200px 90px" width="800px">
+        <Text profile="fs25_menuHeaderTitle" text="Dealer Relations" id="dealerRelationsHeaderText"/>
+    </GuiElement>
 
-        <BoxLayout profile="fs25_subCategorySelectorTabbedBox" id="subCategoryBox">
-            <Button profile="fs25_subCategorySelectorTabbedTab" id="drOverviewTab" text="Overview" onClick="onClickOverviewTab">
-                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
-            </Button>
+    <BoxLayout profile="fs25_subCategorySelectorTabbedBox" id="subCategoryBox">
+        <Button profile="fs25_subCategorySelectorTabbedTab" id="drOverviewTab" text="Overview" onClick="onClickOverviewTab">
+            <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+        </Button>
 
-            <Button profile="fs25_subCategorySelectorTabbedTab" id="drConfigurationTab" text="Configuration" onClick="onClickConfigurationTab">
-                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
-            </Button>
-        </BoxLayout>
+        <Button profile="fs25_subCategorySelectorTabbedTab" id="drConfigurationTab" text="Configuration" onClick="onClickConfigurationTab">
+            <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+        </Button>
+    </BoxLayout>
+    
+    <MultiTextOption
+        profile="fs25_subCategorySelectorTabbed"
+        id="subCategoryPaging"
+        position="0px -10px"
+        onClick="onClickSubCategoryPaging"/>
+
+    <!-- FS25 subcategory content container -->
+    <GuiElement profile="fs25_subCategorySelectorTabbedContainer">
+
         <GuiElement id="overviewPanel" profile="emptyPanel" position="0px 100px" width="900px" height="520px">
             <ThreePartBitmap width="900px" height="520px" position="0px 0px">
                 <GuiElement profile="fs25_subCategoryContainer" width="860px">
@@ -45,6 +55,8 @@
         </GuiElement>
 
     </GuiElement>
+
+</GuiElement>
 
     <GUIProfiles>
         <Profile name="dr_textDefaultTopLeft" extends="fs25_textDefault" with="anchorTopLeft">

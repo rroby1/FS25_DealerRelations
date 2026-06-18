@@ -143,6 +143,34 @@ function DealerRelations.Screen:register()
 
     screen:initialize()
 
+    -- Store Dealer Relations internal tab controls after XML loading.
+    -- Rationale:
+    -- The FS25 subcategory selector pattern expects parallel tab/page arrays.
+    -- This mirrors the known-working NWT implementation and keeps tab switching
+    -- inside one ESC menu page.
+    screen.subCategoryTabs = {
+        screen.drOverviewTab,
+        screen.drConfigurationTab
+    }
+
+    screen.subCategoryPages = {
+        screen.overviewPanel,
+        screen.configurationPanel
+    }
+
+    -- Populate the paging control once.
+    --
+    -- Rationale:
+    -- The paging control should contain exactly one entry per internal page.
+    -- Adding entries from a click handler causes the list to grow every time
+    -- the tab is selected, which breaks page/state mapping.
+    screen.subCategoryPaging:addText("Overview")
+    screen.subCategoryPaging:addText("Configuration")
+
+    -- Initialize the paging control and visible page.
+    screen.subCategoryPaging:setState(1)
+    screen:updateSubCategoryPages(1)
+
     DealerRelations.log("Dealer Relations ESC menu page registered")
 end
 
@@ -151,9 +179,7 @@ end
 --  The tab bar is part of one Dealer Relations ESC page. Switching tabs only
 --  toggles visibility of child panels; it does not change the FS25 menu page.
 function DealerRelations.Screen:onClickOverviewTab()
-    self.overviewPanel:setVisible(true)
-    self.configurationPanel:setVisible(false)
-
+    self:updateSubCategoryPages(1)
     DealerRelations.log("Dealer Relations Overview tab selected")
 end
 
@@ -162,8 +188,29 @@ end
 --  The tab bar is part of one Dealer Relations ESC page. Switching tabs only
 --  toggles visibility of child panels; it does not change the FS25 menu page.
 function DealerRelations.Screen:onClickConfigurationTab()
-    self.overviewPanel:setVisible(false)
-    self.configurationPanel:setVisible(true)
-
+    self:updateSubCategoryPages(2)
     DealerRelations.log("Dealer Relations Configuration tab selected")
+end
+
+--- Updates the active Dealer Relations sub-page.
+--
+-- Rationale:
+-- Mirrors the proven NWT implementation so internal page visibility is
+-- managed in one place.
+function DealerRelations.Screen:updateSubCategoryPages(state)
+    for i, _ in ipairs(self.subCategoryPages) do
+        self.subCategoryPages[i]:setVisible(false)
+        self.subCategoryTabs[i]:setSelected(false)
+    end
+
+    self.subCategoryPages[state]:setVisible(true)
+    self.subCategoryTabs[state]:setSelected(true)
+    self.subCategoryPaging.state = state
+end
+
+function DealerRelations.Screen:onClickSubCategoryPaging(state, element)
+    -- Paging arrows update the MultiTextOption state internally.
+    -- Use that state as the source of truth so arrow clicks and direct tab clicks
+    -- drive the same page switching path.
+    self:updateSubCategoryPages(state)
 end
