@@ -68,7 +68,7 @@ function DealerRelations:loadMap()
     -- TEMP v0.13.0 screen test:
     -- Create the Dealer Relations screen instance without loading XML or
     -- registering it with the ESC menu.
-    DealerRelations.Screen:loadGui()
+    DealerRelations.Screen:register()
     
     DealerRelations.UI:notifyModDisabled()
     DealerRelations.UI:notifyRelationshipStatus()

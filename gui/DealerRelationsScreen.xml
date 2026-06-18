@@ -3,10 +3,55 @@
 <GUI name="menuDealerRelations">
     <GuiElement profile="fs25_menuContainer">
 
-        <Text
-            profile="fs25_menuHeaderTitle"
-            text="Dealer Relations"
-        />
+        <GuiElement profile="fs25_menuHeaderPanel" position="-200px 90px" width="800px">
+            <Text profile="fs25_menuHeaderTitle" text="Dealer Relations" id="dealerRelationsHeaderText"/>
+        </GuiElement>
+
+        <BoxLayout profile="fs25_subCategorySelectorTabbedBox" id="subCategoryBox">
+            <Button profile="fs25_subCategorySelectorTabbedTab" id="drOverviewTab" text="Overview" onClick="onClickOverviewTab">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+
+            <Button profile="fs25_subCategorySelectorTabbedTab" id="drConfigurationTab" text="Configuration" onClick="onClickConfigurationTab">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+        </BoxLayout>
+        <GuiElement id="overviewPanel" profile="emptyPanel" position="0px 100px" width="900px" height="520px">
+            <ThreePartBitmap width="900px" height="520px" position="0px 0px">
+                <GuiElement profile="fs25_subCategoryContainer" width="860px">
+                    <Text profile="dr_textDefaultTopLeft" text="Overview" position="20px -20px" size="400px 32px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Relationship Level:" position="20px -80px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Neutral" position="300px -80px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Confidence:" position="20px -120px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="0" position="300px -120px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Active Demo:" position="20px -180px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="None" position="300px -180px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Current Offer:" position="20px -220px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="None" position="300px -220px" size="260px 28px"/>
+                </GuiElement>
+            </ThreePartBitmap>
+        </GuiElement>
+
+        <GuiElement id="configurationPanel" profile="emptyPanel" position="0px 100px" width="900px" height="520px" visible="false">
+            <ThreePartBitmap width="900px" height="520px" position="0px 0px">
+                <GuiElement profile="fs25_subCategoryContainer" width="860px">
+                    <Text profile="dr_textDefaultTopLeft" text="Configuration" position="20px -20px" size="400px 32px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Enabled:" position="20px -80px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="False" position="300px -80px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Debug:" position="20px -120px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="False" position="300px -120px" size="260px 28px"/>
+                </GuiElement>
+            </ThreePartBitmap>
+        </GuiElement>
 
     </GuiElement>
+
+    <GUIProfiles>
+        <Profile name="dr_textDefaultTopLeft" extends="fs25_textDefault" with="anchorTopLeft">
+            <isFocusable value="true"/>
+            <textSize value="18px"/>
+            <textColor value="$preset_colorWhite"/>
+            <textAlignment value="left"/>
+        </Profile>
+    </GUIProfiles>
 </GUI>

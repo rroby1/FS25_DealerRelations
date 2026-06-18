@@ -44,6 +44,13 @@ DealerRelations.Screen.MENU_PAGE_NAME = "menuDealerRelations"
 DealerRelations.Screen.XML_FILENAME =
     g_currentModDirectory .. "gui/DealerRelationsScreen.xml"
 
+-- Temporary tab icon.
+-- Rationale:
+-- The ESC menu requires a tab icon when adding a page tab. The mod icon is
+-- good enough while the screen architecture is being proven.
+DealerRelations.Screen.MENU_ICON_FILENAME =
+    g_currentModDirectory .. "icon.dds"
+
 -------------------------------------------------------------------------------
 -- Construction
 -------------------------------------------------------------------------------
@@ -96,4 +103,67 @@ function DealerRelations.Screen:loadGui()
     )
 
     return screen
+end
+
+-------------------------------------------------------------------------------
+-- ESC Menu Registration
+-------------------------------------------------------------------------------
+
+-- Registers the Dealer Relations screen as a page in the in-game ESC menu.
+--
+-- Rationale:
+-- This follows the proven InGameMenu registration sequence used by other FS25
+-- mods: load XML, attach the frame to the paging element, register the page,
+-- add a tab icon, then rebuild the tab list.
+function DealerRelations.Screen:register()
+    local screen = DealerRelations.Screen:loadGui()
+    local inGameMenu = g_gui.screenControllers[InGameMenu] or g_inGameMenu
+
+    inGameMenu[DealerRelations.Screen.MENU_PAGE_NAME] = screen
+
+    inGameMenu.pagingElement:addElement(screen)
+    inGameMenu.pagingElement:updateAbsolutePosition()
+    inGameMenu.pagingElement:updatePageMapping()
+
+    inGameMenu:registerPage(
+        screen,
+        nil,
+        function()
+            return true
+        end
+    )
+
+    inGameMenu:addPageTab(
+        screen,
+        DealerRelations.Screen.MENU_ICON_FILENAME,
+        GuiUtils.getUVs({0, 0, 1024, 1024})
+    )
+
+    inGameMenu:rebuildTabList()
+
+    screen:initialize()
+
+    DealerRelations.log("Dealer Relations ESC menu page registered")
+end
+
+--- Handles selection of the Overview tab.
+--  Rationale:
+--  The tab bar is part of one Dealer Relations ESC page. Switching tabs only
+--  toggles visibility of child panels; it does not change the FS25 menu page.
+function DealerRelations.Screen:onClickOverviewTab()
+    self.overviewPanel:setVisible(true)
+    self.configurationPanel:setVisible(false)
+
+    DealerRelations.log("Dealer Relations Overview tab selected")
+end
+
+--- Handles selection of the Configuration tab.
+--  Rationale:
+--  The tab bar is part of one Dealer Relations ESC page. Switching tabs only
+--  toggles visibility of child panels; it does not change the FS25 menu page.
+function DealerRelations.Screen:onClickConfigurationTab()
+    self.overviewPanel:setVisible(false)
+    self.configurationPanel:setVisible(true)
+
+    DealerRelations.log("Dealer Relations Configuration tab selected")
 end
