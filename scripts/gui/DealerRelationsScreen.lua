@@ -150,12 +150,16 @@ function DealerRelations.Screen:register()
     -- inside one ESC menu page.
     screen.subCategoryTabs = {
         screen.drOverviewTab,
-        screen.drConfigurationTab
+        screen.drConfigurationTab,
+        screen.drCategoriesTab,
+        screen.drBrandsTab
     }
 
     screen.subCategoryPages = {
         screen.overviewPanel,
-        screen.configurationPanel
+        screen.configurationPanel,
+        screen.categoriesPanel,
+        screen.brandsPanel
     }
 
     -- Populate the paging control once.
@@ -166,6 +170,8 @@ function DealerRelations.Screen:register()
     -- the tab is selected, which breaks page/state mapping.
     screen.subCategoryPaging:addText("Overview")
     screen.subCategoryPaging:addText("Configuration")
+    screen.subCategoryPaging:addText("Categories")
+    screen.subCategoryPaging:addText("Brands")
 
     -- Initialize the paging control and visible page.
     screen.subCategoryPaging:setState(1)
@@ -187,7 +193,11 @@ function DealerRelations.Screen:register()
         "Enable or disable Dealer Relations debug logging."
     )
 
-    screen.debugOption:setIsChecked(DealerRelations.Data:isDebugEnabled())
+    -- Build category filter controls after XML controls are exposed.
+    -- Rationale:
+    -- categoriesLayout is created by the XML and exposed during initialize(),
+    -- so dynamic rows should be generated only after initialization is complete.
+    screen:buildCategoryFilterRows()
 
     DealerRelations.log("Dealer Relations ESC menu page registered")
 end
@@ -377,4 +387,128 @@ function DealerRelations.Screen:onFrameOpen()
     -- Overview page must read current runtime data whenever the player opens
     -- the Dealer Relations page.
     self:updateOverviewValues()
+end
+
+--- Handles selection of the Categories tab.
+-- Rationale:
+-- Category filters are separate from general configuration because the list
+-- can become long. This keeps the Configuration page focused on global
+-- Dealer Relations settings.
+function DealerRelations.Screen:onClickCategoriesTab()
+    self:updateSubCategoryPages(3)
+
+    DealerRelations.log("Dealer Relations Categories tab selected")
+end
+
+--- Handles selection of the Brands tab.
+-- Rationale:
+-- Brand filters are separate from category filters because they are a distinct
+-- filter dimension and will likely need their own scrolling list.
+function DealerRelations.Screen:onClickBrandsTab()
+    self:updateSubCategoryPages(4)
+
+    DealerRelations.log("Dealer Relations Brands tab selected")
+end
+
+--- Creates a binary option row in a specific scrolling layout.
+-- Rationale:
+-- Category and brand filters use the same native FS25 BinaryOption row pattern
+-- as Configuration settings, but they live on their own pages and layouts.
+function DealerRelations.Screen:addBinaryOptionToLayout(layout, onClickCallback, title, tooltip)
+    local row = BitmapElement.new()
+    row:loadProfile(g_gui:getProfile("fs25_multiTextOptionContainer"), true)
+
+    -- Keep generated filter rows transparent so the Dealer Relations panel
+    -- background remains visually consistent.
+    row:setImageColor(0, 0, 0, 0)
+
+    local option = BinaryOptionElement.new()
+    option.useYesNoTexts = true
+    option:loadProfile(g_gui:getProfile("fs25_settingsBinaryOption"), true)
+    option.target = self
+    option:setCallback("onClickCallback", onClickCallback)
+
+    local titleText = TextElement.new()
+    titleText:loadProfile(g_gui:getProfile("fs25_settingsMultiTextOptionTitle"), true)
+    titleText:setText(title)
+
+    local tooltipText = TextElement.new()
+    tooltipText.name = "ignore"
+    tooltipText:loadProfile(g_gui:getProfile("fs25_multiTextOptionTooltip"), true)
+    tooltipText:setText(tooltip or "")
+
+    option:addElement(tooltipText)
+    row:addElement(option)
+    row:addElement(titleText)
+
+    option:onGuiSetupFinished()
+    titleText:onGuiSetupFinished()
+    tooltipText:onGuiSetupFinished()
+
+    layout:addElement(row)
+    row:onGuiSetupFinished()
+
+    -- Dynamic rows are not positioned until the scrolling layout recalculates.
+    layout:invalidateLayout()
+
+    return option
+end
+
+--- Builds the Category filter rows.
+-- Rationale:
+-- Category filter persistence and discovery logic already use the
+-- DealerRelations.Data category filter table. The UI should edit that same
+-- source of truth instead of maintaining a separate category list.
+function DealerRelations.Screen:buildCategoryFilterRows()
+    if self.categoryRowsBuilt == true then
+        return
+    end
+
+    local categoryFilters = DealerRelations.Data:getCategoryFilters()
+    local categoryNames = {}
+
+    for categoryName, _ in pairs(categoryFilters) do
+        table.insert(categoryNames, categoryName)
+    end
+
+    table.sort(categoryNames)
+
+    for _, categoryName in ipairs(categoryNames) do
+        local option = self:addBinaryOptionToLayout(
+            self.categoriesLayout,
+            "onClickCategoryFilterOption",
+            categoryName,
+            "Allow demo offers from the " .. categoryName .. " category."
+        )
+
+        -- Store the category key directly on the option so the callback can
+        -- update the matching persisted filter entry without lookup tables.
+        option.categoryName = categoryName
+        option:setIsChecked(DealerRelations.Data:isCategoryEnabled(categoryName))
+    end
+
+    self.categoryRowsBuilt = true
+end
+
+
+--- Handles changes to one category filter row.
+-- Rationale:
+-- Dynamically generated BinaryOption rows pass the selected state first and
+-- the option element second. The category key is stored on the option element
+-- so the callback updates the matching persisted filter entry.
+function DealerRelations.Screen:onClickCategoryFilterOption(state, element, isChecked)
+    if element == nil or element.categoryName == nil then
+        return
+    end
+
+    local enabled = not isChecked
+
+    DealerRelations.Data:setCategoryEnabled(element.categoryName, enabled)
+
+    DealerRelations.log(
+        "Dealer Relations category filter set: "
+        .. tostring(element.categoryName)
+        .. "="
+        .. tostring(enabled)
+    )
 end
