@@ -475,11 +475,13 @@ function DealerRelations.Screen:buildCategoryFilterRows()
     table.sort(categoryNames)
 
     for _, categoryName in ipairs(categoryNames) do
+        local categoryDisplayName = DealerRelations.Utils:getCategoryDisplayName(categoryName)
+        
         local option = self:addBinaryOptionToLayout(
             self.categoriesLayout,
             "onClickCategoryFilterOption",
-            categoryName,
-            "Allow demo offers from the " .. categoryName .. " category."
+            categoryDisplayName,
+            "Allow demo offers from the " .. categoryDisplayName .. " category."
         )
 
         -- Store the category key directly on the option so the callback can
@@ -534,11 +536,13 @@ function DealerRelations.Screen:buildBrandFilterRows()
     table.sort(brandNames)
 
     for _, brandName in ipairs(brandNames) do
+        local brandDisplayName = DealerRelations.Utils:getBrandDisplayName(brandName)
+
         local option = self:addBinaryOptionToLayout(
             self.brandsLayout,
             "onClickBrandFilterOption",
-            brandName,
-            "Allow demo offers from the " .. brandName .. " brand."
+            brandDisplayName,
+            "Allow demo offers from the " .. brandDisplayName .. " brand."
         )
 
         -- Store the brand key directly on the option so the callback can

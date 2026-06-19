@@ -32,7 +32,7 @@
 
     <!-- FS25 subcategory content container -->
     <GuiElement profile="fs25_subCategorySelectorTabbedContainer">
-
+ 
         <GuiElement id="overviewPanel" profile="emptyPanel" position="0px 100px" width="900px" height="520px">
             <ThreePartBitmap width="900px" height="520px" position="0px 0px">
                 <GuiElement profile="fs25_subCategoryContainer" width="860px">
@@ -61,11 +61,11 @@
                 </GuiElement>
             </ThreePartBitmap>
         </GuiElement>
-        <GuiElement id="categoriesPanel" profile="emptyPanel" position="0px 100px" width="900px" height="520px" visible="false">
+        <GuiElement id="categoriesPanel" profile="emptyPanel" position="0px 0px" width="900px" height="520px" visible="false">
             <ThreePartBitmap width="900px" height="520px" position="0px 0px">
-                <GuiElement profile="fs25_subCategoryContainer" width="860px">
+                <GuiElement profile="emptyPanel" position="0px 0px" width="860px" height="520px">
                     <Text profile="dr_textDefaultTopLeft" text="Categories" position="20px -20px" size="400px 32px"/>
-                        <ScrollingLayout id="categoriesLayout" profile="fs25_settingsLayout" position="20px -60px" size="820px 430px"/>
+                    <ScrollingLayout id="categoriesLayout" profile="fs25_settingsLayout" position="20px -55px" size="820px 435px"/>
                 </GuiElement>
             </ThreePartBitmap>
         </GuiElement>
@@ -74,7 +74,7 @@
             <ThreePartBitmap width="900px" height="520px" position="0px 0px">
                 <GuiElement profile="fs25_subCategoryContainer" width="860px">
                     <Text profile="dr_textDefaultTopLeft" text="Brands" position="20px -20px" size="400px 32px"/>
-                    <ScrollingLayout id="brandsLayout" profile="fs25_settingsLayout" position="20px -60px" size="820px 430px"/>
+                    <ScrollingLayout id="brandsLayout" profile="fs25_settingsLayout" position="20px -55px" size="820px 435px"/>
                 </GuiElement>
             </ThreePartBitmap>
         </GuiElement>
