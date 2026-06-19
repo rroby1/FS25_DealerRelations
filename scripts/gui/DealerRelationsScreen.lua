@@ -49,7 +49,7 @@ DealerRelations.Screen.XML_FILENAME =
 -- The ESC menu requires a tab icon when adding a page tab. The mod icon is
 -- good enough while the screen architecture is being proven.
 DealerRelations.Screen.MENU_ICON_FILENAME =
-    g_currentModDirectory .. "icon.dds"
+    g_currentModDirectory .. "images/DRMenuIcon.png"
 
 -------------------------------------------------------------------------------
 -- Construction
@@ -161,13 +161,12 @@ function DealerRelations.Screen:register()
         screen.categoriesPanel,
         screen.brandsPanel
     }
-
+    
     -- Populate the paging control once.
     --
     -- Rationale:
-    -- The paging control should contain exactly one entry per internal page.
-    -- Adding entries from a click handler causes the list to grow every time
-    -- the tab is selected, which breaks page/state mapping.
+    -- The paging control needs one entry per internal page so arrow clicks
+    -- can advance through the same pages as the direct tab buttons.
     screen.subCategoryPaging:addText("Overview")
     screen.subCategoryPaging:addText("Configuration")
     screen.subCategoryPaging:addText("Categories")

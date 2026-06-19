@@ -1,5 +1,18 @@
 # Changelog
 
+## Version 0.13.0
+
+- Added a dedicated Dealer Relations page to the ESC menu.
+- Added Overview, Configuration, Categories, and Brands tabs.
+- Added configurable Dealer Relations enable/disable setting.
+- Added configurable debug logging setting.
+- Added category filter configuration with savegame persistence.
+- Added brand filter configuration with savegame persistence.
+- Added relationship, confidence, active demo, and current offer overview display.
+- Added internal tab navigation with paging arrow support.
+- Added Dealer Relations ESC menu icon.
+- Improved settings and filter management workflow.
+
 ## v0.12.0
 * Added relationship-based confidence changes from demo actions.
 * Added relationship levels and player-facing relationship names.

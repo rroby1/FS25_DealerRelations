@@ -15,6 +15,7 @@
         <Button profile="fs25_subCategorySelectorTabbedTab" id="drConfigurationTab" text="Configuration" onClick="onClickConfigurationTab">
             <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
         </Button>
+
         <Button profile="fs25_subCategorySelectorTabbedTab" id="drCategoriesTab" text="Categories" onClick="onClickCategoriesTab">
             <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
         </Button>
@@ -23,17 +24,15 @@
             <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
         </Button>
     </BoxLayout>
-    
+
     <MultiTextOption
         profile="fs25_subCategorySelectorTabbed"
         id="subCategoryPaging"
         position="0px -10px"
         onClick="onClickSubCategoryPaging"/>
 
-    <!-- FS25 subcategory content container -->
-    <GuiElement profile="fs25_subCategorySelectorTabbedContainer">
- 
-        <GuiElement id="overviewPanel" profile="emptyPanel" position="0px 100px" width="900px" height="520px">
+    <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="overviewPanel">
+        <GuiElement profile="emptyPanel" position="0px 100px" width="900px" height="520px">
             <ThreePartBitmap width="900px" height="520px" position="0px 0px">
                 <GuiElement profile="fs25_subCategoryContainer" width="860px">
                     <Text profile="dr_textDefaultTopLeft" text="Overview" position="20px -20px" size="400px 32px"/>
@@ -52,29 +51,49 @@
                 </GuiElement>
             </ThreePartBitmap>
         </GuiElement>
+    </GuiElement>
 
-        <GuiElement id="configurationPanel" profile="emptyPanel" position="0px 100px" width="900px" height="520px" visible="false">
+    <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="configurationPanel" visible="false">
+        <GuiElement profile="emptyPanel" position="0px 100px" width="900px" height="520px">
             <ThreePartBitmap width="900px" height="520px" position="0px 0px">
                 <GuiElement profile="fs25_subCategoryContainer" width="860px">
                     <Text profile="dr_textDefaultTopLeft" text="Configuration" position="20px -20px" size="400px 32px"/>
-                    <ScrollingLayout profile="fs25_settingsLayout" id="settingsLayout" visible="true" position="20px -170px" size="820px 200px"/>
+                    <ScrollingLayout
+                        profile="fs25_settingsLayout"
+                        id="settingsLayout"
+                        visible="true"
+                        position="20px -170px"
+                        size="820px 200px"/>
                 </GuiElement>
             </ThreePartBitmap>
         </GuiElement>
-        <GuiElement id="categoriesPanel" profile="emptyPanel" position="0px 0px" width="900px" height="520px" visible="false">
-            <ThreePartBitmap width="900px" height="520px" position="0px 0px">
-                <GuiElement profile="emptyPanel" position="0px 0px" width="860px" height="520px">
-                    <Text profile="dr_textDefaultTopLeft" text="Categories" position="20px -20px" size="400px 32px"/>
-                    <ScrollingLayout id="categoriesLayout" profile="fs25_settingsLayout" position="20px -55px" size="820px 435px"/>
-                </GuiElement>
-            </ThreePartBitmap>
-        </GuiElement>
+    </GuiElement>
 
-        <GuiElement id="brandsPanel" profile="emptyPanel" position="0px 100px" width="900px" height="520px" visible="false">
+    <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="categoriesPanel" visible="false">
+        <GuiElement profile="emptyPanel" position="0px 0px" width="900px" height="520px">
             <ThreePartBitmap width="900px" height="520px" position="0px 0px">
-                <GuiElement profile="fs25_subCategoryContainer" width="860px">
+                <GuiElement profile="fs25_subCategoryContainer" position="0px 230px" width="860px">
+                    <Text profile="dr_textDefaultTopLeft" text="Categories" position="20px -20px" size="400px 32px"/>
+                    <ScrollingLayout
+                        id="categoriesLayout"
+                        profile="fs25_settingsLayout"
+                        position="20px -55px"
+                        size="820px 435px"/>
+                </GuiElement>
+            </ThreePartBitmap>
+        </GuiElement>
+    </GuiElement>
+
+    <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="brandsPanel" visible="false">
+        <GuiElement profile="emptyPanel" position="0px 0px" width="900px" height="520px">
+            <ThreePartBitmap width="900px" height="520px" position="0px 0px">
+                <GuiElement profile="fs25_subCategoryContainer" position="0px 230px" width="860px">
                     <Text profile="dr_textDefaultTopLeft" text="Brands" position="20px -20px" size="400px 32px"/>
-                    <ScrollingLayout id="brandsLayout" profile="fs25_settingsLayout" position="20px -55px" size="820px 435px"/>
+                    <ScrollingLayout
+                        id="brandsLayout"
+                        profile="fs25_settingsLayout"
+                        position="20px -55px"
+                        size="820px 435px"/>
                 </GuiElement>
             </ThreePartBitmap>
         </GuiElement>
@@ -82,12 +101,13 @@
 
 </GuiElement>
 
-    <GUIProfiles>
-        <Profile name="dr_textDefaultTopLeft" extends="fs25_textDefault" with="anchorTopLeft">
-            <isFocusable value="true"/>
-            <textSize value="18px"/>
-            <textColor value="$preset_colorWhite"/>
-            <textAlignment value="left"/>
-        </Profile>
-    </GUIProfiles>
+<GUIProfiles>
+    <Profile name="dr_textDefaultTopLeft" extends="fs25_textDefault" with="anchorTopLeft">
+        <isFocusable value="true"/>
+        <textSize value="18px"/>
+        <textColor value="$preset_colorWhite"/>
+        <textAlignment value="left"/>
+    </Profile>
+</GUIProfiles>
+
 </GUI>
