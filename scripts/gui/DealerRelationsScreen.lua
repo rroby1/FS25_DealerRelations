@@ -193,11 +193,12 @@ function DealerRelations.Screen:register()
         "Enable or disable Dealer Relations debug logging."
     )
 
-    -- Build category filter controls after XML controls are exposed.
+    -- Build filter controls after XML controls are exposed.
     -- Rationale:
-    -- categoriesLayout is created by the XML and exposed during initialize(),
-    -- so dynamic rows should be generated only after initialization is complete.
+    -- category and brand layouts are created by the XML and exposed during
+    -- initialize(), so dynamic rows should be generated only after initialization.
     screen:buildCategoryFilterRows()
+    screen:buildBrandFilterRows()
 
     DealerRelations.log("Dealer Relations ESC menu page registered")
 end
@@ -512,3 +513,62 @@ function DealerRelations.Screen:onClickCategoryFilterOption(state, element, isCh
         .. tostring(enabled)
     )
 end
+
+--- Builds the Brand filter rows.
+-- Rationale:
+-- Brand filter persistence and discovery logic already use the
+-- DealerRelations.Data brand filter table. The UI should edit that same
+-- source of truth instead of maintaining a separate brand list.
+function DealerRelations.Screen:buildBrandFilterRows()
+    if self.brandRowsBuilt == true then
+        return
+    end
+
+    local brandFilters = DealerRelations.Data:getBrandFilters()
+    local brandNames = {}
+
+    for brandName, _ in pairs(brandFilters) do
+        table.insert(brandNames, brandName)
+    end
+
+    table.sort(brandNames)
+
+    for _, brandName in ipairs(brandNames) do
+        local option = self:addBinaryOptionToLayout(
+            self.brandsLayout,
+            "onClickBrandFilterOption",
+            brandName,
+            "Allow demo offers from the " .. brandName .. " brand."
+        )
+
+        -- Store the brand key directly on the option so the callback can
+        -- update the matching persisted filter entry without lookup tables.
+        option.brandName = brandName
+        option:setIsChecked(DealerRelations.Data:isBrandEnabled(brandName))
+    end
+
+    self.brandRowsBuilt = true
+end
+
+--- Handles changes to one brand filter row.
+-- Rationale:
+-- Dynamically generated BinaryOption rows pass the selected state first and
+-- the option element second. The brand key is stored on the option element
+-- so the callback updates the matching persisted filter entry.
+function DealerRelations.Screen:onClickBrandFilterOption(state, element, isChecked)
+    if element == nil or element.brandName == nil then
+        return
+    end
+
+    local enabled = not isChecked
+
+    DealerRelations.Data:setBrandEnabled(element.brandName, enabled)
+
+    DealerRelations.log(
+        "Dealer Relations brand filter set: "
+        .. tostring(element.brandName)
+        .. "="
+        .. tostring(enabled)
+    )
+end
+

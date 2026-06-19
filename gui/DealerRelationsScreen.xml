@@ -74,7 +74,7 @@
             <ThreePartBitmap width="900px" height="520px" position="0px 0px">
                 <GuiElement profile="fs25_subCategoryContainer" width="860px">
                     <Text profile="dr_textDefaultTopLeft" text="Brands" position="20px -20px" size="400px 32px"/>
-                    
+                    <ScrollingLayout id="brandsLayout" profile="fs25_settingsLayout" position="20px -60px" size="820px 430px"/>
                 </GuiElement>
             </ThreePartBitmap>
         </GuiElement>
