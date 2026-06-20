@@ -396,19 +396,36 @@ function DealerRelations.Screen:updateOverviewValues()
     local offer = DealerRelations.Data:getActiveDemoOffer()
 
     if offer ~= nil then
-        self.currentOfferValueText:setText(tostring(offer.name))
+        self.dealerActivityTitleText:setText("Current Offer")
+
+        self.dealerActivityDetail1Text:setText(
+            "Equipment: " .. tostring(offer.name)
+        )
+
+        self.dealerActivityDetail2Text:setText(
+            "Brand: " .. tostring(offer.brand)
+        )
+
+        self.dealerActivityDetail3Text:setText(
+            "Category: " .. tostring(offer.category)
+        )
+
+        self.dealerActivityDetail4Text:setText(
+            "Power: " .. tostring(offer.displayPower)
+        )
+
+        self.dealerActivityDetail5Text:setText(
+            "Price: " .. DealerRelations.Utils:formatMoney(offer.price)
+        )
+
     else
-        self.currentOfferValueText:setText("None")
+        self.dealerActivityTitleText:setText("No current dealer activity.")
+        self.dealerActivityDetail1Text:setText("")
+        self.dealerActivityDetail2Text:setText("")
+        self.dealerActivityDetail3Text:setText("")
+        self.dealerActivityDetail4Text:setText("")
+        self.dealerActivityDetail5Text:setText("")
     end
-    
-    local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
-    local activeDemoText = "None"
-
-    if activeDemoVehicles ~= nil and #activeDemoVehicles > 0 then
-        activeDemoText = tostring(activeDemoVehicles[1].name)
-    end
-
-    self.activeDemoValueText:setText(activeDemoText)
 end
 
 function DealerRelations.Screen:onFrameOpen()

@@ -51,11 +51,14 @@
                     <Text profile="dr_textDefaultTopLeft" text="Confidence:" position="20px -260px" size="260px 28px"/>
                     <Text profile="dr_textDefaultTopLeft" id="confidenceValueText" text="0" position="300px -260px" size="260px 28px"/>
 
-                    <Text profile="dr_textDefaultTopLeft" text="Active Demo:" position="20px -320px" size="260px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" id="activeDemoValueText" text="None" position="300px -320px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Dealer Activity:" position="20px -320px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityTitleText" text="No current dealer activity." position="300px -320px" size="520px 28px"/>
 
-                    <Text profile="dr_textDefaultTopLeft" text="Current Offer:" position="20px -360px" size="260px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" id="currentOfferValueText" text="None" position="300px -360px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail1Text" text="" position="300px -360px" size="520px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail2Text" text="" position="300px -400px" size="520px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail3Text" text="" position="300px -440px" size="520px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail4Text" text="" position="300px -480px" size="520px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail5Text" text="" position="300px -520px" size="520px 28px"/>
                 </GuiElement>
             </ThreePartBitmap>
         </GuiElement>
