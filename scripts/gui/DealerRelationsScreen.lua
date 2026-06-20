@@ -352,6 +352,24 @@ end
 -- centralizes all Overview field updates so future refreshes only need to
 -- call one function.
 function DealerRelations.Screen:updateOverviewValues()
+    self.dealerLogoImage:setImageFilename(
+        DealerRelations.directory .. "Icon.dds"
+    )
+    
+    self.dealerNameValueText:setText(
+        DealerRelations.Data:getDealerName()
+    )
+    
+    self.dealerHoursValueText:setText(
+        DealerRelations.Data:getDealerHoursText()
+    )
+    
+    if DealerRelations.Data:isDealerOpen() then
+        self.dealerStatusValueText:setText("Open")
+    else
+        self.dealerStatusValueText:setText("Closed")
+    end
+
     self.relationshipLevelValueText:setText(
         DealerRelations.Data:getRelationshipName()
     )

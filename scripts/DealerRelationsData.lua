@@ -651,11 +651,29 @@ end
 -- Rationale:
 -- Provides a single source for displaying dealer hours in UI elements.
 function DealerRelations.Data:getDealerHoursText()
-    return string.format(
-        "%02d:00 - %02d:00",
-        DealerRelations.CONSTANTS.DEALER_OPEN_HOUR,
-        DealerRelations.CONSTANTS.DEALER_CLOSE_HOUR
-    )
+    -- Return dealer hours in a player-friendly 12-hour format.
+    -- Rationale:
+    -- Dealer hour constants are stored as 24-hour values for simple open/closed
+    -- checks, but the Overview page should display readable clock text.
+    local function formatHour(hour)
+        local suffix = "AM"
+        local displayHour = hour
+
+        if hour == 0 then
+            displayHour = 12
+        elseif hour == 12 then
+            suffix = "PM"
+        elseif hour > 12 then
+            displayHour = hour - 12
+            suffix = "PM"
+        end
+
+        return tostring(displayHour) .. ":00 " .. suffix
+    end
+
+    return formatHour(DealerRelations.CONSTANTS.DEALER_OPEN_HOUR)
+        .. " - "
+        .. formatHour(DealerRelations.CONSTANTS.DEALER_CLOSE_HOUR)
 end
 
 --- Returns the dealership name assigned to this save.
