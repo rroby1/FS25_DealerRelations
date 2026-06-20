@@ -356,6 +356,7 @@ function DealerRelations.Screen:updateOverviewValues()
         DealerRelations.directory .. "Icon.dds"
     )
     
+    
     self.dealerNameValueText:setText(
         DealerRelations.Data:getDealerName()
     )
@@ -366,8 +367,22 @@ function DealerRelations.Screen:updateOverviewValues()
     
     if DealerRelations.Data:isDealerOpen() then
         self.dealerStatusValueText:setText("Open")
+
+        self.dealerStatusValueText:setTextColor(
+            0,
+            1,
+            0,
+            1
+        )
     else
         self.dealerStatusValueText:setText("Closed")
+
+        self.dealerStatusValueText:setTextColor(
+            0.7,
+            0,
+            0,
+            1
+        )
     end
 
     self.relationshipLevelValueText:setText(

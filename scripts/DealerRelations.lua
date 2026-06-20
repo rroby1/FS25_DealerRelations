@@ -165,11 +165,6 @@ function DealerRelations:checkMonthlyDemo()
             candidate.category,
             tostring(candidate.displayPower or "Unknown")
         ))
-
-        g_currentMission:addIngameNotification(
-            FSBaseMission.INGAME_NOTIFICATION_INFO,
-            "Dealer Relations: A demo offer is available. Review it before the end of the month."
-        )
     end
 end
 
@@ -188,7 +183,13 @@ function DealerRelations:createDemoOfferFromCandidate(candidate, currentMonth)
         displayPower = candidate.displayPower,
         powerMin = candidate.powerMin,
         powerMax = candidate.powerMax,
-        offerMonth = currentMonth
+        offerMonth = currentMonth,
+        
+        -- Tracks whether the player has been notified about this offer.
+        -- Rationale:
+        -- Offers are generated at month change, but the player-facing notice
+        -- should wait until the dealer opens.
+        offerNotificationSent = false,
     }
 end
 
@@ -212,12 +213,36 @@ function DealerRelations:expireDemoOffer(currentMonth)
     end
 end
 
+function DealerRelations:checkActiveDemoOfferNotification()
+    -- Notify the player about a generated offer only after the dealer opens.
+    -- Rationale:
+    -- Offers are generated at month change, but player-facing notification
+    -- should wait until business hours so the player can act immediately.
+    local offer = DealerRelations.Data:getActiveDemoOffer()
+
+    if offer == nil then
+        return
+    end
+
+    if offer.offerNotificationSent == true then
+        return
+    end
+
+    if not DealerRelations.Data:isDealerOpen() then
+        return
+    end
+
+    DealerRelations.UI:notifyActiveDemoOfferAvailable()
+    offer.offerNotificationSent = true
+end
+
 -------------------------------------------------------------------------------
 -- Update
 -------------------------------------------------------------------------------
 
 function DealerRelations:update(dt)
     self:checkMonthlyDemo()
+    self:checkActiveDemoOfferNotification()
 
     -- Check player-facing demo notices during normal update processing.
     -- These are separate from monthly demo generation because notices are
@@ -225,6 +250,7 @@ function DealerRelations:update(dt)
     DealerRelations.DemoManager:checkEndingDemoNotices()
     DealerRelations.DemoManager:checkReturnDemoNotices()
 end
+
 
 -- Hook into GIANTS' player action registration lifecycle.
 -- Global player hotkeys are registered here by the base game, so Dealer
