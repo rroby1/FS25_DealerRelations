@@ -55,6 +55,13 @@ function DealerRelations:loadMap()
         FSBaseMission.saveSavegame,
         DealerRelations.saveSavegame
     )
+    
+    -- Load static dealer name options before persistence.
+    -- Rationale:
+    -- New saves assign a random dealer name during persistence load when no
+    -- dealerRelations.xml exists yet, so the configured names must already be
+    -- available.
+    DealerRelations.Data:loadDealerNames()
 
     -- Load persisted Dealer Relations data from the active savegame.
     -- If no data exists, default values remain in use.
@@ -65,9 +72,10 @@ function DealerRelations:loadMap()
     -- Build the eligible equipment list.
     DealerRelations.Equipment:discover()
     
-    -- TEMP v0.13.0 screen test:
-    -- Create the Dealer Relations screen instance without loading XML or
-    -- registering it with the ESC menu.
+    -- Register the Dealer Relations page with the ESC menu.
+    -- Rationale:
+    -- This creates the screen instance, registers the page and tab,
+    -- and initializes the Dealer Relations user interface.
     DealerRelations.Screen:register()
     
     DealerRelations.UI:notifyModDisabled()

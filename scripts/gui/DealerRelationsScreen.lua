@@ -177,7 +177,7 @@ function DealerRelations.Screen:register()
     screen:updateSubCategoryPages(1)
     screen:updateConfigurationValues()
     screen:updateOverviewValues()
-    
+
     screen.enabledOption = screen:addBinaryOption(
         "onClickEnabledOption",
         "Enabled",
@@ -574,4 +574,3 @@ function DealerRelations.Screen:onClickBrandFilterOption(state, element, isCheck
         .. tostring(enabled)
     )
 end
-

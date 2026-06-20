@@ -39,7 +39,14 @@ DealerRelations.CONSTANTS = {
     RELATIONSHIP_DISCOUNT_FAMILIAR = 10,
     RELATIONSHIP_DISCOUNT_TRUSTED = 15,
     RELATIONSHIP_DISCOUNT_PREFERRED = 20,
-    RELATIONSHIP_DISCOUNT_PARTNER = 25
+    RELATIONSHIP_DISCOUNT_PARTNER = 25,
+    
+    -- Dealer operating hours use whole in-game hours.
+    -- Rationale:
+    -- Centralizing the schedule prevents dealer-hour checks from being
+    -- hard-coded across UI, lifecycle, and notification logic.
+    DEALER_OPEN_HOUR = 7,
+    DEALER_CLOSE_HOUR = 18,
 }
 
 -------------------------------------------------------------------------------
@@ -79,6 +86,11 @@ DealerRelations.dealerData = {
         enabled = false,
         debug = false,
     },
+    -- Display name for the dealership assigned to this save.
+    -- Rationale:
+    -- v0.14.0 introduces a persistent dealer identity. The fallback value keeps
+    -- existing saves safe until dealer name selection and persistence are added.
+    dealerName = "Dealer",
 }
 
 -------------------------------------------------------------------------------
@@ -620,4 +632,107 @@ end
 -- Stores the Dealer Relations debug setting.
 function DealerRelations.Data:setDebugEnabled(enabled)
     DealerRelations.dealerData.settings.debug = enabled == true
+end
+
+--- Returns true if the dealer is currently open.
+--
+-- Rationale:
+-- Centralizes dealer-hour checks so UI, lifecycle, and notification logic
+-- all use the same definition of dealer operating hours.
+function DealerRelations.Data:isDealerOpen()
+    local currentHour = g_currentMission.environment.currentHour
+
+    return currentHour >= DealerRelations.CONSTANTS.DEALER_OPEN_HOUR
+        and currentHour < DealerRelations.CONSTANTS.DEALER_CLOSE_HOUR
+end
+
+--- Returns formatted dealer operating hours.
+--
+-- Rationale:
+-- Provides a single source for displaying dealer hours in UI elements.
+function DealerRelations.Data:getDealerHoursText()
+    return string.format(
+        "%02d:00 - %02d:00",
+        DealerRelations.CONSTANTS.DEALER_OPEN_HOUR,
+        DealerRelations.CONSTANTS.DEALER_CLOSE_HOUR
+    )
+end
+
+--- Returns the dealership name assigned to this save.
+--
+-- @return string Dealer name.
+function DealerRelations.Data:getDealerName()
+    return DealerRelations.dealerData.dealerName
+end
+
+--- Sets the dealership name assigned to this save.
+--
+-- @param dealerName string Dealer name.
+function DealerRelations.Data:setDealerName(dealerName)
+    DealerRelations.dealerData.dealerName = dealerName
+end
+
+-------------------------------------------------------------------------------
+-- Loads dealer names from dealerNames.xml.
+--
+-- Rationale:
+-- Dealer names are defined in XML so names can be added, removed, or
+-- localized without modifying Lua code.
+--
+-- @return table List of dealer names. Empty if the XML cannot be loaded.
+-------------------------------------------------------------------------------
+
+function DealerRelations.Data:loadDealerNames()
+    local dealerNames = {}
+    local xmlFile = loadXMLFile(
+        "dealerNames",
+        DealerRelations.directory .. "xmls/dealerNames.xml"
+    )
+
+    if xmlFile == nil then
+        return dealerNames
+    end
+
+    local index = 0
+
+    while true do
+        local dealerName = getXMLString(
+            xmlFile,
+            string.format("dealerNames.dealerName(%d)#name", index)
+        )
+
+        if dealerName == nil then
+            break
+        end
+
+        table.insert(dealerNames, dealerName)
+
+        index = index + 1
+    end
+
+    delete(xmlFile)
+
+    return dealerNames
+end
+
+-------------------------------------------------------------------------------
+-- Selects a random dealer name from dealerNames.xml.
+--
+-- Rationale:
+-- Dealer identity is assigned once per save. Selection logic is separated
+-- from persistence so it can be tested independently.
+--
+-- @return string Random dealer name, or "Dealer" if no valid names exist.
+-------------------------------------------------------------------------------
+
+function DealerRelations.Data:getRandomDealerName()
+    local dealerNames = self:loadDealerNames()
+
+    if #dealerNames == 0 then
+        return "Dealer"
+    end
+
+    local index = math.random(#dealerNames)
+
+    return dealerNames[index]
 end

@@ -45,10 +45,11 @@ function DealerRelations.Persistence:save(savegameDirectory)
     -- can be added without turning save() into one large mixed block.
     self:saveCoreData(xmlFile)
     self:saveSettings(xmlFile)
+    self:saveDealerName(xmlFile)
     self:saveRecentDemoCandidates(xmlFile)
     self:saveActiveDemoOffer(xmlFile)
     self:saveActiveDemoVehicles(xmlFile)
-    
+
     -- Player settings
     self:saveCategoryFilters(xmlFile)
     self:saveBrandFilters(xmlFile)
@@ -201,6 +202,18 @@ function DealerRelations.Persistence:saveBrandFilters(xmlFile)
     end
 end
 
+function DealerRelations.Persistence:saveDealerName(xmlFile)
+    -- Save the dealership name assigned to this savegame.
+    -- Rationale:
+    -- Dealer identity is generated per save and must persist so the
+    -- player sees the same dealer name after reloading.
+    local dealerName = DealerRelations.Data:getDealerName()
+
+    if dealerName ~= nil then
+        setXMLString(xmlFile, "dealerRelations.dealer#name", dealerName)
+    end
+end
+
 -------------------------------------------------------------------------------
 -- Load
 -------------------------------------------------------------------------------
@@ -228,6 +241,17 @@ end
 function DealerRelations.Persistence:load(savegameDirectory)
     if savegameDirectory == nil then
         -- New saves may not have a savegame directory available yet.
+        -- Assign a dealer identity before the first save creates
+        -- dealerRelations.xml.
+        --
+        -- Rationale:
+        -- If the savegame directory is not available yet, this is still part
+        -- of first-load initialization. Dealer identity must be assigned here
+        -- or the default "Dealer" value will be saved.
+        DealerRelations.Data:setDealerName(
+            DealerRelations.Data:getRandomDealerName()
+        )
+
         -- Initialize category filters so equipment discovery can still use
         -- valid default settings before the first save creates the XML file.
         DealerRelations.Data:initializeCategoryFilters()
@@ -240,9 +264,20 @@ function DealerRelations.Persistence:load(savegameDirectory)
 
     if not fileExists(filePath) then
         -- New saves have no Dealer Relations XML yet.
+        -- Assign the dealer identity once before the first save creates
+        -- dealerRelations.xml.
+        --
+        -- Rationale:
+        -- Dealer identity should be generated per save, then persisted so it
+        -- does not change on future loads.
+        DealerRelations.Data:setDealerName(
+            DealerRelations.Data:getRandomDealerName()
+        )
+
         -- Initialize configurable category filters from defaults so discovery and
         -- the first save both have valid per-save settings to use.
         DealerRelations.Data:initializeCategoryFilters()
+
         return
     end
 
@@ -260,6 +295,7 @@ function DealerRelations.Persistence:load(savegameDirectory)
     -- can be added without turning load() into one large mixed block.
     self:loadCoreData(xmlFile)
     self:loadSettings(xmlFile)
+    self:loadDealerName(xmlFile)
     self:loadRecentDemoCandidates(xmlFile)
     self:loadActiveDemoOffer(xmlFile)
     self:loadActiveDemoVehicles(xmlFile)
@@ -523,4 +559,18 @@ function DealerRelations.Persistence:loadBrandFilters(xmlFile)
     DealerRelations.log(
         "Loaded brand filters: " .. tostring(index)
     )
+end
+
+function DealerRelations.Persistence:loadDealerName(xmlFile)
+    -- Load the dealership name assigned to this savegame.
+    -- Rationale:
+    -- Dealer identity should remain consistent across save/load cycles.
+    local dealerName = getXMLString(
+        xmlFile,
+        "dealerRelations.dealer#name"
+    )
+
+    if dealerName ~= nil then
+        DealerRelations.Data:setDealerName(dealerName)
+    end
 end
