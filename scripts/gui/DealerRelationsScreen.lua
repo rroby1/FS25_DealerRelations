@@ -362,34 +362,21 @@ function DealerRelations.Screen:updateOverviewValues()
     self.dealerLogoImage:setImageFilename(
         DealerRelations.directory .. "Icon.dds"
     )
-    
-    
+
     self.dealerNameValueText:setText(
         DealerRelations.Data:getDealerName()
     )
-    
+
     self.dealerHoursValueText:setText(
         DealerRelations.Data:getDealerHoursText()
     )
-    
+
     if DealerRelations.Data:isDealerOpen() then
         self.dealerStatusValueText:setText("Open")
-
-        self.dealerStatusValueText:setTextColor(
-            0,
-            1,
-            0,
-            1
-        )
+        self.dealerStatusValueText:setTextColor(0, 1, 0, 1)
     else
         self.dealerStatusValueText:setText("Closed")
-
-        self.dealerStatusValueText:setTextColor(
-            0.7,
-            0,
-            0,
-            1
-        )
+        self.dealerStatusValueText:setTextColor(0.7, 0, 0, 1)
     end
 
     self.relationshipLevelValueText:setText(
@@ -400,15 +387,31 @@ function DealerRelations.Screen:updateOverviewValues()
         tostring(DealerRelations.Data:getConfidence())
     )
 
+    -- Clear the offer actions layout before rebuilding.
+    -- Rationale:
+    -- updateOverviewValues can be called multiple times. Clearing first
+    -- prevents duplicate buttons from accumulating in the layout.
+    while #self.offerActionsLayout.elements > 0 do
+        self.offerActionsLayout:removeElement(self.offerActionsLayout.elements[1])
+    end
+
     local offer = DealerRelations.Data:getActiveDemoOffer()
 
     if offer ~= nil then
-        self.dealerActivityTitleText:setText("Current Offer")
+        self.dealerActivityTitleText:setVisible(false)
 
-        -- TEMP CODE
-        -- Creates Accept button in the offer actions layout when an offer exists.
-        self:addButtonToLayout(self.offerActionsLayout, "onClickAcceptOffer", "Accept", "Offer Actions:")
-        -- --------
+        if offer.imageFilename ~= nil and offer.imageFilename ~= "" then
+            self.offerImage:setImageFilename(tostring(offer.imageFilename))
+        end
+
+        -- Only show action buttons during dealer business hours.
+        if DealerRelations.Data:isDealerOpen() then
+            self.offerActionsLayout:setVisible(true)
+            self:addButtonToLayout(self.offerActionsLayout, "onClickAcceptOffer", "Accept")
+            self:addButtonToLayout(self.offerActionsLayout, "onClickDeclineOffer", "Decline")
+        else
+            self.offerActionsLayout:setVisible(false)
+        end
 
         self.dealerActivityDetail1Text:setText(
             "Equipment: " .. tostring(offer.name)
@@ -426,7 +429,9 @@ function DealerRelations.Screen:updateOverviewValues()
             "Price: " .. DealerRelations.Utils:formatMoney(offer.price)
         )
     else
-        self.dealerActivityTitleText:setText("No current dealer activity.")
+        self.dealerActivityTitleText:setVisible(true)
+        self.dealerActivityTitleText:setText("No dealer activity.")
+        self.offerActionsLayout:setVisible(false)
         self.dealerActivityDetail1Text:setText("")
         self.dealerActivityDetail2Text:setText("")
         self.dealerActivityDetail3Text:setText("")
@@ -516,7 +521,7 @@ end
 -- Mirrors addBinaryOptionToLayout using ButtonElement instead of
 -- BinaryOptionElement. Allows dynamic button creation in ScrollingLayouts
 -- using the same proven pattern as the Configuration and filter pages.
-function DealerRelations.Screen:addButtonToLayout(layout, onClickCallback, buttonText, labelText)
+function DealerRelations.Screen:addButtonToLayout(layout, onClickCallback, buttonText)
     local row = BitmapElement.new()
     row:loadProfile(g_gui:getProfile("fs25_multiTextOptionContainer"), true)
     row:setImageColor(0, 0, 0, 0)
@@ -525,17 +530,34 @@ function DealerRelations.Screen:addButtonToLayout(layout, onClickCallback, butto
     button:loadProfile(g_gui:getProfile("dr_settingsButton"), true)
     button.target = self
     button:setCallback("onClickCallback", onClickCallback)
-    button:setText(buttonText)
+   
+    -- Add the background ThreePartBitmap to the button.
+    -- Rationale:
+    -- Without this child element the button renders as a black box.
+    -- This mirrors the pattern used in the working mod's XML button definition.
+    local bg = ThreePartBitmapElement.new()
+    bg:loadProfile(g_gui:getProfile("fs25_settingsButtonBg"), true)
+    button:addElement(bg)
+    bg:onGuiSetupFinished()
+
+    local tooltip = TextElement.new()
+    tooltip:loadProfile(g_gui:getProfile("fs25_multiTextOptionTooltip"), true)
+    tooltip.name = "tooltip"
+    tooltip:setText("")
+    button:addElement(tooltip)
+    tooltip:onGuiSetupFinished()
 
     local titleText = TextElement.new()
     titleText:loadProfile(g_gui:getProfile("fs25_settingsMultiTextOptionTitle"), true)
-    titleText:setText(labelText)
+    titleText:setText("")
 
     row:addElement(button)
     row:addElement(titleText)
 
     button:onGuiSetupFinished()
     titleText:onGuiSetupFinished()
+
+    button:setText(buttonText)
 
     layout:addElement(row)
     row:onGuiSetupFinished()
@@ -673,7 +695,14 @@ end
 -- without closing the ESC menu.
 function DealerRelations.Screen:onClickAcceptOffer()
     DealerRelations.UI:acceptActiveDemoOffer()
-    self.offerActionsLayout:clearElements()
-    self.acceptOfferButton = nil
+    self:updateOverviewValues()
+end
+
+--- Handles Decline Offer button click on the Overview page.
+-- Rationale:
+-- Declines the active demo offer and refreshes the Overview so the
+-- player sees the updated state without closing the ESC menu.
+function DealerRelations.Screen:onClickDeclineOffer()
+    DealerRelations.UI:declineActiveDemoOffer()
     self:updateOverviewValues()
 end

@@ -44,18 +44,18 @@
 
                         <Text profile="dr_textDefaultTopLeft" text="Confidence:" position="20px -260px" size="260px 28px"/>
                         <Text profile="dr_textDefaultTopLeft" id="confidenceValueText" text="0" position="300px -260px" size="260px 28px"/>
-
-                        <Text profile="dr_textDefaultTopLeft" text="Dealer Activity:" position="20px -320px" size="260px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityTitleText" text="No current dealer activity." position="300px -320px" size="520px 28px"/>
                         
-                        <ScrollingLayout profile="fs25_settingsLayout" id="offerActionsLayout" position="20px -360px" size="820px 200px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityTitleText" text="No dealer activity." position="20px -300px" size="820px 28px"/>
 
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail1Text" text="" position="300px -360px" size="520px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail2Text" text="" position="300px -400px" size="520px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail3Text" text="" position="300px -440px" size="520px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail4Text" text="" position="300px -480px" size="520px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail5Text" text="" position="300px -520px" size="520px 28px"/>
+                        <ScrollingLayout profile="fs25_settingsLayout" id="offerActionsLayout" position="20px -340px" size="580px 80px" visible="false"/>
 
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail1Text" text="" position="20px -430px" size="580px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail2Text" text="" position="20px -470px" size="580px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail3Text" text="" position="20px -510px" size="580px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail4Text" text="" position="20px -550px" size="580px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail5Text" text="" position="20px -590px" size="580px 28px"/>
+
+                        <Bitmap id="offerImage" position="620px -340px" size="200px 200px"/>
                     </GuiElement>
                 </ThreePartBitmap>
             </GuiElement>
@@ -104,7 +104,7 @@
             <textAlignment value="left"/>
         </Profile>
 
-        <Profile name="dr_settingsButton" extends="emptyPanel" with="anchorMiddleRight">
+        <Profile name="dr_settingsButton" extends="emptyPanel" with="anchorMiddleLeft">
             <size value="280px 32px"/>
             <position value="-10px 0px"/>
             <focusOnHighlight value="true"/>
@@ -117,8 +117,9 @@
             <textBold value="true"/>
             <textUpperCase value="true"/>
             <textAlignment value="center"/>
-            <textColor value="$preset_fs25_colorMainLight"/>
-            <textFocusedColor value="$preset_fs25_colorMainDark"/>
+            <textColor value="1 1 1 1"/>
+            <textFocusedColor value="1 1 1 1"/>
+            <textHighlightedColor value="1 1 1 1"/>
             <textDisabledColor value="$preset_colorDisabled"/>
         </Profile>
     </GUIProfiles>
