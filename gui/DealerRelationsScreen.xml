@@ -1,124 +1,126 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 
 <GUI name="menuDealerRelations">
-<GuiElement profile="fs25_menuContainer">
+    <GuiElement profile="fs25_menuContainer">
 
-    <GuiElement profile="fs25_menuHeaderPanel" position="-200px 90px" width="800px">
-        <Text profile="fs25_menuHeaderTitle" text="Dealer Relations" id="dealerRelationsHeaderText"/>
-    </GuiElement>
-
-    <BoxLayout profile="fs25_subCategorySelectorTabbedBox" id="subCategoryBox">
-        <Button profile="fs25_subCategorySelectorTabbedTab" id="drOverviewTab" text="Overview" onClick="onClickOverviewTab">
-            <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
-        </Button>
-
-        <Button profile="fs25_subCategorySelectorTabbedTab" id="drConfigurationTab" text="Configuration" onClick="onClickConfigurationTab">
-            <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
-        </Button>
-
-        <Button profile="fs25_subCategorySelectorTabbedTab" id="drCategoriesTab" text="Categories" onClick="onClickCategoriesTab">
-            <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
-        </Button>
-
-        <Button profile="fs25_subCategorySelectorTabbedTab" id="drBrandsTab" text="Brands" onClick="onClickBrandsTab">
-            <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
-        </Button>
-    </BoxLayout>
-
-    <MultiTextOption
-        profile="fs25_subCategorySelectorTabbed"
-        id="subCategoryPaging"
-        position="0px -10px"
-        onClick="onClickSubCategoryPaging"/>
-
-    <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="overviewPanel">
-        <GuiElement profile="emptyPanel" position="0px 100px" width="900px" height="520px">
-            <Bitmap id="dealerLogoImage" position="300px 480px" size="96px 96px"/>
-            <ThreePartBitmap width="900px" height="520px" position="0px 0px">
-                <GuiElement profile="fs25_subCategoryContainer" width="860px">
-                    <Text profile="dr_textDefaultTopLeft" text="Dealer Name:" position="20px -80px" size="260px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" id="dealerNameValueText" text="Dealer" position="300px -80px" size="420px 28px"/>
-
-                    <Text profile="dr_textDefaultTopLeft" text="Dealer Hours:" position="20px -120px" size="260px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" id="dealerHoursValueText" text="07:00 - 18:00" position="300px -120px" size="420px 28px"/>
-
-                    <Text profile="dr_textDefaultTopLeft" text="Dealer Status:" position="20px -160px" size="260px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" id="dealerStatusValueText" text="Closed" position="300px -160px" size="420px 28px"/>
-
-                    <Text profile="dr_textDefaultTopLeft" text="Relationship Level:" position="20px -220px" size="260px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" id="relationshipLevelValueText" text="Neutral" position="300px -220px" size="260px 28px"/>
-
-                    <Text profile="dr_textDefaultTopLeft" text="Confidence:" position="20px -260px" size="260px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" id="confidenceValueText" text="0" position="300px -260px" size="260px 28px"/>
-
-                    <Text profile="dr_textDefaultTopLeft" text="Dealer Activity:" position="20px -320px" size="260px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityTitleText" text="No current dealer activity." position="300px -320px" size="520px 28px"/>
-
-                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail1Text" text="" position="300px -360px" size="520px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail2Text" text="" position="300px -400px" size="520px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail3Text" text="" position="300px -440px" size="520px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail4Text" text="" position="300px -480px" size="520px 28px"/>
-                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail5Text" text="" position="300px -520px" size="520px 28px"/>
-                </GuiElement>
-            </ThreePartBitmap>
+        <GuiElement profile="fs25_menuHeaderPanel" position="-200px 90px" width="800px">
+            <Text profile="fs25_menuHeaderTitle" text="Dealer Relations" id="dealerRelationsHeaderText"/>
         </GuiElement>
-    </GuiElement>
 
-    <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="configurationPanel" visible="false">
-        <GuiElement profile="emptyPanel" position="0px 100px" width="900px" height="520px">
-            <ThreePartBitmap width="900px" height="520px" position="0px 0px">
-                <GuiElement profile="fs25_subCategoryContainer" width="860px">
-                    <Text profile="dr_textDefaultTopLeft" text="Configuration" position="20px -20px" size="400px 32px"/>
-                    <ScrollingLayout
-                        profile="fs25_settingsLayout"
-                        id="settingsLayout"
-                        visible="true"
-                        position="20px -170px"
-                        size="820px 200px"/>
-                </GuiElement>
-            </ThreePartBitmap>
+        <BoxLayout profile="fs25_subCategorySelectorTabbedBox" id="subCategoryBox">
+            <Button profile="fs25_subCategorySelectorTabbedTab" id="drOverviewTab" text="Overview" onClick="onClickOverviewTab">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+            <Button profile="fs25_subCategorySelectorTabbedTab" id="drConfigurationTab" text="Configuration" onClick="onClickConfigurationTab">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+            <Button profile="fs25_subCategorySelectorTabbedTab" id="drCategoriesTab" text="Categories" onClick="onClickCategoriesTab">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+            <Button profile="fs25_subCategorySelectorTabbedTab" id="drBrandsTab" text="Brands" onClick="onClickBrandsTab">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+        </BoxLayout>
+
+        <MultiTextOption profile="fs25_subCategorySelectorTabbed" id="subCategoryPaging" position="0px -10px" onClick="onClickSubCategoryPaging"/>
+
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="overviewPanel">
+            <GuiElement profile="emptyPanel" position="0px 100px" width="900px" height="520px">
+                <Bitmap id="dealerLogoImage" position="300px 480px" size="96px 96px"/>
+                <ThreePartBitmap width="900px" height="520px" position="0px 0px">
+                    <GuiElement profile="fs25_subCategoryContainer" width="860px">
+
+                        <Text profile="dr_textDefaultTopLeft" text="Dealer Name:" position="20px -80px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerNameValueText" text="Dealer" position="300px -80px" size="420px 28px"/>
+
+                        <Text profile="dr_textDefaultTopLeft" text="Dealer Hours:" position="20px -120px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerHoursValueText" text="07:00 - 18:00" position="300px -120px" size="420px 28px"/>
+
+                        <Text profile="dr_textDefaultTopLeft" text="Dealer Status:" position="20px -160px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerStatusValueText" text="Closed" position="300px -160px" size="420px 28px"/>
+
+                        <Text profile="dr_textDefaultTopLeft" text="Relationship Level:" position="20px -220px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="relationshipLevelValueText" text="Neutral" position="300px -220px" size="260px 28px"/>
+
+                        <Text profile="dr_textDefaultTopLeft" text="Confidence:" position="20px -260px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="confidenceValueText" text="0" position="300px -260px" size="260px 28px"/>
+
+                        <Text profile="dr_textDefaultTopLeft" text="Dealer Activity:" position="20px -320px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityTitleText" text="No current dealer activity." position="300px -320px" size="520px 28px"/>
+                        
+                        <ScrollingLayout profile="fs25_settingsLayout" id="offerActionsLayout" position="20px -360px" size="820px 200px"/>
+
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail1Text" text="" position="300px -360px" size="520px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail2Text" text="" position="300px -400px" size="520px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail3Text" text="" position="300px -440px" size="520px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail4Text" text="" position="300px -480px" size="520px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail5Text" text="" position="300px -520px" size="520px 28px"/>
+
+                    </GuiElement>
+                </ThreePartBitmap>
+            </GuiElement>
         </GuiElement>
-    </GuiElement>
 
-    <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="categoriesPanel" visible="false">
-        <GuiElement profile="emptyPanel" position="0px 0px" width="900px" height="520px">
-            <ThreePartBitmap width="900px" height="520px" position="0px 0px">
-                <GuiElement profile="fs25_subCategoryContainer" position="0px 230px" width="860px">
-                    <Text profile="dr_textDefaultTopLeft" text="Categories" position="20px -20px" size="400px 32px"/>
-                    <ScrollingLayout
-                        id="categoriesLayout"
-                        profile="fs25_settingsLayout"
-                        position="20px -55px"
-                        size="820px 435px"/>
-                </GuiElement>
-            </ThreePartBitmap>
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="configurationPanel" visible="false">
+            <GuiElement profile="emptyPanel" position="0px 100px" width="900px" height="520px">
+                <ThreePartBitmap width="900px" height="520px" position="0px 0px">
+                    <GuiElement profile="fs25_subCategoryContainer" width="860px">
+                        <Text profile="dr_textDefaultTopLeft" text="Configuration" position="20px -20px" size="400px 32px"/>
+                        <ScrollingLayout profile="fs25_settingsLayout" id="settingsLayout" visible="true" position="20px -170px" size="820px 200px"/>
+                    </GuiElement>
+                </ThreePartBitmap>
+            </GuiElement>
         </GuiElement>
-    </GuiElement>
 
-    <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="brandsPanel" visible="false">
-        <GuiElement profile="emptyPanel" position="0px 0px" width="900px" height="520px">
-            <ThreePartBitmap width="900px" height="520px" position="0px 0px">
-                <GuiElement profile="fs25_subCategoryContainer" position="0px 230px" width="860px">
-                    <Text profile="dr_textDefaultTopLeft" text="Brands" position="20px -20px" size="400px 32px"/>
-                    <ScrollingLayout
-                        id="brandsLayout"
-                        profile="fs25_settingsLayout"
-                        position="20px -55px"
-                        size="820px 435px"/>
-                </GuiElement>
-            </ThreePartBitmap>
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="categoriesPanel" visible="false">
+            <GuiElement profile="emptyPanel" position="0px 0px" width="900px" height="520px">
+                <ThreePartBitmap width="900px" height="520px" position="0px 0px">
+                    <GuiElement profile="fs25_subCategoryContainer" position="0px 230px" width="860px">
+                        <Text profile="dr_textDefaultTopLeft" text="Categories" position="20px -20px" size="400px 32px"/>
+                        <ScrollingLayout id="categoriesLayout" profile="fs25_settingsLayout" position="20px -55px" size="820px 435px"/>
+                    </GuiElement>
+                </ThreePartBitmap>
+            </GuiElement>
         </GuiElement>
+
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="brandsPanel" visible="false">
+            <GuiElement profile="emptyPanel" position="0px 0px" width="900px" height="520px">
+                <ThreePartBitmap width="900px" height="520px" position="0px 0px">
+                    <GuiElement profile="fs25_subCategoryContainer" position="0px 230px" width="860px">
+                        <Text profile="dr_textDefaultTopLeft" text="Brands" position="20px -20px" size="400px 32px"/>
+                        <ScrollingLayout id="brandsLayout" profile="fs25_settingsLayout" position="20px -55px" size="820px 435px"/>
+                    </GuiElement>
+                </ThreePartBitmap>
+            </GuiElement>
+        </GuiElement>
+
     </GuiElement>
 
-</GuiElement>
+    <GUIProfiles>
+        <Profile name="dr_textDefaultTopLeft" extends="fs25_textDefault" with="anchorTopLeft">
+            <isFocusable value="true"/>
+            <textSize value="18px"/>
+            <textColor value="$preset_colorWhite"/>
+            <textAlignment value="left"/>
+        </Profile>
 
-<GUIProfiles>
-    <Profile name="dr_textDefaultTopLeft" extends="fs25_textDefault" with="anchorTopLeft">
-        <isFocusable value="true"/>
-        <textSize value="18px"/>
-        <textColor value="$preset_colorWhite"/>
-        <textAlignment value="left"/>
-    </Profile>
-</GUIProfiles>
+        <Profile name="dr_settingsButton" extends="emptyPanel" with="anchorMiddleRight">
+            <size value="280px 32px"/>
+            <position value="-10px 0px"/>
+            <focusOnHighlight value="true"/>
+            <textResizeWidth value="200px"/>
+            <textSize value="16px"/>
+            <iconColor value="$preset_colorTransparent"/>
+            <iconFocusedColor value="$preset_colorTransparent"/>
+            <iconTextOffset value="0px -1px"/>
+            <iconHighlightedColor value="$preset_colorTransparent"/>
+            <textBold value="true"/>
+            <textUpperCase value="true"/>
+            <textAlignment value="center"/>
+            <textColor value="$preset_fs25_colorMainLight"/>
+            <textFocusedColor value="$preset_fs25_colorMainDark"/>
+            <textDisabledColor value="$preset_colorDisabled"/>
+        </Profile>
+    </GUIProfiles>
 
 </GUI>

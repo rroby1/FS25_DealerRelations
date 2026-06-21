@@ -117,6 +117,14 @@ end
 -- add a tab icon, then rebuild the tab list.
 function DealerRelations.Screen:register()
     local screen = DealerRelations.Screen:loadGui()
+    
+    -- Store the screen instance for access from other modules.
+    -- Rationale:
+    -- DemoManager needs to refresh the Overview after async vehicle loading
+    -- completes. This reference allows that without coupling DemoManager
+    -- directly to the GUI registration flow.
+    DealerRelations.Screen.instance = screen
+
     local inGameMenu = g_gui.screenControllers[InGameMenu] or g_inGameMenu
 
     inGameMenu[DealerRelations.Screen.MENU_PAGE_NAME] = screen
@@ -176,7 +184,6 @@ function DealerRelations.Screen:register()
     screen.subCategoryPaging:setState(1)
     screen:updateSubCategoryPages(1)
     screen:updateConfigurationValues()
-    screen:updateOverviewValues()
 
     screen.enabledOption = screen:addBinaryOption(
         "onClickEnabledOption",
@@ -198,7 +205,7 @@ function DealerRelations.Screen:register()
     -- initialize(), so dynamic rows should be generated only after initialization.
     screen:buildCategoryFilterRows()
     screen:buildBrandFilterRows()
-
+    
     DealerRelations.log("Dealer Relations ESC menu page registered")
 end
 
@@ -398,26 +405,26 @@ function DealerRelations.Screen:updateOverviewValues()
     if offer ~= nil then
         self.dealerActivityTitleText:setText("Current Offer")
 
+        -- TEMP CODE
+        -- Creates Accept button in the offer actions layout when an offer exists.
+        self:addButtonToLayout(self.offerActionsLayout, "onClickAcceptOffer", "Accept", "Offer Actions:")
+        -- --------
+
         self.dealerActivityDetail1Text:setText(
             "Equipment: " .. tostring(offer.name)
         )
-
         self.dealerActivityDetail2Text:setText(
             "Brand: " .. tostring(offer.brand)
         )
-
         self.dealerActivityDetail3Text:setText(
             "Category: " .. tostring(offer.category)
         )
-
         self.dealerActivityDetail4Text:setText(
             "Power: " .. tostring(offer.displayPower)
         )
-
         self.dealerActivityDetail5Text:setText(
             "Price: " .. DealerRelations.Utils:formatMoney(offer.price)
         )
-
     else
         self.dealerActivityTitleText:setText("No current dealer activity.")
         self.dealerActivityDetail1Text:setText("")
@@ -502,6 +509,40 @@ function DealerRelations.Screen:addBinaryOptionToLayout(layout, onClickCallback,
     layout:invalidateLayout()
 
     return option
+end
+
+--- Creates a native FS25 button row in a scrolling layout.
+-- Rationale:
+-- Mirrors addBinaryOptionToLayout using ButtonElement instead of
+-- BinaryOptionElement. Allows dynamic button creation in ScrollingLayouts
+-- using the same proven pattern as the Configuration and filter pages.
+function DealerRelations.Screen:addButtonToLayout(layout, onClickCallback, buttonText, labelText)
+    local row = BitmapElement.new()
+    row:loadProfile(g_gui:getProfile("fs25_multiTextOptionContainer"), true)
+    row:setImageColor(0, 0, 0, 0)
+
+    local button = ButtonElement.new(self)
+    button:loadProfile(g_gui:getProfile("dr_settingsButton"), true)
+    button.target = self
+    button:setCallback("onClickCallback", onClickCallback)
+    button:setText(buttonText)
+
+    local titleText = TextElement.new()
+    titleText:loadProfile(g_gui:getProfile("fs25_settingsMultiTextOptionTitle"), true)
+    titleText:setText(labelText)
+
+    row:addElement(button)
+    row:addElement(titleText)
+
+    button:onGuiSetupFinished()
+    titleText:onGuiSetupFinished()
+
+    layout:addElement(row)
+    row:onGuiSetupFinished()
+
+    layout:invalidateLayout()
+
+    return button
 end
 
 --- Builds the Category filter rows.
@@ -623,4 +664,16 @@ function DealerRelations.Screen:onClickBrandFilterOption(state, element, isCheck
         .. "="
         .. tostring(enabled)
     )
+end
+
+--- Handles Accept Offer button click on the Overview page.
+-- Rationale:
+-- Accepts the active demo offer, clears the offer actions layout,
+-- and refreshes the Overview so the player sees the updated state
+-- without closing the ESC menu.
+function DealerRelations.Screen:onClickAcceptOffer()
+    DealerRelations.UI:acceptActiveDemoOffer()
+    self.offerActionsLayout:clearElements()
+    self.acceptOfferButton = nil
+    self:updateOverviewValues()
 end

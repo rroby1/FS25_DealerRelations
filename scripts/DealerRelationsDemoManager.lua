@@ -141,7 +141,16 @@ function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState,
         DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_ACCEPT_DEMO,
         "Accepted demo offer"
     )
-    
+
+    -- Refresh the Overview screen if it is currently open.
+    -- Rationale:
+    -- Vehicle loading is asynchronous. The Overview must be refreshed here,
+    -- after the offer is cleared and demo is recorded, not at the point of
+    -- the button click where the data has not changed yet.
+    if DealerRelations.Screen ~= nil and DealerRelations.Screen.instance ~= nil then
+        DealerRelations.Screen.instance:updateOverviewValues()
+    end
+
     DealerRelations.log(string.format(
         "Active demo count: %d",
         #DealerRelations.dealerData.activeDemoVehicles
