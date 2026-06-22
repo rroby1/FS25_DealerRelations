@@ -35,8 +35,6 @@ source(g_currentModDirectory .. "scripts/DealerRelationsPersistence.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsUI.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsScreen.lua")
-source(g_currentModDirectory .. "scripts/gui/DealerRelationsDemoOfferDialog.lua")
-source(g_currentModDirectory .. "scripts/gui/DealerRelationsDemoReturnDialog.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsDemoManager.lua")
 
 -------------------------------------------------------------------------------

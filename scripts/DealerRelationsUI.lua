@@ -58,23 +58,11 @@ end
 -------------------------------------------------------------------------------
 
 function DealerRelations.UI:onOpenDemoOfferInput()
-    -- Demo offers take priority because they expire at the end of the month.
-    -- If no offer exists, check whether an expired demo needs player action.
-    if DealerRelations.Data:hasActiveDemoOffer() then
-        self:openActiveDemoOffer()
-        return
-    end
-
-    local expiredDemo = DealerRelations.Data:getFirstExpiredDemo()
-
-    if expiredDemo ~= nil then
-        self:openExpiredDemoDialog(expiredDemo)
-        return
-    end
-
+    -- Dashboard now handles all demo offer and demo management actions.
+    -- Direct the player to the ESC menu Dealer Relations page.
     g_currentMission:addIngameNotification(
         FSBaseMission.INGAME_NOTIFICATION_INFO,
-        "Dealer Relations: No offers or demo actions are currently available."
+        "Dealer Relations: Open the ESC menu to manage offers and demos."
     )
 end
 
@@ -117,57 +105,6 @@ function DealerRelations.UI:declineActiveDemoOffer()
         DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_DECLINE_DEMO,
         "Declined demo offer"
     )
-end
-
-function DealerRelations.UI:cancelDemoOfferScreen()
-end
-
--------------------------------------------------------------------------------
--- Demo Offer Screen
--------------------------------------------------------------------------------
-
-function DealerRelations.UI:openActiveDemoOffer()
-    local offer = DealerRelations.Data:getActiveDemoOffer()
-
-    if offer == nil then
-        g_currentMission:addIngameNotification(
-            FSBaseMission.INGAME_NOTIFICATION_INFO,
-            "Dealer Relations: No demo offer is currently available."
-        )
-        return
-    end
-    
-    DealerRelations.log("Opening active demo offer screen")
-
-    local powerText = tostring(offer.displayPower or "Unknown")
-
-    if offer.powerMin ~= nil and offer.powerMax ~= nil and offer.powerMin ~= offer.powerMax then
-        powerText = string.format("%d - %d", offer.powerMin, offer.powerMax)
-    end
-
-    local relationshipName = DealerRelations.Data:getRelationshipName()
-    local confidence = DealerRelations.Data:getConfidence()
-    local formattedPrice =
-        DealerRelations.Utils:formatMoney(offer.price)
-    local brandDisplayName =
-        DealerRelations.Utils:getBrandDisplayName(offer.brand)
-    local categoryDisplayName =
-        DealerRelations.Utils:getCategoryDisplayName(offer.category)
-
-    local message = string.format(
-        "Dealer Relationship: %s (Confidence %d)\n\nEquipment: %s\nBrand: %s\nCategory: %s\nPower: %s HP\nList Price: $%s\n\nThis offer expires at the end of the current month.",
-        relationshipName,
-        confidence,
-        tostring(offer.name),
-        brandDisplayName,
-        categoryDisplayName,
-        powerText,
-        formattedPrice
-    )
-    
-    DealerRelationsDemoOfferDialog.register()
-    
-    DealerRelationsDemoOfferDialog.show(message)
 end
 
 -------------------------------------------------------------------------------
