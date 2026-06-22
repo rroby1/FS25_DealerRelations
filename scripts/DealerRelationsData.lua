@@ -754,3 +754,21 @@ function DealerRelations.Data:getRandomDealerName()
 
     return dealerNames[index]
 end
+
+--- Returns the first active (non-expired) demo vehicle.
+-- Rationale:
+-- The Overview dashboard needs to display active demo information
+-- separately from expired demos awaiting return or purchase.
+--
+-- @return table|nil Active demo vehicle data, or nil if none exists.
+function DealerRelations.Data:getActiveDemo()
+    local activeDemoVehicles = self:getActiveDemoVehicles()
+
+    for _, demoVehicle in ipairs(activeDemoVehicles) do
+        if demoVehicle.state == "ACTIVE" then
+            return demoVehicle
+        end
+    end
+
+    return nil
+end

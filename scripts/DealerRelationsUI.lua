@@ -283,3 +283,105 @@ function DealerRelations.UI:notifyRelationshipStatus()
         )
     )
 end
+
+--- Handles direct return of the active demo from the Overview dashboard.
+--
+-- Rationale:
+-- Mirrors onClickReturn from DealerRelationsDemoReturnDialog without
+-- requiring the dialog to be open. Called from the Overview Return button.
+function DealerRelations.UI:returnActiveDemo()
+    local demoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+    local demoVehicle = nil
+
+    for _, v in ipairs(demoVehicles) do
+        if v.state == "ACTIVE" or v.state == "EXPIRED" then
+            demoVehicle = v
+            break
+        end
+    end
+
+    if demoVehicle == nil then
+        DealerRelations.warning("Cannot return demo: no active demo found")
+        return
+    end
+
+    local vehicle = DealerRelations.DemoManager:findVehicleByUniqueId(demoVehicle.uniqueId)
+
+    if vehicle == nil then
+        DealerRelations.warning("Cannot return demo: vehicle not found for uniqueId " .. tostring(demoVehicle.uniqueId))
+        return
+    end
+
+    DealerRelations.DemoManager:removeDemoVehicle(vehicle)
+
+    demoVehicle.state = "RETURNED"
+
+    DealerRelations.log("Demo marked RETURNED: " .. tostring(demoVehicle.name))
+
+    DealerRelations.Data:removeActiveDemoVehicleByUniqueId(demoVehicle.uniqueId)
+
+    DealerRelations.Data:addConfidence(
+        DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_RETURN_DEMO,
+        "Returned demo vehicle"
+    )
+end
+
+--- Handles direct purchase of the active demo from the Overview dashboard.
+--
+-- Rationale:
+-- Mirrors onClickBuy from DealerRelationsDemoReturnDialog without
+-- requiring the dialog to be open. Called from the Overview Buy button.
+function DealerRelations.UI:buyActiveDemo()
+    local demoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+    local demoVehicle = nil
+
+    for _, v in ipairs(demoVehicles) do
+        if v.state == "ACTIVE" or v.state == "EXPIRED" then
+            demoVehicle = v
+            break
+        end
+    end
+
+    if demoVehicle == nil then
+        DealerRelations.warning("Cannot buy demo: no active demo found")
+        return
+    end
+
+    local vehicle = DealerRelations.DemoManager:findVehicleByUniqueId(demoVehicle.uniqueId)
+
+    if vehicle == nil then
+        DealerRelations.warning("Cannot buy demo: vehicle not found for uniqueId " .. tostring(demoVehicle.uniqueId))
+        return
+    end
+
+    vehicle.propertyState = VehiclePropertyState.OWNED
+
+    local discountPercent = DealerRelations.Data:getDiscountPercent()
+    local purchasePrice = DealerRelations.Data:getDemoPurchasePrice(vehicle.price)
+
+    DealerRelations.log(string.format(
+        "Demo purchase price: $%d (list $%d, discount %d%%)",
+        purchasePrice,
+        vehicle.price,
+        discountPercent
+    ))
+
+    local farmId = vehicle:getOwnerFarmId()
+
+    g_currentMission:addMoney(
+        -purchasePrice,
+        farmId,
+        MoneyType.SHOP_VEHICLE_BUY,
+        true,
+        true
+    )
+
+    demoVehicle.state = "PURCHASED"
+
+    DealerRelations.log("Demo marked PURCHASED: " .. tostring(demoVehicle.name))
+
+    DealerRelations.Data:addConfidence(
+        DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_BUY_DEMO,
+        "Purchased demo vehicle"
+    )
+end

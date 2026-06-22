@@ -396,6 +396,7 @@ function DealerRelations.Screen:updateOverviewValues()
     end
 
     local offer = DealerRelations.Data:getActiveDemoOffer()
+    local demo = DealerRelations.Data:getActiveDemo()
 
     if offer ~= nil then
         self.dealerActivityTitleText:setVisible(false)
@@ -404,7 +405,6 @@ function DealerRelations.Screen:updateOverviewValues()
             self.offerImage:setImageFilename(tostring(offer.imageFilename))
         end
 
-        -- Only show action buttons during dealer business hours.
         if DealerRelations.Data:isDealerOpen() then
             self.offerActionsLayout:setVisible(true)
             self:addButtonToLayout(self.offerActionsLayout, "onClickAcceptOffer", "Accept")
@@ -428,6 +428,46 @@ function DealerRelations.Screen:updateOverviewValues()
         self.dealerActivityDetail5Text:setText(
             "Price: " .. DealerRelations.Utils:formatMoney(offer.price)
         )
+
+    elseif demo ~= nil then
+        self.dealerActivityTitleText:setVisible(false)
+
+        if demo.imageFilename ~= nil and demo.imageFilename ~= "" then
+            self.offerImage:setImageFilename(tostring(demo.imageFilename))
+        end
+
+        if DealerRelations.Data:isDealerOpen() then
+            self.offerActionsLayout:setVisible(true)
+            self:addButtonToLayout(self.offerActionsLayout, "onClickReturnDemo", "Return")
+            self:addButtonToLayout(self.offerActionsLayout, "onClickBuyDemo", "Buy")
+        else
+            self.offerActionsLayout:setVisible(false)
+        end
+
+        local discountPercent = DealerRelations.Data:getDiscountPercent()
+        local vehicle = DealerRelations.DemoManager:findVehicleByUniqueId(demo.uniqueId)
+        local purchasePrice = 0
+
+        if vehicle ~= nil then
+            purchasePrice = DealerRelations.Data:getDemoPurchasePrice(vehicle.price)
+        end
+
+        self.dealerActivityDetail1Text:setText(
+            "Equipment: " .. tostring(demo.name)
+        )
+        self.dealerActivityDetail2Text:setText(
+            "Brand: " .. tostring(demo.brand)
+        )
+        self.dealerActivityDetail3Text:setText(
+            "Status: " .. tostring(demo.state)
+        )
+        self.dealerActivityDetail4Text:setText(
+            "Discount: " .. tostring(discountPercent) .. "%"
+        )
+        self.dealerActivityDetail5Text:setText(
+            "Purchase Price: " .. DealerRelations.Utils:formatMoney(purchasePrice)
+        )
+
     else
         self.dealerActivityTitleText:setVisible(true)
         self.dealerActivityTitleText:setText("No dealer activity.")
@@ -704,5 +744,23 @@ end
 -- player sees the updated state without closing the ESC menu.
 function DealerRelations.Screen:onClickDeclineOffer()
     DealerRelations.UI:declineActiveDemoOffer()
+    self:updateOverviewValues()
+end
+
+--- Handles Return Demo button click on the Overview page.
+-- Rationale:
+-- Returns the active demo vehicle and refreshes the Overview so the
+-- player sees the updated state without closing the ESC menu.
+function DealerRelations.Screen:onClickReturnDemo()
+    DealerRelations.UI:returnActiveDemo()
+    self:updateOverviewValues()
+end
+
+--- Handles Buy Demo button click on the Overview page.
+-- Rationale:
+-- Purchases the active demo vehicle and refreshes the Overview so the
+-- player sees the updated state without closing the ESC menu.
+function DealerRelations.Screen:onClickBuyDemo()
+    DealerRelations.UI:buyActiveDemo()
     self:updateOverviewValues()
 end
