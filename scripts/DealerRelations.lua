@@ -15,7 +15,7 @@
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.13.0"
+DealerRelations.version = "0.14.0"
 
 -- Store the mod directory for later runtime use.
 -- Rationale: g_currentModDirectory is available while sourcing files,
@@ -298,6 +298,8 @@ function DealerRelations:update(dt)
     self:checkActiveDemoOfferNotification()
     self:checkOfferExpiration()
 
+    DealerRelations.DemoManager:checkDemoOperatingHours()
+    
     -- Check player-facing demo notices during normal update processing.
     -- These are separate from monthly demo generation because notices are
     -- time-of-day based, not just month-change based.

@@ -151,6 +151,8 @@ function DealerRelations.Persistence:saveActiveDemoVehicles(xmlFile)
         setXMLInt(xmlFile, key .. "#endMonth", demoVehicle.endMonth or 0)
         setXMLString(xmlFile, key .. "#state", demoVehicle.state or "ACTIVE")
         setXMLString(xmlFile, key .. "#role", demoVehicle.role or "PRIMARY")
+        setXMLFloat(xmlFile, key .. "#startOperatingHours", demoVehicle.startOperatingHours or 0)
+        setXMLFloat(xmlFile, key .. "#operatingHourLimit", demoVehicle.operatingHourLimit or 0)
     end
 end
 
@@ -472,6 +474,8 @@ function DealerRelations.Persistence:loadActiveDemoVehicles(xmlFile)
                 xmlFilename = getXMLString(xmlFile, key .. "#xmlFilename"),
                 startMonth = getXMLInt(xmlFile, key .. "#startMonth") or 0,
                 endMonth = getXMLInt(xmlFile, key .. "#endMonth") or 0,
+                startOperatingHours = getXMLFloat(xmlFile, key .. "#startOperatingHours") or 0,
+                operatingHourLimit = getXMLFloat(xmlFile, key .. "#operatingHourLimit") or 0,
                 state = getXMLString(xmlFile, key .. "#state") or "ACTIVE",
                 role = getXMLString(xmlFile, key .. "#role") or "PRIMARY"
             }

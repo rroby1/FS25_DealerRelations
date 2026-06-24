@@ -127,6 +127,14 @@ function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState,
         state = "ACTIVE",
         role = "PRIMARY",
 
+        -- Operating hour baseline recorded at demo start.
+        -- Rationale:
+        -- Demo expiration is based on hours consumed, not calendar time.
+        -- Storing the starting hours allows the check to calculate usage
+        -- regardless of what the vehicle had accumulated before the demo.
+        startOperatingHours = vehicle:getOperatingTime() / (1000 * 60 * 60),
+        operatingHourLimit = DealerRelations.Data:getDemoOperatingHourLimit(),
+
         -- Tracks whether the final-day 5 PM warning has already been shown.
         -- This prevents the reminder from repeating every update cycle.
         endingNoticeSent = false,
@@ -187,36 +195,71 @@ function DealerRelations.DemoManager:checkExpiredDemos()
 
     for _, demoVehicle in ipairs(activeDemoVehicles) do
 
-        -- Only active demos should transition to expired.
-        -- This prevents the same expired demo from logging every update cycle.
+        if demoVehicle.state == "ACTIVE" then
+
+            -- Check month-end expiration.
+            local monthExpired = demoVehicle.endMonth ~= nil
+                and currentMonth >= demoVehicle.endMonth
+
+            -- Check operating-hour expiration.
+            local hoursExpired = false
+
+            if demoVehicle.startOperatingHours ~= nil
+                and demoVehicle.operatingHourLimit ~= nil then
+
+                local vehicle = self:findVehicleByUniqueId(demoVehicle.uniqueId)
+
+                if vehicle ~= nil then
+                    local currentHours = vehicle:getOperatingTime() / (1000 * 60 * 60)
+                    local hoursUsed = currentHours - demoVehicle.startOperatingHours
+                    hoursExpired = hoursUsed >= demoVehicle.operatingHourLimit
+                end
+            end
+
+            if monthExpired or hoursExpired then
+                demoVehicle.state = "EXPIRED"
+
+                DealerRelations.log(string.format(
+                    "Demo expired: %s (reason=%s)",
+                    tostring(demoVehicle.name),
+                    monthExpired and "month-end" or "operating-hours"
+                ))
+            end
+        end
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Checks whether any active demo has exceeded its operating hour limit.
+--
+-- Rationale:
+-- Operating-hour expiration must be checked every update cycle, not just
+-- at month change. This allows demos to expire mid-month when the player
+-- has consumed their allotted hours.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:checkDemoOperatingHours()
+    local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+
+    for _, demoVehicle in ipairs(activeDemoVehicles) do
+
         if demoVehicle.state == "ACTIVE"
-            and demoVehicle.endMonth ~= nil
-            and currentMonth >= demoVehicle.endMonth then
+            and demoVehicle.startOperatingHours ~= nil
+            and demoVehicle.operatingHourLimit ~= nil then
 
-            -- Keep the demo record, but mark it unresolved.
-            -- This is the "open demo" state that blocks future offers.
-            demoVehicle.state = "EXPIRED"
-
-            DealerRelations.log(string.format(
-                "Demo expired and remains open: %s (uniqueId=%s)",
-                tostring(demoVehicle.name),
-                tostring(demoVehicle.uniqueId)
-            ))
-
-            -- Confirm whether the expired demo vehicle still exists in-game.
-            -- Removal will happen later from the Return dialog, not here.
             local vehicle = self:findVehicleByUniqueId(demoVehicle.uniqueId)
 
             if vehicle ~= nil then
-                DealerRelations.log(string.format(
-                    "Found expired demo vehicle: %s",
-                    tostring(vehicle:getName())
-                ))
-            else
-                DealerRelations.warning(string.format(
-                    "Could not find expired demo vehicle: %s",
-                    tostring(demoVehicle.uniqueId)
-                ))
+                local currentHours = vehicle:getOperatingTime() / (1000 * 60 * 60)
+                local hoursUsed = currentHours - demoVehicle.startOperatingHours
+
+                if hoursUsed >= demoVehicle.operatingHourLimit then
+                    demoVehicle.state = "EXPIRED"
+
+                    DealerRelations.log(string.format(
+                        "Demo expired: %s (reason=operating-hours)",
+                        tostring(demoVehicle.name)
+                    ))
+                end
             end
         end
     end
@@ -230,7 +273,6 @@ end
 --   nil if not found
 ------------------------------------------------------------------------------
 function DealerRelations.DemoManager:findVehicleByUniqueId(uniqueId)
-
     if uniqueId == nil then
         return nil
     end

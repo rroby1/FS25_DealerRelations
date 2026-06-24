@@ -48,6 +48,18 @@ DealerRelations.CONSTANTS = {
     -- hard-coded across UI, lifecycle, and notification logic.
     DEALER_OPEN_HOUR = 7,
     DEALER_CLOSE_HOUR = 18,
+
+    -- Demo operating hour limits based on days-per-month setting.
+    -- Rationale:
+    -- Longer month settings give the player more real time per month.
+    -- Limiting demo hours based on month length prevents multi-day month
+    -- players from getting a free extended rental.
+    DEMO_OPERATING_HOUR_LIMITS = {
+        [1] = 2,
+        [2] = 3,
+        [3] = 4,
+        default = 5
+    },
 }
 
 -------------------------------------------------------------------------------
@@ -675,6 +687,24 @@ function DealerRelations.Data:getDealerHoursText()
     return formatHour(DealerRelations.CONSTANTS.DEALER_OPEN_HOUR)
         .. " - "
         .. formatHour(DealerRelations.CONSTANTS.DEALER_CLOSE_HOUR)
+end
+
+-------------------------------------------------------------------------------
+-- Returns the demo operating hour limit for the current days-per-month setting.
+--
+-- Rationale:
+-- The limit is looked up at demo start so it reflects the player's actual
+-- month length setting at that moment.
+-------------------------------------------------------------------------------
+function DealerRelations.Data:getDemoOperatingHourLimit()
+    local daysPerMonth = g_currentMission.environment.daysPerPeriod
+    local limit = DealerRelations.CONSTANTS.DEMO_OPERATING_HOUR_LIMITS[daysPerMonth]
+
+    if limit == nil then
+        limit = DealerRelations.CONSTANTS.DEMO_OPERATING_HOUR_LIMITS.default
+    end
+
+    return limit
 end
 
 --- Returns the dealership name assigned to this save.
