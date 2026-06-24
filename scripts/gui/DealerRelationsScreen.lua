@@ -425,6 +425,10 @@ function DealerRelations.Screen:updateOverviewValues()
             "Price: " .. DealerRelations.Utils:formatMoney(offer.price)
         )
 
+        self.dealerActivityDetail6Text:setText(
+            "Equipment Hour Limit: " .. tostring(DealerRelations.Data:getDemoOperatingHourLimit()) .. " hr"
+        )
+
     elseif demo ~= nil then
         self.dealerActivityTitleText:setVisible(false)
 
@@ -443,9 +447,12 @@ function DealerRelations.Screen:updateOverviewValues()
         local discountPercent = DealerRelations.Data:getDiscountPercent()
         local vehicle = DealerRelations.DemoManager:findVehicleByUniqueId(demo.uniqueId)
         local purchasePrice = 0
+        local hoursUsed = 0
 
         if vehicle ~= nil then
             purchasePrice = DealerRelations.Data:getDemoPurchasePrice(vehicle.price)
+            local currentHours = vehicle:getOperatingTime() / (1000 * 60 * 60)
+            hoursUsed = currentHours - (demo.startOperatingHours or 0)
         end
 
         self.dealerActivityDetail1Text:setText(
@@ -464,6 +471,13 @@ function DealerRelations.Screen:updateOverviewValues()
             "Purchase Price: " .. DealerRelations.Utils:formatMoney(purchasePrice)
         )
 
+        self.dealerActivityDetail6Text:setText(
+            string.format("Equipment Hours: %.2f of %s hr used",
+                hoursUsed,
+                tostring(demo.operatingHourLimit or 0)
+            )
+        )
+
     else
         self.dealerActivityTitleText:setVisible(true)
         self.dealerActivityTitleText:setText("No dealer activity.")
@@ -473,6 +487,7 @@ function DealerRelations.Screen:updateOverviewValues()
         self.dealerActivityDetail3Text:setText("")
         self.dealerActivityDetail4Text:setText("")
         self.dealerActivityDetail5Text:setText("")
+        self.dealerActivityDetail6Text:setText("")
     end
 end
 
