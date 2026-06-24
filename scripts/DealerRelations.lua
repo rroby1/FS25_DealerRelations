@@ -79,7 +79,14 @@ function DealerRelations:loadMap()
     DealerRelations.UI:notifyModDisabled()
     DealerRelations.UI:notifyRelationshipStatus()
     
-    DealerRelations.UI:notifyActiveDemoOfferAvailable()
+    -- Remind the player about a carried-over offer on load.
+    -- Rationale:
+    -- Only notify on load if the offer was already announced in a previous session.
+    -- New offers are handled by checkActiveDemoOfferNotification() at dealer open.
+    local existingOffer = DealerRelations.Data:getActiveDemoOffer()
+    if existingOffer ~= nil and existingOffer.offerNotificationSent == true then
+        DealerRelations.UI:notifyActiveDemoOfferAvailable()
+    end
 end
 
 -------------------------------------------------------------------------------
