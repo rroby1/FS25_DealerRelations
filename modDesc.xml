@@ -22,15 +22,7 @@
     <extraSourceFiles>
         <sourceFile filename="scripts/DealerRelations.lua"/>
     </extraSourceFiles>
-    
-    <inputBinding>
-         <action name="DR_OPEN_DEMO_OFFER" category="ON_FOOT" />
-         
-        <actionBinding action="DR_OPEN_DEMO_OFFER">
-            <binding device="KB_MOUSE_DEFAULT" input="KEY_KP_9" index="1"/>
-        </actionBinding>
-    </inputBinding>
-    
+     
     <actions>
         <action name="DR_OPEN_DEMO_OFFER"/>
     </actions>

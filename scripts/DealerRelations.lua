@@ -177,6 +177,7 @@ function DealerRelations:createDemoOfferFromCandidate(candidate, currentMonth)
         category = candidate.category,
         price = candidate.price,
         xmlFilename = candidate.xmlFilename,
+        imageFilename = DealerRelations.Utils:resolveAssetPath(candidate.storeImage),  -- Store image path for Overview display
         powerRole = candidate.powerRole,
         displayPower = candidate.displayPower,
         powerMin = candidate.powerMin,
@@ -207,8 +208,55 @@ function DealerRelations:expireDemoOffer(currentMonth)
             tostring(offer.name)
         )
 
+        DealerRelations.Data:addConfidence(
+            DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_EXPIRE_OFFER,
+            "Demo offer ignored until expiration"
+        )
+
         DealerRelations.Data:clearActiveDemoOffer()
     end
+end
+
+-------------------------------------------------------------------------------
+-- Expires the active demo offer at dealer close if still open.
+--
+-- Rationale:
+-- Offers are valid for one business day. If the player has not accepted
+-- or declined by dealer close, the offer expires with a confidence penalty
+-- for passive neglect.
+-------------------------------------------------------------------------------
+function DealerRelations:checkOfferExpiration()
+    local offer = DealerRelations.Data:getActiveDemoOffer()
+
+    if offer == nil then
+        return
+    end
+
+    if offer.offerExpired == true then
+        return
+    end
+
+    if DealerRelations.Data:isDealerOpen() then
+        return
+    end
+
+    if offer.offerNotificationSent ~= true then
+        return
+    end
+
+    DealerRelations.log(
+        "Demo offer expired at dealer close: " ..
+        tostring(offer.name)
+    )
+
+    offer.offerExpired = true
+
+    DealerRelations.Data:addConfidence(
+        DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_EXPIRE_OFFER,
+        "Demo offer ignored until dealer close"
+    )
+
+    DealerRelations.Data:clearActiveDemoOffer()
 end
 
 function DealerRelations:checkActiveDemoOfferNotification()
@@ -241,6 +289,7 @@ end
 function DealerRelations:update(dt)
     self:checkMonthlyDemo()
     self:checkActiveDemoOfferNotification()
+    self:checkOfferExpiration()
 
     -- Check player-facing demo notices during normal update processing.
     -- These are separate from monthly demo generation because notices are
@@ -249,27 +298,6 @@ function DealerRelations:update(dt)
     DealerRelations.DemoManager:checkReturnDemoNotices()
 end
 
-
--- Hook into GIANTS' player action registration lifecycle.
--- Global player hotkeys are registered here by the base game, so Dealer
--- Relations registers its demo-offer shortcut during the same process
--- rather than attempting registration from the update loop.
-local function registerDealerRelationsPlayerActionEvents(self, superFunc, ...)
-    -- Allow the base game to register its normal player actions first.
-    superFunc(self, ...)
-
-    -- Register the Dealer Relations demo-offer hotkey.
-    -- This should execute whenever GIANTS builds the local player's
-    -- action event list.
-    DealerRelations.UI:registerInput()
-end
-
--- Append Dealer Relations input registration to the standard player
--- action registration flow used by GIANTS.
-PlayerInputComponent.registerGlobalPlayerActionEvents = Utils.overwrittenFunction(
-    PlayerInputComponent.registerGlobalPlayerActionEvents,
-    registerDealerRelationsPlayerActionEvents
-)
 -------------------------------------------------------------------------------
 -- Register Dealer Relations as a mod event listener.
 -------------------------------------------------------------------------------

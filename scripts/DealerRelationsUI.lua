@@ -14,59 +14,6 @@ DealerRelations = DealerRelations or {}
 DealerRelations.UI = DealerRelations.UI or {}
 
 -------------------------------------------------------------------------------
--- Input Registration
--------------------------------------------------------------------------------
-
-function DealerRelations.UI:registerInput()
-    -- Confirm that the custom input action from modDesc.xml was loaded
-    -- before asking GIANTS to register an action event for it.
-    if InputAction.DR_OPEN_DEMO_OFFER == nil then
-        DealerRelations.warning("Cannot register demo offer input: DR_OPEN_DEMO_OFFER is missing")
-        return
-    end
-
-    -- Register the demo offer hotkey as a player action event.
-    -- This function is now called from the player input registration flow,
-    -- so we do not need update-loop retry logic here.
-    local _, actionEventId = g_inputBinding:registerActionEvent(
-        InputAction.DR_OPEN_DEMO_OFFER,
-        DealerRelations.UI,
-        DealerRelations.UI.onOpenDemoOfferInput,
-        false,
-        true,
-        false,
-        true
-    )
-
-    if actionEventId == nil then
-        DealerRelations.warning("Demo offer input registration failed: actionEventId is nil")
-        return
-    end
-
-    -- Keep the action hidden from the F1 help menu for now.
-    -- The key is meant as a direct shortcut, not an always-visible prompt.
-    g_inputBinding:setActionEventText(actionEventId, "Open Dealer Demo Offer")
-    g_inputBinding:setActionEventTextVisibility(actionEventId, false)
-
-    self.openDemoOfferActionEventId = actionEventId
-
-    DealerRelations.log("Dealer Relations demo offer input registered")
-end
-
--------------------------------------------------------------------------------
--- Input Callbacks
--------------------------------------------------------------------------------
-
-function DealerRelations.UI:onOpenDemoOfferInput()
-    -- Dashboard now handles all demo offer and demo management actions.
-    -- Direct the player to the ESC menu Dealer Relations page.
-    g_currentMission:addIngameNotification(
-        FSBaseMission.INGAME_NOTIFICATION_INFO,
-        "Dealer Relations: Open the ESC menu to manage offers and demos."
-    )
-end
-
--------------------------------------------------------------------------------
 -- Demo Offer Actions
 -------------------------------------------------------------------------------
 
@@ -121,7 +68,7 @@ function DealerRelations.UI:notifyActiveDemoOfferAvailable()
     if DealerRelations.Data:hasActiveDemoOffer() then
         g_currentMission:addIngameNotification(
             FSBaseMission.INGAME_NOTIFICATION_INFO,
-            "Dealer Relations: A demo offer is available."
+            "Dealer Relations: A demo offer is available. Visit the dealer before closing time."
         )
     end
 end

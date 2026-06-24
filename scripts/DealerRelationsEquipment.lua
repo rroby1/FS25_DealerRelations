@@ -267,6 +267,7 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename)
 
     local data = {
         brand = getXMLString(xmlFile, "vehicle.storeData.brand"),
+        storeImage = getXMLString(xmlFile, "vehicle.storeData.image"),  -- Store image path for Overview display
         powerRole = "NONE",
         displayPower = nil,
         powerMin = nil,
@@ -364,6 +365,7 @@ function DealerRelations.Equipment:discover()
                     category = item.categoryName,
                     price = item.price,
                     xmlFilename = item.xmlFilename,
+                    storeImage = xmlData ~= nil and xmlData.storeImage or nil,  -- Store image path for Overview display
                     powerRole = xmlData ~= nil and xmlData.powerRole or "NONE",
                     displayPower = xmlData ~= nil and xmlData.displayPower or nil,
                     powerMin = xmlData ~= nil and xmlData.powerMin or nil,

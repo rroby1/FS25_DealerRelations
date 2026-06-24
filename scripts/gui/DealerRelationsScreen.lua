@@ -44,10 +44,6 @@ DealerRelations.Screen.MENU_PAGE_NAME = "menuDealerRelations"
 DealerRelations.Screen.XML_FILENAME =
     g_currentModDirectory .. "gui/DealerRelationsScreen.xml"
 
--- Temporary tab icon.
--- Rationale:
--- The ESC menu requires a tab icon when adding a page tab. The mod icon is
--- good enough while the screen architecture is being proven.
 DealerRelations.Screen.MENU_ICON_FILENAME =
     g_currentModDirectory .. "images/DRMenuIcon.png"
 

@@ -67,3 +67,19 @@ function DealerRelations.Utils:getCategoryDisplayName(categoryName)
 
     return category ~= nil and category.title or categoryKey
 end
+
+--- Resolves the $data token in a Farming Simulator asset path.
+-- Rationale:
+-- getXMLString returns raw XML values. FS25 does not resolve $data
+-- tokens in string results, so paths like '$data/vehicles/...' must
+-- be converted to 'data/vehicles/...' before use with BitmapElement.
+--
+-- @param path string Raw path string from XML.
+-- @return string Resolved path, or nil if path was nil.
+function DealerRelations.Utils:resolveAssetPath(path)
+    if path == nil then
+        return nil
+    end
+
+    return path:gsub("^%$data/", "data/")
+end

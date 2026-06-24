@@ -121,6 +121,7 @@ function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState,
         name = args.offer.name,
         brand = args.offer.brand,
         xmlFilename = args.offer.xmlFilename,
+        imageFilename = args.offer.imageFilename,  -- Store image path for Overview display
         startMonth = g_currentMission.environment.currentPeriod,
         endMonth = g_currentMission.environment.currentPeriod + 1,
         state = "ACTIVE",
