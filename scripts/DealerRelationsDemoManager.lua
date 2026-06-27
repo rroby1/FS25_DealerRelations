@@ -122,6 +122,9 @@ function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState,
         brand = args.offer.brand,
         xmlFilename = args.offer.xmlFilename,
         imageFilename = args.offer.imageFilename,  -- Store image path for Overview display
+        price = args.offer.price,  -- Stored for overdue fee calculation at Miss 3
+        -- Note: currentPeriod is 1-based from March, not January.
+        -- Period 1 = March, Period 12 = February.
         startMonth = g_currentMission.environment.currentPeriod,
         endMonth = g_currentMission.environment.currentPeriod + 1,
         state = "ACTIVE",
@@ -141,7 +144,11 @@ function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState,
 
         -- Tracks whether the post-expiration 8 AM return reminder has been shown.
         -- Prevents the return reminder from repeating after it has been shown..
-        returnNoticeSent = false
+        returnNoticeSent = false,
+
+        -- Tracks whether the overdue consequence for the current level has fired.
+        -- Reset to false each time the overdue level advances.
+        overdueNoticeSent = false,
     })
     
     DealerRelations.Data:clearActiveDemoOffer()
@@ -191,7 +198,11 @@ end
 -------------------------------------------------------------------------------
 function DealerRelations.DemoManager:checkExpiredDemos()
     local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+    -- Note: currentPeriod is 1-based from March, not January.
+    -- Period 1 = March, Period 12 = February.
     local currentMonth = g_currentMission.environment.currentPeriod
+    local currentHour = math.floor(g_currentMission.environment.dayTime / 1000 / 60 / 60)
+    local currentDay = g_currentMission.environment.currentDay
 
     for _, demoVehicle in ipairs(activeDemoVehicles) do
 
@@ -219,10 +230,20 @@ function DealerRelations.DemoManager:checkExpiredDemos()
             if monthExpired or hoursExpired then
                 demoVehicle.state = "EXPIRED"
 
+                -- Set the overdue clock start day using the noon rule.
+                -- Before noon: tonight's dealer close is Miss 1.
+                -- Noon or after: tomorrow's dealer close is Miss 1.
+                if currentHour < DealerRelations.CONSTANTS.OVERDUE_GRACE_CUTOFF_HOUR then
+                    DealerRelations.Data:setDemoOverdueClockStartDay(demoVehicle, currentDay)
+                else
+                    DealerRelations.Data:setDemoOverdueClockStartDay(demoVehicle, currentDay + 1)
+                end
+
                 DealerRelations.log(string.format(
-                    "Demo expired: %s (reason=%s)",
+                    "Demo expired: %s (reason=%s, overdueClockStartDay=%d)",
                     tostring(demoVehicle.name),
-                    monthExpired and "month-end" or "operating-hours"
+                    monthExpired and "month-end" or "operating-hours",
+                    DealerRelations.Data:getDemoOverdueClockStartDay(demoVehicle)
                 ))
             end
         end
@@ -239,6 +260,8 @@ end
 -------------------------------------------------------------------------------
 function DealerRelations.DemoManager:checkDemoOperatingHours()
     local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+    local currentHour = math.floor(g_currentMission.environment.dayTime / 1000 / 60 / 60)
+    local currentDay = g_currentMission.environment.currentDay
 
     for _, demoVehicle in ipairs(activeDemoVehicles) do
 
@@ -255,9 +278,19 @@ function DealerRelations.DemoManager:checkDemoOperatingHours()
                 if hoursUsed >= demoVehicle.operatingHourLimit then
                     demoVehicle.state = "EXPIRED"
 
+                    -- Set the overdue clock start day using the noon rule.
+                    -- Before noon: tonight's dealer close is Miss 1.
+                    -- Noon or after: tomorrow's dealer close is Miss 1.
+                    if currentHour < DealerRelations.CONSTANTS.OVERDUE_GRACE_CUTOFF_HOUR then
+                        DealerRelations.Data:setDemoOverdueClockStartDay(demoVehicle, currentDay)
+                    else
+                        DealerRelations.Data:setDemoOverdueClockStartDay(demoVehicle, currentDay + 1)
+                    end
+
                     DealerRelations.log(string.format(
-                        "Demo expired: %s (reason=operating-hours)",
-                        tostring(demoVehicle.name)
+                        "Demo expired: %s (reason=operating-hours, overdueClockStartDay=%d)",
+                        tostring(demoVehicle.name),
+                        DealerRelations.Data:getDemoOverdueClockStartDay(demoVehicle)
                     ))
                 end
             end
@@ -293,6 +326,8 @@ end
 -------------------------------------------------------------------------------
 function DealerRelations.DemoManager:checkEndingDemoNotices()
     local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+    -- Note: currentPeriod is 1-based from March, not January.
+    -- Period 1 = March, Period 12 = February.
     local currentMonth = g_currentMission.environment.currentPeriod
 
     -- FS stores dayTime as milliseconds since midnight.
@@ -354,7 +389,7 @@ function DealerRelations.DemoManager:checkReturnDemoNotices()
             g_currentMission:addIngameNotification(
                 FSBaseMission.INGAME_NOTIFICATION_INFO,
                 string.format(
-                    "Dealer Relations: Demo for %s has ended. Return or purchase the machine.",
+                    "Dealer Relations: Demo for %s has ended. Return or purchase the equipment.",
                     tostring(demoVehicle.name)
                 )
             )
@@ -426,4 +461,214 @@ function DealerRelations.DemoManager:buyDemoVehicle(vehicle)
     DealerRelations.log("Demo vehicle ownership conversion call completed")
 
     return true
+end
+
+-------------------------------------------------------------------------------
+-- Checks all expired demo vehicles for overdue consequences.
+--
+-- Fires at dealer close. Applies escalating consequences for each missed
+-- return window. Each level fires exactly once per period via overdueNoticeSent.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:checkOverdueDemos()
+    local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+    local currentHour = math.floor(g_currentMission.environment.dayTime / 1000 / 60 / 60)
+    local currentDay = g_currentMission.environment.currentDay
+
+    for _, demoVehicle in ipairs(activeDemoVehicles) do
+        if demoVehicle.state == "EXPIRED" then
+
+            -- Only act at dealer close.
+            if currentHour >= DealerRelations.CONSTANTS.DEALER_CLOSE_HOUR then
+
+                local clockStartDay = DealerRelations.Data:getDemoOverdueClockStartDay(demoVehicle)
+
+                -- Clock must be set before we can evaluate anything.
+                if clockStartDay ~= nil then
+
+                    -- Calculate how many dealer closes have passed since the clock started.
+                    local missCount = currentDay - clockStartDay
+
+                    -- Reset the notice flag when missCount has advanced past the
+                    -- current overdue level so the next level can fire.
+                    local currentOverdueLevel = DealerRelations.Data:getDemoOverdueLevel(demoVehicle)
+
+                    if missCount == DealerRelations.CONSTANTS.OVERDUE_MISS_1
+                        and currentOverdueLevel < 1 then
+
+                        DealerRelations.Data:setDemoOverdueLevel(demoVehicle, 1)
+                        DealerRelations.Data:setDemoOverdueNoticeSent(demoVehicle, true)
+
+                        g_currentMission:addIngameNotification(
+                            FSBaseMission.INGAME_NOTIFICATION_CRITICAL,
+                            string.format(
+                                "Dealer Relations: %s is overdue for return. Please return or purchase the equipment.",
+                                tostring(demoVehicle.name)
+                            )
+                        )
+
+                        DealerRelations.log(string.format(
+                            "Overdue Miss 1 warning sent for demo: %s",
+                            tostring(demoVehicle.name)
+                        ))
+
+                    elseif missCount == DealerRelations.CONSTANTS.OVERDUE_MISS_2
+                        and currentOverdueLevel < 2 then
+
+                        DealerRelations.Data:setDemoOverdueLevel(demoVehicle, 2)
+                        DealerRelations.Data:setDemoOverdueNoticeSent(demoVehicle, true)
+
+                        DealerRelations.Data:addConfidence(
+                            DealerRelations.CONSTANTS.OVERDUE_LEVEL_2_CONFIDENCE,
+                            "Overdue demo not returned - Miss 2"
+                        )
+
+                        -- Note: currentPeriod is 1-based from March, not January.
+                        -- Period 1 = March, Period 12 = February.
+                        local currentMonth = g_currentMission.environment.currentPeriod
+
+                        DealerRelations.Data:setPendingSuspensionMonths(
+                            DealerRelations.CONSTANTS.OVERDUE_LEVEL_2_SUSPENSION_MONTHS
+                        )
+
+                        g_currentMission:addIngameNotification(
+                            FSBaseMission.INGAME_NOTIFICATION_CRITICAL,
+                            string.format(
+                                "Dealer Relations: %s is overdue. Confidence reduced and demo offers suspended for %d month(s).",
+                                tostring(demoVehicle.name),
+                                DealerRelations.CONSTANTS.OVERDUE_LEVEL_2_SUSPENSION_MONTHS
+                            )
+                        )
+
+                        DealerRelations.log(string.format(
+                            "Overdue Miss 2 applied for demo: %s",
+                            tostring(demoVehicle.name)
+                        ))
+
+                    elseif missCount == DealerRelations.CONSTANTS.OVERDUE_MISS_3
+                        and currentOverdueLevel < 3 then
+
+                        DealerRelations.Data:setDemoOverdueLevel(demoVehicle, 3)
+                        DealerRelations.Data:setDemoOverdueNoticeSent(demoVehicle, true)
+
+                        DealerRelations.Data:addConfidence(
+                            DealerRelations.CONSTANTS.OVERDUE_LEVEL_3_CONFIDENCE,
+                            "Overdue demo not returned - Miss 3"
+                        )
+
+                        -- Note: currentPeriod is 1-based from March, not January.
+                        -- Period 1 = March, Period 12 = February.
+                        local currentMonth = g_currentMission.environment.currentPeriod
+                        DealerRelations.Data:setPendingSuspensionMonths(
+                            (DealerRelations.Data:getPendingSuspensionMonths() or 0) +
+                            DealerRelations.CONSTANTS.OVERDUE_LEVEL_3_SUSPENSION_MONTHS
+                        )
+                        
+                        local farm = g_farmManager:getFarmById(DealerRelations.DemoManager:getDemoOwnerFarmId())
+                        local feeAmount = math.floor(
+                            (demoVehicle.price or 0) *
+                            (DealerRelations.CONSTANTS.OVERDUE_LEVEL_3_FEE_PERCENT / 100)
+                        )
+
+                        if farm ~= nil and farm.money >= feeAmount then
+                            farm:changeBalance(-feeAmount, "DEALER_RELATIONS_OVERDUE_FEE")
+
+                            g_currentMission:addIngameNotification(
+                                FSBaseMission.INGAME_NOTIFICATION_CRITICAL,
+                                string.format(
+                                    "Dealer Relations: %s is overdue. Confidence reduced, demo offers suspended for %d month(s), and a %d%% late fee of $%d has been charged. Return or purchase the equipment or it will be repossessed.",
+                                    tostring(demoVehicle.name),
+                                    DealerRelations.CONSTANTS.OVERDUE_LEVEL_3_SUSPENSION_MONTHS,
+                                    DealerRelations.CONSTANTS.OVERDUE_LEVEL_3_FEE_PERCENT,
+                                    feeAmount
+                                )
+                            )
+
+                            DealerRelations.log(string.format(
+                                "Overdue Miss 3 fee applied for demo: %s (fee=%d)",
+                                tostring(demoVehicle.name),
+                                feeAmount
+                            ))
+                        else
+                            DealerRelations.Data:addConfidence(
+                                DealerRelations.CONSTANTS.OVERDUE_LEVEL_3_INSUFFICIENT_FUNDS_CONFIDENCE,
+                                "Overdue demo Miss 3 - insufficient funds for fee"
+                            )
+
+                            g_currentMission:addIngameNotification(
+                                FSBaseMission.INGAME_NOTIFICATION_CRITICAL,
+                                string.format(
+                                    "Dealer Relations: %s is overdue. Confidence reduced and demo offers suspended for %d month(s). Insufficient funds for late fee. Return or purchase the equipment or it will be repossessed.",
+                                    tostring(demoVehicle.name),
+                                    DealerRelations.CONSTANTS.OVERDUE_LEVEL_3_SUSPENSION_MONTHS
+                                )
+                            )
+
+                            DealerRelations.log(string.format(
+                                "Overdue Miss 3 insufficient funds for demo: %s",
+                                tostring(demoVehicle.name)
+                            ))
+                        end
+
+                    elseif missCount >= DealerRelations.CONSTANTS.OVERDUE_MISS_4
+                        and currentOverdueLevel < 4 then
+                            
+                        DealerRelations.Data:setDemoOverdueLevel(demoVehicle, 4)
+                        DealerRelations.Data:setDemoOverdueNoticeSent(demoVehicle, true)
+
+                        DealerRelations.Data:addConfidence(
+                            DealerRelations.CONSTANTS.OVERDUE_LEVEL_4_CONFIDENCE,
+                            "Overdue demo not returned - Miss 4"
+                        )
+
+                        g_currentMission:addIngameNotification(
+                            FSBaseMission.INGAME_NOTIFICATION_CRITICAL,
+                            string.format(
+                                "Dealer Relations: %s has been repossessed due to non-return.",
+                                tostring(demoVehicle.name)
+                            )
+                        )
+
+                        DealerRelations.log(string.format(
+                            "Overdue Miss 4 repossession for demo: %s",
+                            tostring(demoVehicle.name)
+                        ))
+
+                        DealerRelations.DemoManager:applyPendingSuspension()
+
+                        local vehicle = self:findVehicleByUniqueId(demoVehicle.uniqueId)
+                        self:removeDemoVehicle(vehicle)
+                        DealerRelations.Data:removeActiveDemoVehicleByUniqueId(demoVehicle.uniqueId)
+
+                    end -- end if/elseif miss level chain
+
+                end -- end clockStartDay ~= nil
+            end -- end dealer close hour check
+        end -- end state == EXPIRED
+    end -- end for loop
+end
+
+-------------------------------------------------------------------------------
+-- Applies any pending suspension earned during the overdue period.
+--
+-- Called at demo resolution (return, buy, or repossession) so the suspension
+-- starts counting from when the demo is resolved, not when the miss fired.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:applyPendingSuspension()
+     local pendingSuspensionMonths = DealerRelations.Data:getPendingSuspensionMonths()
+
+    if pendingSuspensionMonths == nil then
+        return
+    end
+
+    -- Note: currentPeriod is 1-based from March, not January.
+    -- Period 1 = March, Period 12 = February.
+    local currentMonth = g_currentMission.environment.currentPeriod
+    DealerRelations.Data:setSuspensionEndMonth(currentMonth + pendingSuspensionMonths)
+    DealerRelations.Data:clearPendingSuspensionMonths()
+
+    DealerRelations.log(string.format(
+        "Suspension applied: %d month(s), ends month %d",
+        pendingSuspensionMonths,
+        DealerRelations.Data:getSuspensionEndMonth()
+    ))
 end

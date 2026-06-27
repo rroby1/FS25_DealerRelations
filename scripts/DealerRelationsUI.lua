@@ -202,6 +202,8 @@ function DealerRelations.UI:returnActiveDemo()
 
     DealerRelations.log("Demo marked RETURNED: " .. tostring(demoVehicle.name))
 
+    DealerRelations.DemoManager:applyPendingSuspension()
+
     DealerRelations.Data:removeActiveDemoVehicleByUniqueId(demoVehicle.uniqueId)
 
     DealerRelations.Data:addConfidence(
@@ -263,6 +265,8 @@ function DealerRelations.UI:buyActiveDemo()
     demoVehicle.state = "PURCHASED"
 
     DealerRelations.log("Demo marked PURCHASED: " .. tostring(demoVehicle.name))
+
+    DealerRelations.DemoManager:applyPendingSuspension()
 
     DealerRelations.Data:addConfidence(
         DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_BUY_DEMO,

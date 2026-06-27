@@ -55,12 +55,38 @@ DealerRelations.CONSTANTS = {
     -- Limiting demo hours based on month length prevents multi-day month
     -- players from getting a free extended rental.
     DEMO_OPERATING_HOUR_LIMITS = {
-        [1] = 2,
+        [1] = 0.01,  --TEMP Rest to 2
         [2] = 3,
         [3] = 4,
         default = 5
     },
+
+    -- Overdue / grace period system.
+    -- Penalties are absolute confidence totals per level, not cumulative.
+    -- The grace cutoff hour determines whether the expiration day counts
+    -- as the first return window.
+    OVERDUE_GRACE_CUTOFF_HOUR = 12,
+
+    OVERDUE_LEVEL_2_CONFIDENCE = -10,
+    OVERDUE_LEVEL_2_SUSPENSION_MONTHS = 1,
+
+    OVERDUE_LEVEL_3_CONFIDENCE = -10,
+    OVERDUE_LEVEL_3_SUSPENSION_MONTHS = 1,
+    OVERDUE_LEVEL_3_FEE_PERCENT = 1,
+    OVERDUE_LEVEL_3_INSUFFICIENT_FUNDS_CONFIDENCE = -5,
+
+    OVERDUE_LEVEL_4_CONFIDENCE = -10,
+
+    -- Overdue miss level thresholds.
+    -- Rationale:
+    -- Named constants make the level checks in checkOverdueDemos() readable
+    -- and give a single place to adjust timing if needed during testing.
+    OVERDUE_MISS_1 = 0,
+    OVERDUE_MISS_2 = 1,
+    OVERDUE_MISS_3 = 2,
+    OVERDUE_MISS_4 = 3,
 }
+
 
 -------------------------------------------------------------------------------
 -- Data Definition
@@ -104,6 +130,14 @@ DealerRelations.dealerData = {
     -- v0.14.0 introduces a persistent dealer identity. The fallback value keeps
     -- existing saves safe until dealer name selection and persistence are added.
     dealerName = "Dealer",
+
+    -- In-game month when the demo suspension lifts.
+    -- Nil means no active suspension.
+    suspensionEndMonth = nil,
+
+    -- Suspension months to apply when the demo is resolved.
+    -- Set at Miss 2 and updated at Miss 3. Applied on return, buy, or repossession.
+    pendingSuspensionMonths = nil,
 }
 
 -------------------------------------------------------------------------------
@@ -796,10 +830,155 @@ function DealerRelations.Data:getActiveDemo()
     local activeDemoVehicles = self:getActiveDemoVehicles()
 
     for _, demoVehicle in ipairs(activeDemoVehicles) do
-        if demoVehicle.state == "ACTIVE" then
+        if demoVehicle.state == "ACTIVE" or demoVehicle.state == "EXPIRED" then
             return demoVehicle
         end
     end
 
     return nil
+end
+
+-------------------------------------------------------------------------------
+-- Suspension
+-------------------------------------------------------------------------------
+
+--- Returns the in-game month when the demo suspension lifts.
+-- Nil means no suspension is currently active.
+--
+-- @return number|nil Suspension end month, or nil if no suspension is active.
+function DealerRelations.Data:getSuspensionEndMonth()
+    return DealerRelations.dealerData.suspensionEndMonth
+end
+
+--- Sets the in-game month when the demo suspension lifts.
+--
+-- @param month number In-game month when suspension ends.
+function DealerRelations.Data:setSuspensionEndMonth(month)
+    DealerRelations.dealerData.suspensionEndMonth = tonumber(month)
+end
+
+--- Clears the active demo suspension.
+function DealerRelations.Data:clearSuspensionEndMonth()
+    DealerRelations.dealerData.suspensionEndMonth = nil
+end
+
+--- Returns whether a demo suspension is currently active.
+--
+-- @return boolean True if the current month is within a suspension period.
+function DealerRelations.Data:isUnderSuspension()
+    local suspensionEndMonth = self:getSuspensionEndMonth()
+
+    if suspensionEndMonth == nil then
+        return false
+    end
+
+    -- Note: currentPeriod is 1-based from March, not January.
+    -- Period 1 = March, Period 12 = February.
+    local currentMonth = g_currentMission.environment.currentPeriod
+
+    return currentMonth <= suspensionEndMonth
+end
+
+-------------------------------------------------------------------------------
+-- Demo Vehicle Overdue Fields
+-------------------------------------------------------------------------------
+
+--- Returns the overdue level for a demo vehicle.
+-- 0 = not overdue. 1-4 = miss level on the consequence ladder.
+-- Cleared when demo is resolved; penalties already applied are not reversed.
+--
+-- @param demoVehicle table Demo vehicle record.
+-- @return number Overdue level (0-4).
+function DealerRelations.Data:getDemoOverdueLevel(demoVehicle)
+    if demoVehicle == nil then
+        return 0
+    end
+
+    return demoVehicle.overdueLevel or 0
+end
+
+--- Sets the overdue level for a demo vehicle.
+--
+-- @param demoVehicle table Demo vehicle record.
+-- @param level number Overdue level (0-4).
+function DealerRelations.Data:setDemoOverdueLevel(demoVehicle, level)
+    if demoVehicle == nil then
+        return
+    end
+
+    demoVehicle.overdueLevel = tonumber(level) or 0
+end
+
+--- Returns the in-game day the overdue clock started for a demo vehicle.
+-- Nil means the clock has not started yet.
+--
+-- @param demoVehicle table Demo vehicle record.
+-- @return number|nil Overdue clock start day, or nil if not yet started.
+function DealerRelations.Data:getDemoOverdueClockStartDay(demoVehicle)
+    if demoVehicle == nil then
+        return nil
+    end
+
+    return demoVehicle.overdueClockStartDay
+end
+
+--- Sets the in-game day the overdue clock started for a demo vehicle.
+--
+-- @param demoVehicle table Demo vehicle record.
+-- @param day number In-game day the clock started.
+function DealerRelations.Data:setDemoOverdueClockStartDay(demoVehicle, day)
+    if demoVehicle == nil then
+        return
+    end
+
+    demoVehicle.overdueClockStartDay = tonumber(day)
+end
+
+--- Clears the overdue clock start day for a demo vehicle.
+-- Called when the demo is resolved.
+--
+-- @param demoVehicle table Demo vehicle record.
+function DealerRelations.Data:clearDemoOverdueClockStartDay(demoVehicle)
+    if demoVehicle == nil then
+        return
+    end
+
+    demoVehicle.overdueClockStartDay = nil
+end
+
+--- Returns whether the overdue consequence for the current level has fired.
+--
+-- @param demoVehicle table Demo vehicle record.
+-- @return boolean True if the notice has been sent for the current level.
+function DealerRelations.Data:getDemoOverdueNoticeSent(demoVehicle)
+    if demoVehicle == nil then
+        return false
+    end
+
+    return demoVehicle.overdueNoticeSent == true
+end
+
+--- Sets whether the overdue consequence for the current level has fired.
+-- Reset to false when the overdue level advances.
+--
+-- @param demoVehicle table Demo vehicle record.
+-- @param sent boolean True when the consequence has fired.
+function DealerRelations.Data:setDemoOverdueNoticeSent(demoVehicle, sent)
+    if demoVehicle == nil then
+        return
+    end
+
+    demoVehicle.overdueNoticeSent = sent == true
+end
+
+function DealerRelations.Data:getPendingSuspensionMonths()
+    return DealerRelations.dealerData.pendingSuspensionMonths
+end
+
+function DealerRelations.Data:setPendingSuspensionMonths(months)
+    DealerRelations.dealerData.pendingSuspensionMonths = tonumber(months)
+end
+
+function DealerRelations.Data:clearPendingSuspensionMonths()
+    DealerRelations.dealerData.pendingSuspensionMonths = nil
 end

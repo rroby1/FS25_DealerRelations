@@ -412,11 +412,13 @@ function DealerRelations.Screen:updateOverviewValues()
         self.dealerActivityDetail1Text:setText(
             "Equipment: " .. tostring(offer.name)
         )
+
         self.dealerActivityDetail2Text:setText(
-            "Brand: " .. tostring(offer.brand)
+            "Brand: " .. DealerRelations.Utils:getBrandDisplayName(offer.brand)
         )
+
         self.dealerActivityDetail3Text:setText(
-            "Category: " .. tostring(offer.category)
+            "Category: " .. DealerRelations.Utils:getCategoryDisplayName(offer.category)
         )
         self.dealerActivityDetail4Text:setText(
             "Power: " .. tostring(offer.displayPower)
@@ -426,7 +428,9 @@ function DealerRelations.Screen:updateOverviewValues()
         )
 
         self.dealerActivityDetail6Text:setText(
-            "Equipment Hour Limit: " .. tostring(DealerRelations.Data:getDemoOperatingHourLimit()) .. " hr"
+            string.format("Equipment Hour Limit: %.2f hr",
+                DealerRelations.Data:getDemoOperatingHourLimit()
+            )
         )
 
     elseif demo ~= nil then
@@ -459,7 +463,7 @@ function DealerRelations.Screen:updateOverviewValues()
             "Equipment: " .. tostring(demo.name)
         )
         self.dealerActivityDetail2Text:setText(
-            "Brand: " .. tostring(demo.brand)
+            "Brand: " .. DealerRelations.Utils:getBrandDisplayName(demo.brand)
         )
         self.dealerActivityDetail3Text:setText(
             "Status: " .. tostring(demo.state)
@@ -472,9 +476,8 @@ function DealerRelations.Screen:updateOverviewValues()
         )
 
         self.dealerActivityDetail6Text:setText(
-            string.format("Equipment Hours: %.2f of %s hr used",
-                hoursUsed,
-                tostring(demo.operatingHourLimit or 0)
+            string.format("Equipment Hour Limit: %.2f hr",
+                DealerRelations.Data:getDemoOperatingHourLimit()
             )
         )
 

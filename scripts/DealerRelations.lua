@@ -113,6 +113,8 @@ end
 
 -- Checks whether a monthly demo evaluation should occur and creates a new offer.
 function DealerRelations:checkMonthlyDemo()
+    -- Note: currentPeriod is 1-based from March, not January.
+    -- Period 1 = March, Period 12 = February.
     local currentMonth = g_currentMission.environment.currentPeriod
     local lastMonth = DealerRelations.Data:getLastDemoCheckMonth()
 
@@ -143,6 +145,14 @@ function DealerRelations:checkMonthlyDemo()
         if DealerRelations.Data:hasOpenDemo() then
             DealerRelations.log(
                 "Monthly demo offer skipped: an open demo already exists"
+            )
+            return
+        end
+
+        -- Prevent new demo offers while the player is under a demo suspension.
+        if DealerRelations.Data:isUnderSuspension() then
+            DealerRelations.log(
+                "Monthly demo offer skipped: player is under demo suspension"
             )
             return
         end
@@ -305,6 +315,8 @@ function DealerRelations:update(dt)
     -- time-of-day based, not just month-change based.
     DealerRelations.DemoManager:checkEndingDemoNotices()
     DealerRelations.DemoManager:checkReturnDemoNotices()
+
+    DealerRelations.DemoManager:checkOverdueDemos()
 end
 
 -------------------------------------------------------------------------------

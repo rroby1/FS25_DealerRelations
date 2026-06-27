@@ -68,6 +68,21 @@ function DealerRelations.Persistence:saveCoreData(xmlFile)
         "dealerRelations.lastDemoCheckMonth",
         DealerRelations.Data:getLastDemoCheckMonth()
     )
+
+    -- Save suspension end month only when active.
+    -- Omitting the node when nil keeps older saves clean.
+    local suspensionEndMonth = DealerRelations.Data:getSuspensionEndMonth()
+
+    if suspensionEndMonth ~= nil then
+        setXMLInt(xmlFile, "dealerRelations.suspensionEndMonth", suspensionEndMonth)
+    end
+
+    -- Save pending suspension months only when set.
+    local pendingSuspensionMonths = DealerRelations.Data:getPendingSuspensionMonths()
+
+    if pendingSuspensionMonths ~= nil then
+        setXMLInt(xmlFile, "dealerRelations.pendingSuspensionMonths", pendingSuspensionMonths)
+    end
 end
 
 function DealerRelations.Persistence:saveSettings(xmlFile)
@@ -153,6 +168,16 @@ function DealerRelations.Persistence:saveActiveDemoVehicles(xmlFile)
         setXMLString(xmlFile, key .. "#role", demoVehicle.role or "PRIMARY")
         setXMLFloat(xmlFile, key .. "#startOperatingHours", demoVehicle.startOperatingHours or 0)
         setXMLFloat(xmlFile, key .. "#operatingHourLimit", demoVehicle.operatingHourLimit or 0)
+        setXMLFloat(xmlFile, key .. "#price", demoVehicle.price or 0)
+
+        -- overdueClockStartDay omitted when nil so older saves remain valid.
+        setXMLInt(xmlFile, key .. "#overdueLevel", demoVehicle.overdueLevel or 0)
+
+        if demoVehicle.overdueClockStartDay ~= nil then
+            setXMLInt(xmlFile, key .. "#overdueClockStartDay", demoVehicle.overdueClockStartDay)
+        end
+
+        setXMLBool(xmlFile, key .. "#overdueNoticeSent", demoVehicle.overdueNoticeSent == true)
     end
 end
 
@@ -339,6 +364,25 @@ function DealerRelations.Persistence:loadCoreData(xmlFile)
             "lastDemoCheckMonth missing from dealerRelations.xml; using default value"
         )
     end
+
+    -- Missing node means no active suspension, which is the correct
+    -- default for existing saves.
+    local suspensionEndMonth = getXMLInt(xmlFile, "dealerRelations.suspensionEndMonth")
+
+    if suspensionEndMonth ~= nil then
+        DealerRelations.Data:setSuspensionEndMonth(suspensionEndMonth)
+    else
+        DealerRelations.Data:clearSuspensionEndMonth()
+    end
+
+    -- Missing node means no pending suspension, correct default for existing saves.
+    local pendingSuspensionMonths = getXMLInt(xmlFile, "dealerRelations.pendingSuspensionMonths")
+
+    if pendingSuspensionMonths ~= nil then
+        DealerRelations.Data:setPendingSuspensionMonths(pendingSuspensionMonths)
+    else
+        DealerRelations.Data:clearPendingSuspensionMonths()
+    end
 end
 
 function DealerRelations.Persistence:loadSettings(xmlFile)
@@ -428,6 +472,9 @@ function DealerRelations.Persistence:loadActiveDemoOffer(xmlFile)
         price = getXMLFloat(xmlFile, "dealerRelations.activeDemoOffer#price"),
         xmlFilename = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#xmlFilename"),
         powerRole = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#powerRole"),
+        -- Missing fields default to clean state for existing saves.
+        overdueLevel = getXMLInt(xmlFile, key .. "#overdueLevel") or 0,
+                overdueClockStartDay = getXMLInt(xmlFile, key .. "#overdueClockStartDay"),
         displayPower = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#displayPower"),
         powerMin = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMin"),
         powerMax = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMax"),
@@ -476,8 +523,13 @@ function DealerRelations.Persistence:loadActiveDemoVehicles(xmlFile)
                 endMonth = getXMLInt(xmlFile, key .. "#endMonth") or 0,
                 startOperatingHours = getXMLFloat(xmlFile, key .. "#startOperatingHours") or 0,
                 operatingHourLimit = getXMLFloat(xmlFile, key .. "#operatingHourLimit") or 0,
+                price = getXMLFloat(xmlFile, key .. "#price") or 0,
                 state = getXMLString(xmlFile, key .. "#state") or "ACTIVE",
-                role = getXMLString(xmlFile, key .. "#role") or "PRIMARY"
+                role = getXMLString(xmlFile, key .. "#role") or "PRIMARY",
+                -- Missing fields default to clean state for existing saves.
+                overdueLevel = getXMLInt(xmlFile, key .. "#overdueLevel") or 0,
+                overdueClockStartDay = getXMLInt(xmlFile, key .. "#overdueClockStartDay"),
+                overdueNoticeSent = getXMLBool(xmlFile, key .. "#overdueNoticeSent") == true,
             }
         )
 
