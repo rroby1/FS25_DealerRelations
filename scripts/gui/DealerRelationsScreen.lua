@@ -638,7 +638,12 @@ function DealerRelations.Screen:buildCategoryFilterRows()
         table.insert(categoryNames, categoryName)
     end
 
-    table.sort(categoryNames)
+    -- Sort by display name rather than internal key so the player sees
+    -- an alphabetical list regardless of how GIANTS names the category internally.
+    table.sort(categoryNames, function(a, b)
+        return DealerRelations.Utils:getCategoryDisplayName(a)
+            < DealerRelations.Utils:getCategoryDisplayName(b)
+    end)
 
     for _, categoryName in ipairs(categoryNames) do
         local categoryDisplayName = DealerRelations.Utils:getCategoryDisplayName(categoryName)
@@ -699,7 +704,12 @@ function DealerRelations.Screen:buildBrandFilterRows()
         table.insert(brandNames, brandName)
     end
 
-    table.sort(brandNames)
+    -- Sort by display name rather than internal key so the player sees
+    -- an alphabetical list regardless of how GIANTS names the brand internally.
+    table.sort(brandNames, function(a, b)
+        return DealerRelations.Utils:getBrandDisplayName(a)
+            < DealerRelations.Utils:getBrandDisplayName(b)
+    end)
 
     for _, brandName in ipairs(brandNames) do
         local brandDisplayName = DealerRelations.Utils:getBrandDisplayName(brandName)

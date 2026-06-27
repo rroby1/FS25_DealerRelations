@@ -74,23 +74,21 @@
         </GuiElement>
 
         <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="categoriesPanel" visible="false">
-            <GuiElement profile="emptyPanel" position="0px 0px" width="900px" height="520px">
-                <ThreePartBitmap width="900px" height="520px" position="0px 0px">
-                    <GuiElement profile="fs25_subCategoryContainer" position="0px 230px" width="860px">
-                        <Text profile="dr_textDefaultTopLeft" text="Categories" position="20px -20px" size="400px 32px"/>
-                        <ScrollingLayout id="categoriesLayout" profile="fs25_settingsLayout" position="20px -55px" size="820px 435px"/>
-                    </GuiElement>
+            <GuiElement profile="fs25_subCategoryContainer" width="860px">
+                <Text profile="dr_textDefaultTopLeft" text="Categories" position="20px 20px" size="400px 32px"/>
+                <ScrollingLayout id="categoriesLayout" profile="fs25_settingsLayout" position="20px -15px" size="820px 680px"/>
+                <ThreePartBitmap profile="dr_listSlider">
+                    <Slider profile="fs25_listSlider" dataElementId="categoriesLayout"/>
                 </ThreePartBitmap>
             </GuiElement>
         </GuiElement>
 
         <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="brandsPanel" visible="false">
-            <GuiElement profile="emptyPanel" position="0px 0px" width="900px" height="520px">
-                <ThreePartBitmap width="900px" height="520px" position="0px 0px">
-                    <GuiElement profile="fs25_subCategoryContainer" position="0px 230px" width="860px">
-                        <Text profile="dr_textDefaultTopLeft" text="Brands" position="20px -20px" size="400px 32px"/>
-                        <ScrollingLayout id="brandsLayout" profile="fs25_settingsLayout" position="20px -55px" size="820px 435px"/>
-                    </GuiElement>
+            <GuiElement profile="fs25_subCategoryContainer" width="860px">
+                <Text profile="dr_textDefaultTopLeft" text="Brands" position="20px 20px" size="400px 32px"/>
+                <ScrollingLayout id="brandsLayout" profile="fs25_settingsLayout" position="20px -15px" size="820px 680px"/>
+                <ThreePartBitmap profile="dr_listSlider">
+                    <Slider profile="fs25_listSlider" dataElementId="brandsLayout"/>
                 </ThreePartBitmap>
             </GuiElement>
         </GuiElement>
@@ -122,6 +120,11 @@
             <textFocusedColor value="1 1 1 1"/>
             <textHighlightedColor value="1 1 1 1"/>
             <textDisabledColor value="$preset_colorDisabled"/>
+        </Profile>
+
+        <Profile name="dr_listSlider" extends="fs25_listSliderBox" with="anchorTopRight">
+            <position value="28px -40px"/>
+            <size value="6px 640px"/>
         </Profile>
     </GUIProfiles>
 

@@ -56,13 +56,23 @@ function DealerRelations.Utils:getBrandDisplayName(brandName)
     return brand ~= nil and brand.title or brandKey
 end
 
-    -- Convert the stored category key used by GIANTS and Dealer Relations
-    -- into the player-facing category title shown in dialogs.
-    -- If the category cannot be resolved, fall back to the stored key so the
-    -- dialog still displays useful information instead of failing.
-function DealerRelations.Utils:getCategoryDisplayName(categoryName)
+-- Known category key overrides for keys that are not registered
+-- in g_storeManager or return incorrect titles.
+local CATEGORY_DISPLAY_NAME_OVERRIDES = {
+    BALETRANSPORT = "Bale Transport",
+}
 
+-- Convert the stored category key used by GIANTS and Dealer Relations
+-- into the player-facing category title shown in dialogs.
+-- If the category cannot be resolved, fall back to the stored key so the
+-- dialog still displays useful information instead of failing.
+function DealerRelations.Utils:getCategoryDisplayName(categoryName)
     local categoryKey = tostring(categoryName)
+
+    if CATEGORY_DISPLAY_NAME_OVERRIDES[categoryKey] ~= nil then
+        return CATEGORY_DISPLAY_NAME_OVERRIDES[categoryKey]
+    end
+
     local category = g_storeManager:getCategoryByName(categoryKey)
 
     return category ~= nil and category.title or categoryKey
