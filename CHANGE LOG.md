@@ -1,5 +1,15 @@
 # Changelog
 
+## Version 0.14.0
+
+- Added grace period and overdue system for unreturned demo equipment with four escalating consequence levels.
+- Added demo offer suspension that applies from demo resolution date.
+- Added 1% late fee at overdue level 3 with insufficient funds fallback.
+- Added equipment repossession at overdue level 4.
+- Fixed expired demo not showing return/buy buttons in Overview.
+- Fixed category, brand, and operating hour display formatting in Overview.
+- Updated return notice language from "machine" to "equipment".
+
 ## Version 0.13.0
 
 - Added a dedicated Dealer Relations page to the ESC menu.
