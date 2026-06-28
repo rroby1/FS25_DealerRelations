@@ -26,37 +26,37 @@
 
         <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="overviewPanel">
             <GuiElement profile="emptyPanel" position="0px 100px" width="900px" height="520px">
-                <Bitmap id="dealerLogoImage" position="300px 480px" size="96px 96px"/>
+                <Bitmap id="dealerLogoImage" position="700px 380px" size="96px 96px"/>
                 <ThreePartBitmap width="900px" height="520px" position="0px 0px">
                     <GuiElement profile="fs25_subCategoryContainer" width="860px">
 
-                        <Text profile="dr_textDefaultTopLeft" text="Dealer Name:" position="20px -80px" size="260px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerNameValueText" text="Dealer" position="300px -80px" size="420px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" text="Dealer Name:" position="20px -40px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerNameValueText" text="Dealer" position="300px -40px" size="420px 28px"/>
 
-                        <Text profile="dr_textDefaultTopLeft" text="Dealer Hours:" position="20px -120px" size="260px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerHoursValueText" text="07:00 - 18:00" position="300px -120px" size="420px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" text="Dealer Hours:" position="20px -80px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerHoursValueText" text="07:00 - 18:00" position="300px -80px" size="420px 28px"/>
 
-                        <Text profile="dr_textDefaultTopLeft" text="Dealer Status:" position="20px -160px" size="260px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerStatusValueText" text="Closed" position="300px -160px" size="420px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" text="Dealer Status:" position="20px -120px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerStatusValueText" text="Closed" position="300px -120px" size="420px 28px"/>
 
-                        <Text profile="dr_textDefaultTopLeft" text="Relationship Level:" position="20px -220px" size="260px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="relationshipLevelValueText" text="Neutral" position="300px -220px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" text="Relationship Level:" position="20px -180px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="relationshipLevelValueText" text="Neutral" position="300px -180px" size="260px 28px"/>
 
-                        <Text profile="dr_textDefaultTopLeft" text="Confidence:" position="20px -260px" size="260px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="confidenceValueText" text="0" position="300px -260px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" text="Confidence:" position="20px -240px" size="260px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="confidenceValueText" text="0" position="300px -240px" size="260px 28px"/>
                         
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityTitleText" text="No dealer activity." position="20px -300px" size="820px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityTitleText" text="No dealer activity." position="20px -260px" size="820px 28px"/>
 
-                        <ScrollingLayout profile="fs25_settingsLayout" id="offerActionsLayout" position="20px -340px" size="580px 80px" visible="false"/>
+                        <ScrollingLayout profile="fs25_settingsLayout" id="offerActionsLayout" position="20px -300px" size="580px 80px" visible="false"/>
 
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail1Text" text="" position="20px -430px" size="580px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail2Text" text="" position="20px -470px" size="580px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail3Text" text="" position="20px -510px" size="580px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail4Text" text="" position="20px -550px" size="580px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail5Text" text="" position="20px -590px" size="580px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail6Text" text="" position="20px -630px" size="580px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail1Text" text="" position="20px -390px" size="580px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail2Text" text="" position="20px -430px" size="580px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail3Text" text="" position="20px -470px" size="580px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail4Text" text="" position="20px -510px" size="580px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail5Text" text="" position="20px -550px" size="580px 28px"/>
+                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail6Text" text="" position="20px -590px" size="580px 28px"/>
 
-                        <Bitmap profile="fs25_vehiclesDetailsImage" id="offerImage" position="620px -340px" size="200px 200px"/>
+                        <Bitmap profile="fs25_vehiclesDetailsImage" id="offerImage" position="300px -200px" size="200px 200px"/>
                     </GuiElement>
                 </ThreePartBitmap>
             </GuiElement>
@@ -126,6 +126,7 @@
             <position value="28px -40px"/>
             <size value="6px 640px"/>
         </Profile>
+
     </GUIProfiles>
 
 </GUI>
