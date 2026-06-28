@@ -397,6 +397,11 @@ function DealerRelations.Screen:updateOverviewValues()
     if offer ~= nil then
         self.dealerActivityTitleText:setVisible(false)
 
+        local storeItem = g_storeManager:getItemByXMLFilename(offer.xmlFilename)
+        if storeItem ~= nil then
+            self.offerImage:setImageFilename(storeItem.imageFilename)
+        end
+
         if DealerRelations.Data:isDealerOpen() then
             self.offerActionsLayout:setVisible(true)
             self:addButtonToLayout(self.offerActionsLayout, "onClickAcceptOffer", "Accept")
@@ -431,6 +436,11 @@ function DealerRelations.Screen:updateOverviewValues()
 
     elseif demo ~= nil then
         self.dealerActivityTitleText:setVisible(false)
+
+        local storeItem = g_storeManager:getItemByXMLFilename(demo.xmlFilename)
+        if storeItem ~= nil then
+            self.offerImage:setImageFilename(storeItem.imageFilename)
+        end
 
         if DealerRelations.Data:isDealerOpen() then
             self.offerActionsLayout:setVisible(true)
