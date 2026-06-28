@@ -20,6 +20,9 @@
             <Button profile="fs25_subCategorySelectorTabbedTab" id="drBrandsTab" text="Brands" onClick="onClickBrandsTab">
                 <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
             </Button>
+            <Button profile="fs25_subCategorySelectorTabbedTab" id="drHelpTab" text="Help">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
         </BoxLayout>
 
         <MultiTextOption profile="fs25_subCategorySelectorTabbed" id="subCategoryPaging" position="0px -10px" onClick="onClickSubCategoryPaging"/>
@@ -93,6 +96,36 @@
             </GuiElement>
         </GuiElement>
 
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="helpPanel" visible="false">
+            <GuiElement profile="fs25_subCategoryContainer" width="860px">
+                <Text profile="dr_textDefaultTopLeft" text="Help" position="20px 20px" size="400px 32px"/>
+                <ScrollingLayout id="helpLayout" profile="fs25_settingsLayout" position="20px -15px" size="700px 680px">
+
+                    <Text profile="dr_helpHeader" text="Offers"/>
+                    <Text profile="dr_helpBody" text="Each month your dealer selects a piece of equipment and makes you a demo offer. You will be notified when the dealer opens. You can Accept or Decline the offer during dealer hours (7:00 AM - 6:00 PM). If you ignore the offer until the dealer closes or until the next month, a small confidence penalty applies."/>
+
+                    <Text profile="dr_helpHeader" text="Demos"/>
+                    <Text profile="dr_helpBody" text="When you accept an offer, the equipment is delivered to the shop for a one-month demo period. The demo has an operating hour limit based on your month length setting. Once the demo expires — either by month end or hour limit — you must return or purchase the equipment."/>
+
+                    <Text profile="dr_helpHeader" text="Overdue Equipment"/>
+                    <Text profile="dr_helpBody" text="If you do not return or purchase the equipment after the demo expires, consequences escalate each day at dealer close:"/>
+                    <Text profile="dr_helpBody" text="First missed deadline: Warning notification."/>
+                    <Text profile="dr_helpBody" text="Second missed deadline: Confidence penalty and demo offers suspended for one month."/>
+                    <Text profile="dr_helpBody" text="Third missed deadline: Additional confidence penalty, additional suspension, and a 1% late fee charged to your farm account."/>
+                    <Text profile="dr_helpBody" text="Fourth missed deadline: Equipment is repossessed."/>
+
+                    <Text profile="dr_helpHeader" text="Relationship and Confidence"/>
+                    <Text profile="dr_helpBody" text="Your relationship with the dealer is tracked through a confidence score. Accepting demos, returning equipment, and purchasing equipment improve confidence. Ignoring offers or missing deadlines reduces it. Higher relationship levels unlock purchase discounts up to 25%."/>
+
+                    <Text profile="dr_helpHeader" text="Filters"/>
+                    <Text profile="dr_helpBody" text="Use the Categories and Brands tabs to control which types of equipment the dealer will offer. Only equipment matching your enabled categories and brands will be considered for demo offers."/>
+
+                </ScrollingLayout>
+                <ThreePartBitmap profile="dr_listSlider">
+                    <Slider profile="fs25_listSlider" dataElementId="helpLayout"/>
+                </ThreePartBitmap>
+            </GuiElement>
+        </GuiElement>
     </GuiElement>
 
     <GUIProfiles>
@@ -123,8 +156,25 @@
         </Profile>
 
         <Profile name="dr_listSlider" extends="fs25_listSliderBox" with="anchorTopRight">
-            <position value="28px -40px"/>
+            <position value="50px -40px"/>
             <size value="6px 640px"/>
+        </Profile>
+
+        <Profile name="dr_helpHeader" extends="fs25_textDefault" with="anchorTopLeft">
+            <size value="640px 28px"/>
+            <textSize value="20px"/>
+            <textColor value="$preset_colorWhite"/>
+            <textAlignment value="left"/>
+            <textBold value="true"/>
+        </Profile>
+
+        <Profile name="dr_helpBody" extends="fs25_textDefault" with="anchorTopLeft">
+            <size value="640px 120px"/>
+            <textSize value="16px"/>
+            <textColor value="$preset_colorWhite"/>
+            <textAlignment value="left"/>
+            <textAutoHeight value="true"/>
+            <textMaxNumLines value="10"/>
         </Profile>
 
     </GUIProfiles>

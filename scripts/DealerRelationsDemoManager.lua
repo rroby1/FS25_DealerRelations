@@ -672,3 +672,26 @@ function DealerRelations.DemoManager:applyPendingSuspension()
         DealerRelations.Data:getSuspensionEndMonth()
     ))
 end
+
+-------------------------------------------------------------------------------
+-- Validates all active demo vehicles against the current store manager.
+--
+-- Rationale:
+-- If the mod providing a demo vehicle has been removed since the last session,
+-- the vehicle no longer exists in the game world. The demo record is cleared
+-- silently with no confidence penalty or overdue consequences since the player
+-- made a mod management decision, not a gameplay decision.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:validateActiveDemo()
+    local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+    for _, demoVehicle in ipairs(activeDemoVehicles) do
+        local storeItem = g_storeManager:getItemByXMLFilename(demoVehicle.xmlFilename)
+        if storeItem == nil then
+            DealerRelations.log(string.format(
+                "Active demo cleared: source mod no longer available (%s)",
+                tostring(demoVehicle.xmlFilename)
+            ))
+            DealerRelations.Data:removeActiveDemoVehicleByUniqueId(demoVehicle.uniqueId)
+        end
+    end
+end

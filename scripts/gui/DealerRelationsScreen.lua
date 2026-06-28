@@ -156,14 +156,16 @@ function DealerRelations.Screen:register()
         screen.drOverviewTab,
         screen.drConfigurationTab,
         screen.drCategoriesTab,
-        screen.drBrandsTab
+        screen.drBrandsTab,
+        screen.drHelpTab
     }
 
     screen.subCategoryPages = {
         screen.overviewPanel,
         screen.configurationPanel,
         screen.categoriesPanel,
-        screen.brandsPanel
+        screen.brandsPanel,
+        screen.helpPanel
     }
     
     -- Populate the paging control once.
@@ -175,6 +177,7 @@ function DealerRelations.Screen:register()
     screen.subCategoryPaging:addText("Configuration")
     screen.subCategoryPaging:addText("Categories")
     screen.subCategoryPaging:addText("Brands")
+    screen.subCategoryPaging:addText("Help")
 
     -- Initialize the paging control and visible page.
     screen.subCategoryPaging:setState(1)
@@ -201,7 +204,7 @@ function DealerRelations.Screen:register()
     -- initialize(), so dynamic rows should be generated only after initialization.
     screen:buildCategoryFilterRows()
     screen:buildBrandFilterRows()
-    
+       
     DealerRelations.log("Dealer Relations ESC menu page registered")
 end
 
@@ -241,11 +244,19 @@ function DealerRelations.Screen:updateSubCategoryPages(state)
     self.subCategoryPaging.state = state
 end
 
+-- Paging arrows update the MultiTextOption state internally.
+-- Use that state as the source of truth so arrow clicks and direct tab clicks
+-- drive the same page switching path.
+
 function DealerRelations.Screen:onClickSubCategoryPaging(state, element)
-    -- Paging arrows update the MultiTextOption state internally.
-    -- Use that state as the source of truth so arrow clicks and direct tab clicks
-    -- drive the same page switching path.
     self:updateSubCategoryPages(state)
+
+    if state == 5 then
+        self.helpLayout.fillDirections[2] = -1
+        self.helpLayout.alignment[2] = 1
+        self.helpLayout:invalidateLayout()
+        self.helpLayout:raiseSliderUpdateEvent()
+    end
 end
 
 --- Updates Configuration page setting display values.

@@ -69,6 +69,13 @@ function DealerRelations:loadMap()
 
     -- Build the eligible equipment list.
     DealerRelations.Equipment:discover()
+
+    -- Validate active offer and demo against current store manager.
+    -- Rationale:
+    -- Mods providing offered or demoed equipment may have been removed since
+    -- the last session. Invalid entries are cleared silently at load time.
+    DealerRelations:validateActiveDemoOffer()
+    DealerRelations.DemoManager:validateActiveDemo()
     
     -- Register the Dealer Relations page with the ESC menu.
     -- Rationale:
@@ -316,6 +323,29 @@ function DealerRelations:update(dt)
     DealerRelations.DemoManager:checkReturnDemoNotices()
 
     DealerRelations.DemoManager:checkOverdueDemos()
+end
+
+-------------------------------------------------------------------------------
+-- Validates the active demo offer against the current store manager.
+--
+-- Rationale:
+-- If the mod providing the offered equipment has been removed since the last
+-- session, the offer can no longer be fulfilled. The offer is cleared silently
+-- with no confidence penalty since the player made a mod management decision,
+-- not a gameplay decision.
+-------------------------------------------------------------------------------
+function DealerRelations:validateActiveDemoOffer()
+    local offer = DealerRelations.Data:getActiveDemoOffer()
+    if offer == nil then return end
+
+    local storeItem = g_storeManager:getItemByXMLFilename(offer.xmlFilename)
+    if storeItem == nil then
+        DealerRelations.log(string.format(
+            "Active offer cleared: source mod no longer available (%s)",
+            tostring(offer.xmlFilename)
+        ))
+        DealerRelations.Data:clearActiveDemoOffer()
+    end
 end
 
 -------------------------------------------------------------------------------
