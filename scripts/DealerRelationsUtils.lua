@@ -44,10 +44,10 @@ function DealerRelations.Utils:formatMoney(amount)
     return formatted
 end
 
-    -- Convert the stored brand key used by GIANTS and Dealer Relations
-    -- into the player-facing brand title shown in dialogs.
-    -- If the brand cannot be resolved, fall back to the stored key so the
-    -- dialog still displays useful information instead of failing.
+-- Convert the stored brand key used by GIANTS and Dealer Relations
+-- into the player-facing brand title shown in dialogs.
+-- If the brand cannot be resolved, fall back to the stored key so the
+-- dialog still displays useful information instead of failing.
 function DealerRelations.Utils:getBrandDisplayName(brandName)
 
     local brandKey = tostring(brandName)
@@ -56,16 +56,28 @@ function DealerRelations.Utils:getBrandDisplayName(brandName)
     return brand ~= nil and brand.title or brandKey
 end
 
--- Known category key overrides for keys that are not registered
--- in g_storeManager or return incorrect titles.
+-------------------------------------------------------------------------------
+-- Known category display name overrides.
+--
+-- Rationale:
+-- Some category keys are not registered in g_storeManager or return
+-- incorrect titles. Overrides here ensure the player-facing name is
+-- accurate regardless of what the store manager returns.
+-------------------------------------------------------------------------------
 local CATEGORY_DISPLAY_NAME_OVERRIDES = {
     BALETRANSPORT = "Bale Transport",
 }
 
--- Convert the stored category key used by GIANTS and Dealer Relations
--- into the player-facing category title shown in dialogs.
--- If the category cannot be resolved, fall back to the stored key so the
--- dialog still displays useful information instead of failing.
+-------------------------------------------------------------------------------
+-- Returns the player-facing display name for an equipment category.
+--
+-- Checks the override table first, then falls back to g_storeManager.
+-- If neither resolves, returns the raw category key so dialogs still
+-- display useful information instead of failing silently.
+--
+-- @param categoryName string Category key used by GIANTS and Dealer Relations.
+-- @return string Player-facing category title.
+-------------------------------------------------------------------------------
 function DealerRelations.Utils:getCategoryDisplayName(categoryName)
     local categoryKey = tostring(categoryName)
 
@@ -76,19 +88,4 @@ function DealerRelations.Utils:getCategoryDisplayName(categoryName)
     local category = g_storeManager:getCategoryByName(categoryKey)
 
     return category ~= nil and category.title or categoryKey
-end
-
---- Resolves asset path extensions for use with BitmapElement.
--- Rationale:
--- Store item imageFilename values use .png extensions but the actual
--- asset files on disk are .dds, so the extension is corrected here.
---
--- @param path string Raw path string from store item.
--- @return string Resolved path, or nil if path was nil.
-function DealerRelations.Utils:resolveAssetPath(path)
-    if path == nil then
-        return nil
-    end
-
-    return path:gsub("%.png$", ".dds")
 end

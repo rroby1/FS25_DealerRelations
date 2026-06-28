@@ -9,7 +9,7 @@
 -- * Track active demo vehicle unique IDs
 -- * Detect demo expiration
 -- * Support demo return and purchase workflows
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 -- Demo Lifecycle
@@ -29,10 +29,17 @@
 
 DealerRelations.DemoManager = {}
 
--- Starts a demo machine from an accepted demo offer.
--- Creates the vehicle, spawns it near the dealer,
--- and marks it as a mission vehicle so it cannot
--- be sold, modified, repaired, or repainted.
+-------------------------------------------------------------------------------
+-- Spawns a demo vehicle from an accepted demo offer.
+--
+-- Creates the vehicle, assigns it to the current farm, and sets MISSION
+-- property state to prevent selling, repairing, repainting, or shop
+-- modifications. Loading is asynchronous; onDemoVehicleLoaded() completes
+-- the setup once the vehicle is available.
+--
+-- @param offer table Active demo offer data.
+-- @return boolean True if loading was initiated, false if validation failed.
+-------------------------------------------------------------------------------
 function DealerRelations.DemoManager:startDemoFromOffer(offer)
 
     -- Validate the offer data before attempting to load a vehicle.
@@ -87,7 +94,16 @@ function DealerRelations.DemoManager:startDemoFromOffer(offer)
     return true
 end
 
--- Called when the demo vehicle finishes loading.
+-------------------------------------------------------------------------------
+-- Callback invoked when the demo vehicle finishes asynchronous loading.
+--
+-- Records the vehicle as an active demo, clears the pending offer, applies
+-- the accept confidence bonus, and refreshes the Overview screen if open.
+--
+-- @param vehicles table List of loaded vehicles returned by the engine.
+-- @param loadingState number VehicleLoadingState result code.
+-- @param args table Callback arguments containing the original offer data.
+-------------------------------------------------------------------------------
 function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState, args)
 
     -- Loading failed.
@@ -298,13 +314,13 @@ function DealerRelations.DemoManager:checkDemoOperatingHours()
     end
 end
 
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Finds a vehicle by unique ID.
 --
 -- Returns:
 --   vehicle if found
 --   nil if not found
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 function DealerRelations.DemoManager:findVehicleByUniqueId(uniqueId)
     if uniqueId == nil then
         return nil
@@ -524,8 +540,6 @@ function DealerRelations.DemoManager:checkOverdueDemos()
 
                         -- Note: currentPeriod is 1-based from March, not January.
                         -- Period 1 = March, Period 12 = February.
-                        local currentMonth = g_currentMission.environment.currentPeriod
-
                         DealerRelations.Data:setPendingSuspensionMonths(
                             DealerRelations.CONSTANTS.OVERDUE_LEVEL_2_SUSPENSION_MONTHS
                         )
@@ -557,7 +571,6 @@ function DealerRelations.DemoManager:checkOverdueDemos()
 
                         -- Note: currentPeriod is 1-based from March, not January.
                         -- Period 1 = March, Period 12 = February.
-                        local currentMonth = g_currentMission.environment.currentPeriod
                         DealerRelations.Data:setPendingSuspensionMonths(
                             (DealerRelations.Data:getPendingSuspensionMonths() or 0) +
                             DealerRelations.CONSTANTS.OVERDUE_LEVEL_3_SUSPENSION_MONTHS

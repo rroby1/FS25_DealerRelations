@@ -17,6 +17,11 @@ DealerRelations.UI = DealerRelations.UI or {}
 -- Demo Offer Actions
 -------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------
+-- Accepts the active demo offer and spawns the demo vehicle.
+--
+-- @see DealerRelations.DemoManager:startDemoFromOffer
+-------------------------------------------------------------------------------
 function DealerRelations.UI:acceptActiveDemoOffer()
     local offer = DealerRelations.Data:getActiveDemoOffer()
 
@@ -33,6 +38,9 @@ function DealerRelations.UI:acceptActiveDemoOffer()
     DealerRelations.DemoManager:startDemoFromOffer(offer)
 end
 
+-------------------------------------------------------------------------------
+-- Declines the active demo offer and applies a confidence penalty.
+-------------------------------------------------------------------------------
 function DealerRelations.UI:declineActiveDemoOffer()
     local offer = DealerRelations.Data:getActiveDemoOffer()
 
@@ -55,10 +63,6 @@ function DealerRelations.UI:declineActiveDemoOffer()
 end
 
 -------------------------------------------------------------------------------
--- Active Offer Notification
--------------------------------------------------------------------------------
-
--------------------------------------------------------------------------------
 -- Displays a notification when an active demo offer is available.
 --
 -- Called during game load so players are reminded about offers that
@@ -77,12 +81,14 @@ end
 -- Disabled Mod Notification
 -------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------
 -- Displays a startup notification when Dealer Relations is disabled.
 --
 -- Rationale:
--- The mod now defaults to disabled so players do not receive demo offers before
--- reviewing settings and filters. This reminder makes that state visible without
--- changing gameplay behavior yet.
+-- The mod defaults to disabled so players do not receive demo offers before
+-- reviewing settings and filters. This reminder makes that state visible
+-- without changing gameplay behavior.
+-------------------------------------------------------------------------------
 function DealerRelations.UI:notifyModDisabled()
     if DealerRelations.Data:isEnabled() then
         return
@@ -98,10 +104,14 @@ end
 -- Expired Demo Return / Buy Screen
 -------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------
 -- Opens the return/buy dialog for an expired demo vehicle.
 --
--- The dialog lets the player resolve the active demo by either returning
--- the machine or purchasing it.
+-- Presents the player's current relationship status, discount, and purchase
+-- price so they can resolve the demo by returning or purchasing the machine.
+--
+-- @param demoVehicle table Expired demo vehicle record.
+-------------------------------------------------------------------------------
 function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
     if demoVehicle == nil then
         DealerRelations.warning("Cannot open expired demo dialog: demoVehicle is nil")
@@ -145,18 +155,14 @@ function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
     DealerRelationsDemoReturnDialog.show(message, demoVehicle)
 end
 
-
-
-
--- Displays the player's current dealer relationship status when a save
--- is loaded.
+-------------------------------------------------------------------------------
+-- Displays the player's current dealer relationship status on load.
 --
 -- Rationale:
--- Dealer relationship is a long-term progression system that changes
--- gradually through demo interactions. Showing the current relationship
--- and confidence score at startup reminds the player of their standing
--- with the dealership and provides visibility into relationship changes
--- that may have occurred during previous play sessions.
+-- Dealer relationship changes gradually through demo interactions.
+-- Showing the current relationship and confidence at startup reminds
+-- the player of their standing and surfaces changes from previous sessions.
+-------------------------------------------------------------------------------
 function DealerRelations.UI:notifyRelationshipStatus()
     g_currentMission:addIngameNotification(
         FSBaseMission.INGAME_NOTIFICATION_INFO,
@@ -168,11 +174,13 @@ function DealerRelations.UI:notifyRelationshipStatus()
     )
 end
 
---- Handles direct return of the active demo from the Overview dashboard.
+-------------------------------------------------------------------------------
+-- Handles direct return of the active demo from the Overview dashboard.
 --
 -- Rationale:
 -- Mirrors onClickReturn from DealerRelationsDemoReturnDialog without
 -- requiring the dialog to be open. Called from the Overview Return button.
+-------------------------------------------------------------------------------
 function DealerRelations.UI:returnActiveDemo()
     local demoVehicles = DealerRelations.Data:getActiveDemoVehicles()
     local demoVehicle = nil
@@ -212,11 +220,13 @@ function DealerRelations.UI:returnActiveDemo()
     )
 end
 
---- Handles direct purchase of the active demo from the Overview dashboard.
+-------------------------------------------------------------------------------
+-- Handles direct purchase of the active demo from the Overview dashboard.
 --
 -- Rationale:
 -- Mirrors onClickBuy from DealerRelationsDemoReturnDialog without
 -- requiring the dialog to be open. Called from the Overview Buy button.
+-------------------------------------------------------------------------------
 function DealerRelations.UI:buyActiveDemo()
     local demoVehicles = DealerRelations.Data:getActiveDemoVehicles()
     local demoVehicle = nil

@@ -246,7 +246,7 @@ end
 --
 -- @param xmlFilename string Path to the equipment XML file.
 -- @return table|nil Equipment data table when successful, otherwise nil.
-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
 
 function DealerRelations.Equipment:readEquipmentXml(xmlFilename)
     if xmlFilename == nil or xmlFilename == "" then
@@ -324,8 +324,8 @@ end
 -------------------------------------------------------------------------------
 -- Discovers eligible Dealer Relations demo equipment from the FS25 store.
 --
--- Builds an in-memory list only. This does not save equipment data.
--- not select demo equipment.
+-- Builds an in-memory list only. This does not save equipment data
+-- and does not select demo equipment.
 -------------------------------------------------------------------------------
 function DealerRelations.Equipment:discover()
     DealerRelations.equipmentList = {}
@@ -390,7 +390,6 @@ end
 --   table  Selected equipment entry from equipmentList.
 --   nil    If no eligible equipment is available.
 -------------------------------------------------------------------------------
-
 function DealerRelations.Equipment:getRandomDemoCandidate()
     if DealerRelations.equipmentList == nil or #DealerRelations.equipmentList == 0 then
         DealerRelations.warning("No eligible demo candidates available")
@@ -444,59 +443,4 @@ function DealerRelations.Equipment:getDemoCandidateKey(candidate)
         tostring(candidate.name or "UNKNOWN"),
         tostring(candidate.displayPower or "UNKNOWN")
     )
-end
-
--------------------------------------------------------------------------------
--- Ensures a discovered brand has a per-save filter entry.
---
--- Newly discovered brands are enabled by default so base-game and mod-added
--- equipment remain eligible for demo offers until the player explicitly
--- disables the brand through Dealer Relations settings.
---
--- @param brand string Brand name/key.
--------------------------------------------------------------------------------
-function DealerRelations.Data:ensureBrandFilter(brand)
-    if brand == nil then
-        return
-    end
-
-    local brandKey = tostring(brand)
-
-    if DealerRelations.dealerData.brandFilters[brandKey] == nil then
-        DealerRelations.dealerData.brandFilters[brandKey] = true
-    end
-end
-
--------------------------------------------------------------------------------
--- Returns whether a discovered brand is currently enabled.
---
--- Brand filter settings are stored per save and determine whether equipment
--- from a given manufacturer may be considered for demo offers.
---
--- @param brand string Brand name/key.
--- @return boolean True when the brand is enabled.
--------------------------------------------------------------------------------
-function DealerRelations.Data:isBrandEnabled(brand)
-    if brand == nil then
-        return false
-    end
-
-    return DealerRelations.dealerData.brandFilters[tostring(brand)] == true
-end
-
--------------------------------------------------------------------------------
--- Sets whether a discovered brand is enabled for demo offers.
---
--- This stores the per-save brand preference used by equipment discovery.
--- Future settings UI will call this when the player enables or disables a brand.
---
--- @param brand string Brand name/key.
--- @param enabled boolean True to allow the brand, false to exclude it.
--------------------------------------------------------------------------------
-function DealerRelations.Data:setBrandEnabled(brand, enabled)
-    if brand == nil then
-        return
-    end
-
-    DealerRelations.dealerData.brandFilters[tostring(brand)] = enabled == true
 end

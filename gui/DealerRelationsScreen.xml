@@ -111,7 +111,7 @@
                     <Text profile="dr_helpBody" text="If you do not return or purchase the equipment after the demo expires, consequences escalate each day at dealer close:"/>
                     <Text profile="dr_helpBody" text="First missed deadline: Warning notification."/>
                     <Text profile="dr_helpBody" text="Second missed deadline: Confidence penalty and demo offers suspended for one month."/>
-                    <Text profile="dr_helpBody" text="Third missed deadline: Additional confidence penalty, additional suspension, and a 1% late fee charged to your farm account."/>
+                    <Text profile="dr_helpBody" text="Third missed deadline: Additional confidence penalty, suspension extended by one month, and a 1% late fee charged to your farm account. Suspension begins when the demo is resolved."/>
                     <Text profile="dr_helpBody" text="Fourth missed deadline: Equipment is repossessed."/>
 
                     <Text profile="dr_helpHeader" text="Relationship and Confidence"/>
@@ -130,7 +130,7 @@
 
     <GUIProfiles>
         <Profile name="dr_textDefaultTopLeft" extends="fs25_textDefault" with="anchorTopLeft">
-            <isFocusable value="true"/>
+            <isFocusable value="false"/>
             <textSize value="18px"/>
             <textColor value="$preset_colorWhite"/>
             <textAlignment value="left"/>

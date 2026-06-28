@@ -1,5 +1,19 @@
 # Changelog
 
+## Version 0.15.0
+
+- Added Categories and Brands filter panels with scrolling layouts and linked sliders.
+- Added alphabetical sorting of filter rows by display name.
+- Added equipment image display on the Overview page using fs25_vehiclesDetailsImage profile.
+- Added Help tab with in-screen documentation covering offers, demos, overdue rules, relationship system, and filters.
+- Added dealer name persistence and random name assignment on new saves.
+- Fixed duplicate notification bug on save/load using offerNotificationSent flag.
+- Fixed nil key reference in loadActiveDemoOffer for overdueLevel and overdueClockStartDay fields.
+- Fixed unclassified category logging for unknown store categories.
+- Removed keybind (DR_OPEN_DEMO_OFFER) input action.
+- Removed retired dialog screen files replaced by ESC menu dashboard.
+- Code review pass: updated comments, corrected misattributed headers, removed duplicate function definitions, removed dead code.
+
 ## Version 0.14.0
 
 - Added grace period and overdue system for unreturned demo equipment with four escalating consequence levels.

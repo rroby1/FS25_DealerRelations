@@ -20,9 +20,13 @@ DealerRelations.Persistence.FILE_NAME = "dealerRelations.xml"
 -- File Path
 -------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------
+-- Builds the full path to dealerRelations.xml for the given savegame directory.
+--
+-- @param savegameDirectory string Active savegame directory.
+-- @return string Full file path to dealerRelations.xml.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:getFilePath(savegameDirectory)
-    -- Build the full path to dealerRelations.xml for the
-    -- specified savegame directory.
     return savegameDirectory .. "/" .. self.FILE_NAME
 end
 
@@ -58,9 +62,16 @@ function DealerRelations.Persistence:save(savegameDirectory)
     delete(xmlFile)
 end
 
+-------------------------------------------------------------------------------
+-- Saves core dealer state values to XML.
+--
+-- Derived values such as relationship level are recalculated at runtime
+-- and are not saved. Suspension fields are omitted when nil to keep
+-- older saves clean.
+--
+-- @param xmlFile number Active XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:saveCoreData(xmlFile)
-    -- Save core dealer state values that are always present.
-    -- Derived values, such as relationship level, are recalculated at runtime.
     setXMLFloat(xmlFile, "dealerRelations.confidence", DealerRelations.Data:getConfidence())
 
     setXMLInt(
@@ -85,13 +96,15 @@ function DealerRelations.Persistence:saveCoreData(xmlFile)
     end
 end
 
+-------------------------------------------------------------------------------
+-- Saves player-configurable Dealer Relations settings to XML.
+--
+-- Settings are written as their own group so future additions do not
+-- mix configuration data into core relationship state.
+--
+-- @param xmlFile number Active XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:saveSettings(xmlFile)
-    -- Save player-configurable Dealer Relations settings.
-    --
-    -- Rationale:
-    -- Settings are saved as their own group so future settings can be added
-    -- without mixing configuration data into core relationship state.
-
     setXMLBool(
         xmlFile,
         "dealerRelations.settings#enabled",
@@ -105,9 +118,14 @@ function DealerRelations.Persistence:saveSettings(xmlFile)
     )
 end
 
+-------------------------------------------------------------------------------
+-- Saves the recent demo candidate history to XML.
+--
+-- Only the stable candidate key is persisted, not the full equipment record.
+--
+-- @param xmlFile number Active XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:saveRecentDemoCandidates(xmlFile)
-    -- Save the recent demo candidate keys used to reduce repeated offers.
-    -- Only the stable candidate key is persisted, not the full equipment record.
     local recentCandidates = DealerRelations.Data:getRecentDemoCandidates()
 
     for index, candidateKey in ipairs(recentCandidates) do
@@ -124,9 +142,15 @@ function DealerRelations.Persistence:saveRecentDemoCandidates(xmlFile)
     end
 end
 
+-------------------------------------------------------------------------------
+-- Saves active demo vehicle records to XML.
+--
+-- Runtime vehicle objects are not persisted. Vehicles are restored on
+-- load by looking up their saved uniqueId in the game vehicle system.
+--
+-- @param xmlFile number Active XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:saveActiveDemoOffer(xmlFile)
-    -- Save the currently open demo offer, if one exists.
-    -- If there is no open offer, this section is omitted from the XML.
     local activeOffer = DealerRelations.Data:getActiveDemoOffer()
 
     if activeOffer == nil then
@@ -146,10 +170,15 @@ function DealerRelations.Persistence:saveActiveDemoOffer(xmlFile)
     setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#offerMonth", activeOffer.offerMonth or 0)
 end
 
+-------------------------------------------------------------------------------
+-- Saves active demo vehicle records to XML.
+--
+-- Runtime vehicle objects are not persisted. Vehicles are restored on
+-- load by looking up their saved uniqueId in the game vehicle system.
+--
+-- @param xmlFile number Active XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:saveActiveDemoVehicles(xmlFile)
-    -- Save active demo vehicle records.
-    -- Runtime vehicle objects are not persisted; vehicles are restored later
-    -- by looking up their saved uniqueId.
     local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
 
     for index, demoVehicle in ipairs(activeDemoVehicles) do
@@ -181,10 +210,16 @@ function DealerRelations.Persistence:saveActiveDemoVehicles(xmlFile)
     end
 end
 
+-------------------------------------------------------------------------------
+-- Saves per-save category filter settings to XML.
+--
+-- Only player-configurable categories are saved. Hard exclusions remain
+-- code-defined in Equipment.lua and are never written here.
+-- Categories are sorted alphabetically for consistent XML output.
+--
+-- @param xmlFile number Active XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:saveCategoryFilters(xmlFile)
-    -- Save per-save category filter settings.
-    -- Only configurable equipment categories are saved here; hard-excluded
-    -- categories remain code-defined in Equipment.lua.
     local categoryFilters = DealerRelations.Data:getCategoryFilters()
     local categories = {}
 
@@ -205,10 +240,15 @@ function DealerRelations.Persistence:saveCategoryFilters(xmlFile)
     end
 end
 
+-------------------------------------------------------------------------------
+-- Saves per-save brand filter settings to XML.
+--
+-- Only brands that have been discovered in the current save are written.
+-- Brands are sorted alphabetically for consistent XML output.
+--
+-- @param xmlFile number Active XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:saveBrandFilters(xmlFile)
-    -- Save per-save brand filter settings.
-    -- Brands are discovered dynamically during equipment discovery, so this
-    -- saves only the brands that have actually been seen in the current save.
     local brandFilters = DealerRelations.Data:getBrandFilters()
     local brands = {}
 
@@ -229,11 +269,15 @@ function DealerRelations.Persistence:saveBrandFilters(xmlFile)
     end
 end
 
+-------------------------------------------------------------------------------
+-- Saves the dealership name to XML.
+--
+-- Dealer identity is generated once per save and persisted so the player
+-- sees the same dealer name after reloading.
+--
+-- @param xmlFile number Active XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:saveDealerName(xmlFile)
-    -- Save the dealership name assigned to this savegame.
-    -- Rationale:
-    -- Dealer identity is generated per save and must persist so the
-    -- player sees the same dealer name after reloading.
     local dealerName = DealerRelations.Data:getDealerName()
 
     if dealerName ~= nil then
@@ -241,18 +285,6 @@ function DealerRelations.Persistence:saveDealerName(xmlFile)
     end
 end
 
--------------------------------------------------------------------------------
--- Load
--------------------------------------------------------------------------------
-
--------------------------------------------------------------------------------
--- Loads Dealer Relations data from XML in the active savegame directory.
---
--- If the XML file does not exist or cannot be loaded, the default values already
--- defined in DealerRelationsData.lua remain in use.
---
--- @param savegameDirectory string Active savegame directory.
--------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 -- Load
 -------------------------------------------------------------------------------
@@ -340,9 +372,16 @@ function DealerRelations.Persistence:load(savegameDirectory)
     )
 end
 
+-------------------------------------------------------------------------------
+-- Loads core dealer state values from XML.
+--
+-- Relationship level is derived from confidence at runtime and is not
+-- loaded directly. Missing suspension fields default to nil, which is
+-- the correct state for saves that predate the suspension system.
+--
+-- @param xmlFile number Loaded XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:loadCoreData(xmlFile)
-    -- Load core dealer state values.
-    -- Relationship level is derived from confidence and is not saved directly.
     local confidence = getXMLFloat(xmlFile, "dealerRelations.confidence")
     local lastDemoCheckMonth = getXMLInt(
         xmlFile,
@@ -385,13 +424,15 @@ function DealerRelations.Persistence:loadCoreData(xmlFile)
     end
 end
 
+-------------------------------------------------------------------------------
+-- Loads player-configurable Dealer Relations settings from XML.
+--
+-- Missing settings are not treated as errors. Defaults defined in
+-- DealerRelationsData.lua remain in effect for any value not present.
+--
+-- @param xmlFile number Loaded XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:loadSettings(xmlFile)
-    -- Load player-configurable Dealer Relations settings.
-    --
-    -- Rationale:
-    -- Missing settings should not break older saves. Defaults remain owned by
-    -- DealerRelationsData, so this loader only applies values that actually
-    -- exist in dealerRelations.xml.
     local enabled = getXMLBool(
         xmlFile,
         "dealerRelations.settings#enabled"
@@ -417,10 +458,15 @@ function DealerRelations.Persistence:loadSettings(xmlFile)
     ))
 end
 
+-------------------------------------------------------------------------------
+-- Loads the recent demo candidate history from XML.
+--
+-- Resets the backing table before loading and reuses the normal add path
+-- so history size limits are enforced consistently on load.
+--
+-- @param xmlFile number Loaded XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:loadRecentDemoCandidates(xmlFile)
-    -- Reset and reload the recent demo candidate history.
-    -- DealerRelationsData currently exposes add/get helpers for this list,
-    -- so loading resets the backing table and then reuses the normal add path.
     DealerRelations.dealerData.recentDemoCandidates = {}
 
     local index = 0
@@ -451,9 +497,15 @@ function DealerRelations.Persistence:loadRecentDemoCandidates(xmlFile)
     )
 end
 
+-------------------------------------------------------------------------------
+-- Loads the active demo offer from XML if one was saved.
+--
+-- If no offer is present, clears the runtime value so stale state
+-- cannot carry over from a previous session.
+--
+-- @param xmlFile number Loaded XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:loadActiveDemoOffer(xmlFile)
-    -- Load the active demo offer if one was saved.
-    -- If no offer is present, clear the runtime value so old state cannot linger.
     local activeOfferCandidateKey = getXMLString(
         xmlFile,
         "dealerRelations.activeDemoOffer#candidateKey"
@@ -493,9 +545,15 @@ function DealerRelations.Persistence:loadActiveDemoOffer(xmlFile)
     ))
 end
 
+-------------------------------------------------------------------------------
+-- Loads active demo vehicle records from XML.
+--
+-- Runtime vehicle objects are not saved. Vehicles are looked up later
+-- by their persisted uniqueId.
+--
+-- @param xmlFile number Loaded XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:loadActiveDemoVehicles(xmlFile)
-    -- Load active demo vehicle records.
-    -- Runtime vehicle objects are not saved; vehicles are looked up later by uniqueId.
     DealerRelations.dealerData.activeDemoVehicles = {}
 
     local demoVehicleIndex = 0
@@ -537,10 +595,15 @@ function DealerRelations.Persistence:loadActiveDemoVehicles(xmlFile)
     end
 end
 
+-------------------------------------------------------------------------------
+-- Loads per-save category filter settings from XML.
+--
+-- If no category data is present, initializes defaults so existing saves
+-- continue behaving as they did before settings were added.
+--
+-- @param xmlFile number Loaded XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:loadCategoryFilters(xmlFile)
-    -- Load per-save category filter settings.
-    -- If this section is missing, initialize defaults so existing saves
-    -- continue behaving exactly as they did before settings were added.
     DealerRelations.dealerData.categoryFilters = {}
 
     local index = 0
@@ -582,10 +645,15 @@ function DealerRelations.Persistence:loadCategoryFilters(xmlFile)
     )
 end
 
+-------------------------------------------------------------------------------
+-- Loads per-save brand filter settings from XML.
+--
+-- Resets the brand filter table before loading. Brands not present in the
+-- XML will be re-added as enabled when equipment discovery runs.
+--
+-- @param xmlFile number Loaded XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:loadBrandFilters(xmlFile)
-    -- Load per-save brand filter settings.
-    -- Brands are discovered dynamically, so missing brand settings are not
-    -- initialized here. Discovery will add any newly found brands as enabled.
     DealerRelations.dealerData.brandFilters = {}
 
     local index = 0
@@ -617,10 +685,15 @@ function DealerRelations.Persistence:loadBrandFilters(xmlFile)
     )
 end
 
+-------------------------------------------------------------------------------
+-- Loads the dealership name from XML.
+--
+-- If no dealer name is present, the existing value set during load
+-- initialization is preserved.
+--
+-- @param xmlFile number Loaded XML file handle.
+-------------------------------------------------------------------------------
 function DealerRelations.Persistence:loadDealerName(xmlFile)
-    -- Load the dealership name assigned to this savegame.
-    -- Rationale:
-    -- Dealer identity should remain consistent across save/load cycles.
     local dealerName = getXMLString(
         xmlFile,
         "dealerRelations.dealer#name"

@@ -55,7 +55,7 @@ DealerRelations.CONSTANTS = {
     -- Limiting demo hours based on month length prevents multi-day month
     -- players from getting a free extended rental.
     DEMO_OPERATING_HOUR_LIMITS = {
-        [1] = 0.01,  --TEMP Rest to 2
+        [1] = 2,
         [2] = 3,
         [3] = 4,
         default = 5
@@ -398,8 +398,11 @@ function DealerRelations.Data:hasActiveDemoOffer()
     return DealerRelations.dealerData.activeDemoOffer ~= nil
 end
 
--- Adds a vehicle to the active demo vehicle list.
+--- Adds a vehicle to the active demo vehicle list.
 -- Demo vehicles are tracked separately from the game's ownership system.
+--
+-- @param demoVehicle table Demo vehicle record to add.
+-- @return boolean True if the vehicle was added successfully, false otherwise
 function DealerRelations.Data:addActiveDemoVehicle(demoVehicle)
 
     -- Ignore invalid demo records.
@@ -430,14 +433,18 @@ function DealerRelations.Data:addActiveDemoVehicle(demoVehicle)
     return true
 end
 
--- Returns the list of active demo vehicles.
+--- Returns the list of active demo vehicles.
+--
+-- @return table List of active demo vehicle records. Empty table if none exist.
 function DealerRelations.Data:getActiveDemoVehicles()
     return DealerRelations.dealerData.activeDemoVehicles or {}
 end
 
--- Removes one active demo vehicle tracking record by uniqueId.
--- Rationale: once a returned demo has been removed from the game world,
--- its Dealer Relations tracking record should no longer remain open.
+--- Removes one active demo vehicle tracking record by uniqueId.
+-- Called after a returned demo has been removed from the game world.
+--
+-- @param uniqueId string Unique identifier of the demo vehicle to remove.
+-- @return boolean True if the record was found and removed, false otherwise.
 function DealerRelations.Data:removeActiveDemoVehicleByUniqueId(uniqueId)
     if uniqueId == nil then
         DealerRelations.warning("Cannot remove active demo vehicle: uniqueId is nil")
@@ -526,8 +533,13 @@ function DealerRelations.Data:getDemoPurchasePrice(listPrice)
     return math.floor(price * discountMultiplier)
 end
 
-    -- Initialize per-save category filters from the default equipment category list.
-    -- These values represent player-configurable categories, not hard exclusions.
+-------------------------------------------------------------------------------
+-- Initializes per-save category filters from the default equipment category list.
+--
+-- Rationale:
+-- These values represent player-configurable categories, not hard exclusions.
+-- Hard exclusions are defined in Equipment.lua and are never written here.
+-------------------------------------------------------------------------------
 function DealerRelations.Data:initializeCategoryFilters()
     DealerRelations.dealerData.categoryFilters = {}
 
@@ -536,22 +548,19 @@ function DealerRelations.Data:initializeCategoryFilters()
     end
 end
 
+-------------------------------------------------------------------------------
+-- Initializes per-save category filters from the default equipment category list.
+--
+-- Rationale:
+-- These values represent player-configurable categories, not hard exclusions.
+-- Hard exclusions are defined in Equipment.lua and are never written here.
+-------------------------------------------------------------------------------
 function DealerRelations.Data:getCategoryFilters()
     return DealerRelations.dealerData.categoryFilters
 end
 
-    -- Unknown or missing category settings default to false here.
-    -- New/loaded saves should be initialized before discovery uses this.
-function DealerRelations.Data:isCategoryEnabled(category)
-    if category == nil then
-        return false
-    end
-    
-    return DealerRelations.dealerData.categoryFilters[tostring(category)] == true
-end
-
-    -- Store player preference for one configurable equipment category.
-    -- Hard exclusions are handled by Equipment.lua and should not be written here.
+-- Store player preference for one configurable equipment category.
+-- Hard exclusions are handled by Equipment.lua and should not be written here.
 function DealerRelations.Data:setCategoryEnabled(category, enabled)
     if category == nil then
         return
@@ -568,7 +577,7 @@ end
 --
 -- @param category string Equipment category name.
 -- @return boolean True when the category is enabled.
------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 function DealerRelations.Data:isCategoryEnabled(category)
     if category == nil then
         return false
@@ -764,7 +773,6 @@ end
 --
 -- @return table List of dealer names. Empty if the XML cannot be loaded.
 -------------------------------------------------------------------------------
-
 function DealerRelations.Data:loadDealerNames()
     local dealerNames = {}
     local xmlFile = loadXMLFile(
@@ -807,7 +815,6 @@ end
 --
 -- @return string Random dealer name, or "Dealer" if no valid names exist.
 -------------------------------------------------------------------------------
-
 function DealerRelations.Data:getRandomDealerName()
     local dealerNames = self:loadDealerNames()
 
@@ -971,14 +978,22 @@ function DealerRelations.Data:setDemoOverdueNoticeSent(demoVehicle, sent)
     demoVehicle.overdueNoticeSent = sent == true
 end
 
+--- Returns the number of suspension months pending application when the demo is resolved.
+--
+-- @return number|nil Pending suspension months, or nil if none are set.
 function DealerRelations.Data:getPendingSuspensionMonths()
     return DealerRelations.dealerData.pendingSuspensionMonths
 end
 
+--- Sets the number of suspension months to apply when the demo is resolved.
+--
+-- @param months number Number of months to suspend demo eligibility.
 function DealerRelations.Data:setPendingSuspensionMonths(months)
     DealerRelations.dealerData.pendingSuspensionMonths = tonumber(months)
 end
 
+--- Clears the pending suspension months.
+-- Called after the suspension has been applied on demo resolution.
 function DealerRelations.Data:clearPendingSuspensionMonths()
     DealerRelations.dealerData.pendingSuspensionMonths = nil
 end

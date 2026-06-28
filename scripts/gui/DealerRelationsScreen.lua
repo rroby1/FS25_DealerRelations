@@ -44,6 +44,7 @@ DealerRelations.Screen.MENU_PAGE_NAME = "menuDealerRelations"
 DealerRelations.Screen.XML_FILENAME =
     g_currentModDirectory .. "gui/DealerRelationsScreen.xml"
 
+-- Tab icon displayed in the ESC menu tab bar for the Dealer Relations page.
 DealerRelations.Screen.MENU_ICON_FILENAME =
     g_currentModDirectory .. "images/DRMenuIcon.png"
 
@@ -220,9 +221,10 @@ function DealerRelations.Screen:onClickOverviewTab()
 end
 
 --- Handles selection of the Configuration tab.
---  Rationale:
---  The tab bar is part of one Dealer Relations ESC page. Switching tabs only
---  toggles visibility of child panels; it does not change the FS25 menu page.
+--
+-- Rationale:
+-- Switches the visible sub-page to Configuration. Tab switching only
+-- toggles child panel visibility within the Dealer Relations ESC page.
 function DealerRelations.Screen:onClickConfigurationTab()
     self:updateSubCategoryPages(2)
     DealerRelations.log("Dealer Relations Configuration tab selected")
@@ -244,10 +246,12 @@ function DealerRelations.Screen:updateSubCategoryPages(state)
     self.subCategoryPaging.state = state
 end
 
--- Paging arrows update the MultiTextOption state internally.
--- Use that state as the source of truth so arrow clicks and direct tab clicks
+--- Handles paging arrow clicks on the sub-category control.
+--
+-- Rationale:
+-- Paging arrows update the MultiTextOption state internally. Using that
+-- state as the source of truth means arrow clicks and direct tab clicks
 -- drive the same page switching path.
-
 function DealerRelations.Screen:onClickSubCategoryPaging(state, element)
     self:updateSubCategoryPages(state)
 
@@ -259,12 +263,10 @@ function DealerRelations.Screen:onClickSubCategoryPaging(state, element)
     end
 end
 
---- Updates Configuration page setting display values.
+--- Converts a boolean value to a Yes/No display string.
 --
--- Rationale:
--- Settings are stored in DealerRelations.Data and persisted per save.
--- The Configuration page should display the current saved runtime values
--- instead of static XML placeholder text.
+-- @param value boolean Value to format.
+-- @return string "Yes" if true, "No" otherwise.
 function DealerRelations.Screen:formatBoolean(value)
     if value == true then
         return "Yes"
@@ -273,11 +275,12 @@ function DealerRelations.Screen:formatBoolean(value)
     return "No"
 end
 
+--- Updates Configuration page setting display values.
+--
+-- Rationale:
+-- Settings are now represented by native BinaryOption rows initialized
+-- directly after creation. No text placeholders need refreshing here.
 function DealerRelations.Screen:updateConfigurationValues()
-    -- Configuration values are now represented by native BinaryOption rows.
-    -- Rationale:
-    -- The rows are initialized directly after creation, so no text placeholders
-    -- need to be refreshed here.
 end
 
 --- Creates a native FS25 binary settings row.
@@ -507,6 +510,14 @@ function DealerRelations.Screen:updateOverviewValues()
     end
 end
 
+-------------------------------------------------------------------------------
+-- Called when the Dealer Relations ESC page is opened.
+--
+-- Rationale:
+-- Demo offers can be created after the screen is registered, so the
+-- Overview page must read current runtime data whenever the player opens
+-- the Dealer Relations page.
+-------------------------------------------------------------------------------
 function DealerRelations.Screen:onFrameOpen()
     DealerRelations.Screen:superClass().onFrameOpen(self)
 
@@ -676,7 +687,6 @@ function DealerRelations.Screen:buildCategoryFilterRows()
 
     self.categoryRowsBuilt = true
 end
-
 
 --- Handles changes to one category filter row.
 -- Rationale:

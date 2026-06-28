@@ -15,7 +15,7 @@
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.14.0"
+DealerRelations.version = "0.15.0"
 
 -- Store the mod directory for later runtime use.
 -- Rationale: g_currentModDirectory is available while sourcing files,
@@ -192,7 +192,7 @@ end
 
 -- Builds the saved demo offer data from a selected equipment candidate.
 -- Rationale: checkMonthlyDemo() should decide when an offer is created;
--- this helper owns the shape of the offer data that gets persisted.
+-- this helper owns the structure of the offer data that gets persisted.
 function DealerRelations:createDemoOfferFromCandidate(candidate, currentMonth)
     return {
         candidateKey = DealerRelations.Equipment:getDemoCandidateKey(candidate),
@@ -241,12 +241,14 @@ function DealerRelations:expireDemoOffer(currentMonth)
 end
 
 -------------------------------------------------------------------------------
--- Expires the active demo offer at dealer close if still open.
+-- Expires the active demo offer when the dealer is closed, if the offer
+-- was already announced to the player.
 --
 -- Rationale:
 -- Offers are valid for one business day. If the player has not accepted
--- or declined by dealer close, the offer expires with a confidence penalty
--- for passive neglect.
+-- or declined before the dealer closes, the offer expires with a confidence
+-- penalty for passive neglect. The offerExpired flag prevents repeated
+-- triggering across update ticks while the dealer remains closed.
 -------------------------------------------------------------------------------
 function DealerRelations:checkOfferExpiration()
     local offer = DealerRelations.Data:getActiveDemoOffer()
@@ -282,6 +284,13 @@ function DealerRelations:checkOfferExpiration()
     DealerRelations.Data:clearActiveDemoOffer()
 end
 
+-------------------------------------------------------------------------------
+-- Notifies the player about a pending demo offer once the dealer opens.
+--
+-- Rationale:
+-- Offers are generated at month change, but player-facing notification
+-- should wait until business hours so the player can act immediately.
+-------------------------------------------------------------------------------
 function DealerRelations:checkActiveDemoOfferNotification()
     -- Notify the player about a generated offer only after the dealer opens.
     -- Rationale:

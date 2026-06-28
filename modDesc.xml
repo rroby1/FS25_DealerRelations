@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="109">
     <author>rroby</author>
-    <version>0.14.0</version>
+    <version>0.15.0</version>
     <iconFilename>icon.dds</iconFilename>
     <multiplayer supported="false"/>
     
