@@ -397,10 +397,6 @@ function DealerRelations.Screen:updateOverviewValues()
     if offer ~= nil then
         self.dealerActivityTitleText:setVisible(false)
 
-        if offer.imageFilename ~= nil and offer.imageFilename ~= "" then
-            self.offerImage:setImageFilename(tostring(offer.imageFilename))
-        end
-
         if DealerRelations.Data:isDealerOpen() then
             self.offerActionsLayout:setVisible(true)
             self:addButtonToLayout(self.offerActionsLayout, "onClickAcceptOffer", "Accept")
@@ -435,10 +431,6 @@ function DealerRelations.Screen:updateOverviewValues()
 
     elseif demo ~= nil then
         self.dealerActivityTitleText:setVisible(false)
-
-        if demo.imageFilename ~= nil and demo.imageFilename ~= "" then
-            self.offerImage:setImageFilename(tostring(demo.imageFilename))
-        end
 
         if DealerRelations.Data:isDealerOpen() then
             self.offerActionsLayout:setVisible(true)

@@ -473,8 +473,8 @@ function DealerRelations.Persistence:loadActiveDemoOffer(xmlFile)
         xmlFilename = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#xmlFilename"),
         powerRole = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#powerRole"),
         -- Missing fields default to clean state for existing saves.
-        overdueLevel = getXMLInt(xmlFile, key .. "#overdueLevel") or 0,
-                overdueClockStartDay = getXMLInt(xmlFile, key .. "#overdueClockStartDay"),
+        overdueLevel = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#overdueLevel") or 0,
+        overdueClockStartDay = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#overdueClockStartDay"),
         displayPower = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#displayPower"),
         powerMin = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMin"),
         powerMax = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMax"),

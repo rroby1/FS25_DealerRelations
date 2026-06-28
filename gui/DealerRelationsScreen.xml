@@ -56,7 +56,7 @@
                         <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail5Text" text="" position="20px -590px" size="580px 28px"/>
                         <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail6Text" text="" position="20px -630px" size="580px 28px"/>
 
-                        <Bitmap id="offerImage" position="620px -340px" size="200px 200px"/>
+                        <Bitmap id="offerImage" profile="fs25_shopListItemImage" position="620px -340px" size="200px 200px"/>
                     </GuiElement>
                 </ThreePartBitmap>
             </GuiElement>

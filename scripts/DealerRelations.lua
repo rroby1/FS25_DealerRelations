@@ -194,7 +194,6 @@ function DealerRelations:createDemoOfferFromCandidate(candidate, currentMonth)
         category = candidate.category,
         price = candidate.price,
         xmlFilename = candidate.xmlFilename,
-        imageFilename = DealerRelations.Utils:resolveAssetPath(candidate.storeImage),  -- Store image path for Overview display
         powerRole = candidate.powerRole,
         displayPower = candidate.displayPower,
         powerMin = candidate.powerMin,
