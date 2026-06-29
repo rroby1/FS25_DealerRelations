@@ -1,5 +1,24 @@
 # Changelog
 
+## Version 0.16.0
+
+- Added financing system: loans originate from demo vehicles at relationship-based rates and terms.
+- Added credit score system: derived at runtime from relationship level, loans repaid, and missed payments.
+- Added missed payment ladder: four-level consequence system mirroring the overdue demo system.
+- Added passive confidence recovery: +1 per month while relationship is negative.
+- Added annual on-time payment confidence boost per loan.
+- Added early payoff: clears loan with confidence boost and partial missed payment rehabilitation.
+- Added Financing tab to the DR screen: displays credit score, finance rate, active loans, and Pay Off button.
+- Added loan persistence: active loans, totalLoansRepaid, and totalMissedPayments saved and loaded per save.
+- Added console commands: dr_status, dr_addTestLoan, dr_advanceLoan, dr_missPayment, dr_clearLoans, dr_setConfidence, dr_addRepaidLoan, dr_addMissedPayment, dr_clearMissedPayments, dr_resetAll.
+- Added getMonthName() utility helper for calendar month index to name conversion.
+- Added loan origination year and month fields for future display use.
+- Fixed farm account access using stored farmId on loan record instead of g_currentMission.player.
+- Fixed paging arrow navigation not triggering tab content refresh for Overview and Financing tabs.
+- Fixed equipment image persisting on Overview when no offer or demo is active.
+- Deferred principal payment UI to a future version.
+- Deferred debt-to-asset ratio and base game loan integration to 0.17.0.
+
 ## Version 0.15.0
 
 - Added Categories and Brands filter panels with scrolling layouts and linked sliders.

@@ -155,6 +155,7 @@ function DealerRelations.Screen:register()
     -- inside one ESC menu page.
     screen.subCategoryTabs = {
         screen.drOverviewTab,
+        screen.drFinancingTab,
         screen.drConfigurationTab,
         screen.drCategoriesTab,
         screen.drBrandsTab,
@@ -163,6 +164,7 @@ function DealerRelations.Screen:register()
 
     screen.subCategoryPages = {
         screen.overviewPanel,
+        screen.financingPanel,
         screen.configurationPanel,
         screen.categoriesPanel,
         screen.brandsPanel,
@@ -175,6 +177,7 @@ function DealerRelations.Screen:register()
     -- The paging control needs one entry per internal page so arrow clicks
     -- can advance through the same pages as the direct tab buttons.
     screen.subCategoryPaging:addText("Overview")
+    screen.subCategoryPaging:addText("Financing")
     screen.subCategoryPaging:addText("Configuration")
     screen.subCategoryPaging:addText("Categories")
     screen.subCategoryPaging:addText("Brands")
@@ -205,6 +208,10 @@ function DealerRelations.Screen:register()
     -- initialize(), so dynamic rows should be generated only after initialization.
     screen:buildCategoryFilterRows()
     screen:buildBrandFilterRows()
+
+    screen.loanTable:setDataSource(screen)
+    screen.loanTable:setDelegate(screen)
+    screen.selectedLoanIndex = nil
        
     DealerRelations.log("Dealer Relations ESC menu page registered")
 end
@@ -226,7 +233,7 @@ end
 -- Switches the visible sub-page to Configuration. Tab switching only
 -- toggles child panel visibility within the Dealer Relations ESC page.
 function DealerRelations.Screen:onClickConfigurationTab()
-    self:updateSubCategoryPages(2)
+    self:updateSubCategoryPages(3)
     DealerRelations.log("Dealer Relations Configuration tab selected")
 end
 
@@ -255,7 +262,11 @@ end
 function DealerRelations.Screen:onClickSubCategoryPaging(state, element)
     self:updateSubCategoryPages(state)
 
-    if state == 5 then
+    if state == 1 then
+        self:updateOverviewValues()
+    elseif state == 2 then
+        self:updateFinancingValues()
+    elseif state == 6 then
         self.helpLayout.fillDirections[2] = -1
         self.helpLayout.alignment[2] = 1
         self.helpLayout:invalidateLayout()
@@ -362,6 +373,161 @@ function DealerRelations.Screen:onClickDebugOption(option, element, isChecked)
     )
 end
 
+--- Handles selection of the Financing tab.
+--
+-- Rationale:
+-- Switches the visible sub-page to Financing and refreshes loan data
+-- so the player always sees current state when opening the tab.
+function DealerRelations.Screen:onClickFinancingTab()
+    self:updateSubCategoryPages(2)
+    self:updateFinancingValues()
+    DealerRelations.log("Dealer Relations Financing tab selected")
+end
+
+--- Updates Financing page display values.
+--
+-- Refreshes credit score, finance rate, and loan list.
+-- Called when the tab is selected and after any loan action.
+function DealerRelations.Screen:updateFinancingValues()
+    local data = DealerRelations.Data
+
+    -- Credit score and finance rate summary.
+    self.creditScoreValueText:setText(tostring(data:getCreditScore()))
+
+    local rate = data:getFinanceRate()
+    if rate ~= nil then
+        self.financeRateValueText:setText(string.format("%.0f%%", rate * 100))
+    else
+        self.financeRateValueText:setText("N/A")
+    end
+
+    -- Show loan list or empty state.
+    local loans = data:getActiveLoans()
+
+    if #loans == 0 then
+        self.financeTableContainer:setVisible(false)
+        self.financeNoLoansContainer:setVisible(true)
+        self.loanActionsLayout:setVisible(false)
+        return
+    end
+
+    self.financeTableContainer:setVisible(true)
+    self.financeNoLoansContainer:setVisible(false)
+
+    self.loanTable:reloadData()
+
+    -- Show Pay Off button if a loan is selected.
+    self:refreshLoanActionButtons()
+end
+
+--- Populates a loan table cell for the given index.
+--
+-- @param list table SmoothList element.
+-- @param section number Section index (always 1).
+-- @param index number Row index.
+-- @param cell table Cell element to populate.
+function DealerRelations.Screen:populateCellForItemInSection(list, section, index, cell)
+    local loan = DealerRelations.Data:getActiveLoans()[index]
+
+    if loan == nil then
+        return
+    end
+
+    cell:getAttribute("loan_name"):setText(tostring(loan.name))
+    cell:getAttribute("loan_payment"):setText(
+        "$" .. DealerRelations.Utils:formatMoney(loan.monthlyPayment)
+    )
+    cell:getAttribute("loan_rate"):setText(
+        string.format("%.0f%%", (loan.annualRate or 0) * 100)
+    )
+    cell:getAttribute("loan_months"):setText(tostring(loan.remainingMonths or 0))
+    cell:getAttribute("loan_remaining"):setText(
+        "$" .. DealerRelations.Utils:formatMoney(loan.remainingPrincipal)
+    )
+end
+
+--- Returns the number of sections in the loan table.
+--
+-- @return number Always 1.
+function DealerRelations.Screen:getNumberOfSections()
+    return 1
+end
+
+--- Returns the number of loans in the loan table.
+--
+-- @param list table SmoothList element.
+-- @param section number Section index.
+-- @return number Number of active loans.
+function DealerRelations.Screen:getNumberOfItemsInSection(list, section)
+    return #DealerRelations.Data:getActiveLoans()
+end
+
+--- Returns the section header title.
+--
+-- @return string Empty string — no section header needed.
+function DealerRelations.Screen:getTitleForSectionHeader(list, section)
+    return ""
+end
+
+--- Handles loan table selection change.
+--
+-- @param list table SmoothList element.
+-- @param section number Section index.
+-- @param index number Selected row index.
+function DealerRelations.Screen:onListSelectionChanged(list, section, index)
+    self.selectedLoanIndex = index
+    self:refreshLoanActionButtons()
+end
+
+--- Rebuilds the loan action buttons for the currently selected loan.
+--
+-- Rationale:
+-- The actions layout is cleared and rebuilt on selection change so
+-- the Pay Off button always reflects the selected loan state.
+function DealerRelations.Screen:refreshLoanActionButtons()
+    while #self.loanActionsLayout.elements > 0 do
+        self.loanActionsLayout:removeElement(self.loanActionsLayout.elements[1])
+    end
+
+    local loans = DealerRelations.Data:getActiveLoans()
+    local loan = loans[self.selectedLoanIndex]
+
+    if loan == nil then
+        self.loanActionsLayout:setVisible(false)
+        return
+    end
+
+    self.loanActionsLayout:setVisible(true)
+    self:addButtonToLayout(self.loanActionsLayout, "onClickPayOffLoan", "Pay Off")
+end
+
+--- Handles Pay Off button click.
+--
+-- Rationale:
+-- Attempts early payoff on the selected loan and refreshes the
+-- Financing tab to reflect the updated loan state.
+function DealerRelations.Screen:onClickPayOffLoan()
+    local loans = DealerRelations.Data:getActiveLoans()
+    local loan = loans[self.selectedLoanIndex]
+
+    if loan == nil then
+        return
+    end
+
+    local success, reason = DealerRelations.Finance:processEarlyPayoff(loan)
+
+    if success then
+        self.selectedLoanIndex = nil
+        self:updateFinancingValues()
+    else
+        DealerRelations.log("Pay Off failed: " .. tostring(reason))
+        g_currentMission:addIngameNotification(
+            FSBaseMission.INGAME_NOTIFICATION_CRITICAL,
+            "Dealer Relations: " .. tostring(reason)
+        )
+    end
+end
+
 --- Updates Overview page display values.
 --
 -- Rationale:
@@ -413,6 +579,7 @@ function DealerRelations.Screen:updateOverviewValues()
 
         local storeItem = g_storeManager:getItemByXMLFilename(offer.xmlFilename)
         if storeItem ~= nil then
+            self.offerImage:setVisible(true)
             self.offerImage:setImageFilename(storeItem.imageFilename)
         end
 
@@ -453,6 +620,7 @@ function DealerRelations.Screen:updateOverviewValues()
 
         local storeItem = g_storeManager:getItemByXMLFilename(demo.xmlFilename)
         if storeItem ~= nil then
+            self.offerImage:setVisible(true)
             self.offerImage:setImageFilename(storeItem.imageFilename)
         end
 
@@ -507,6 +675,7 @@ function DealerRelations.Screen:updateOverviewValues()
         self.dealerActivityDetail4Text:setText("")
         self.dealerActivityDetail5Text:setText("")
         self.dealerActivityDetail6Text:setText("")
+        self.offerImage:setVisible(false)
     end
 end
 
@@ -535,7 +704,7 @@ end
 -- can become long. This keeps the Configuration page focused on global
 -- Dealer Relations settings.
 function DealerRelations.Screen:onClickCategoriesTab()
-    self:updateSubCategoryPages(3)
+    self:updateSubCategoryPages(4)
 
     DealerRelations.log("Dealer Relations Categories tab selected")
 end
@@ -545,7 +714,7 @@ end
 -- Brand filters are separate from category filters because they are a distinct
 -- filter dimension and will likely need their own scrolling list.
 function DealerRelations.Screen:onClickBrandsTab()
-    self:updateSubCategoryPages(4)
+    self:updateSubCategoryPages(5)
 
     DealerRelations.log("Dealer Relations Brands tab selected")
 end

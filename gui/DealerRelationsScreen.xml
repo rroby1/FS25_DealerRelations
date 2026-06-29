@@ -11,6 +11,9 @@
             <Button profile="fs25_subCategorySelectorTabbedTab" id="drOverviewTab" text="Overview" onClick="onClickOverviewTab">
                 <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
             </Button>
+            <Button profile="fs25_subCategorySelectorTabbedTab" id="drFinancingTab" text="Financing" onClick="onClickFinancingTab">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
             <Button profile="fs25_subCategorySelectorTabbedTab" id="drConfigurationTab" text="Configuration" onClick="onClickConfigurationTab">
                 <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
             </Button>
@@ -62,6 +65,48 @@
                         <Bitmap profile="fs25_vehiclesDetailsImage" id="offerImage" position="300px -200px" size="200px 200px"/>
                     </GuiElement>
                 </ThreePartBitmap>
+            </GuiElement>
+        </GuiElement>
+
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="financingPanel" visible="false">
+            <GuiElement profile="fs25_subCategoryContainer" width="860px">
+
+                <Text profile="dr_textDefaultTopLeft" text="Credit Score:" position="20px 20px" size="200px 28px"/>
+                <Text profile="dr_textDefaultTopLeft" id="creditScoreValueText" text="" position="230px 20px" size="200px 28px"/>
+
+                <Text profile="dr_textDefaultTopLeft" text="Finance Rate:" position="460px 20px" size="200px 28px"/>
+                <Text profile="dr_textDefaultTopLeft" id="financeRateValueText" text="" position="670px 20px" size="160px 28px"/>
+
+                <GuiElement id="financeTableContainer" visible="false">
+                    <GuiElement profile="fs25_statisticsHeaderBox" position="0px -20px">
+                        <Button profile="dr_tableHeader" position="20px 0px"  text="Equipment"        handleFocus="false"/>
+                        <Button profile="dr_tableHeader" position="240px 0px" text="Monthly Payment"  handleFocus="false"/>
+                        <Button profile="dr_tableHeader" position="430px 0px" text="Rate"             handleFocus="false"/>
+                        <Button profile="dr_tableHeader" position="540px 0px" text="Months Left"      handleFocus="false"/>
+                        <Button profile="dr_tableHeader" position="660px 0px" text="Remaining"        handleFocus="false"/>
+                    </GuiElement>
+
+                    <SmoothList profile="dr_loanTable" id="loanTable" position="0px -60px">
+                        <ListItem profile="dr_loanListItem">
+                            <Text profile="dr_loanRowCell" position="20px 0px"  size="200px 32px" name="loan_name"/>
+                            <Text profile="dr_loanRowCell" position="240px 0px" size="180px 32px" name="loan_payment"/>
+                            <Text profile="dr_loanRowCell" position="430px 0px" size="100px 32px" name="loan_rate"/>
+                            <Text profile="dr_loanRowCell" position="540px 0px" size="110px 32px" name="loan_months"/>
+                            <Text profile="dr_loanRowCell" position="660px 0px" size="180px 32px" name="loan_remaining"/>
+                        </ListItem>
+                    </SmoothList>
+
+                    <ThreePartBitmap profile="dr_listSlider" position="50px -60px" size="6px 440px">
+                        <Slider profile="fs25_listSlider" dataElementId="loanTable"/>
+                    </ThreePartBitmap>
+                </GuiElement>
+
+                <GuiElement id="financeNoLoansContainer" visible="false">
+                    <Text profile="dr_textDefaultTopLeft" text="No active loans." position="20px -20px" size="400px 28px"/>
+                </GuiElement>
+
+                <ScrollingLayout profile="fs25_settingsLayout" id="loanActionsLayout" position="20px -530px" size="400px 80px" visible="false"/>
+
             </GuiElement>
         </GuiElement>
 
@@ -175,6 +220,36 @@
             <textAlignment value="left"/>
             <textAutoHeight value="true"/>
             <textMaxNumLines value="10"/>
+        </Profile>
+
+        <Profile name="dr_tableHeader" extends="baseReference">
+            <imageColor value="0 0 0 0"/>
+            <textFocusedColor value="$preset_fs25_colorMainHighlight"/>
+            <textHighlightedColor value="$preset_fs25_colorMainHighlight"/>
+            <textSize value="16px"/>
+            <textBold value="true"/>
+            <textUpperCase value="true"/>
+            <textColor value="$preset_colorWhite_50"/>
+            <textAlignment value="left"/>
+            <textDisabledColor value="$preset_colorDisabled"/>
+        </Profile>
+
+        <Profile name="dr_loanTable" extends="emptyPanel" with="anchorStretchingYLeft pivotTopLeft"/>
+
+        <Profile name="dr_loanListItem" extends="baseReference" with="anchorTopStretchingX alternating">
+            <height value="32px"/>
+            <imageColor value="$preset_fs25_colorGrey"/>
+            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+            <alternateBackgroundColor value="$preset_fs25_colorGreyDark_50"/>
+        </Profile>
+
+        <Profile name="dr_loanRowCell" extends="baseReference" with="anchorStretchingYLeft">
+            <textBold value="false"/>
+            <textSize value="15px"/>
+            <textAlignment value="left"/>
+            <textColor value="$preset_fs25_colorMainLight"/>
+            <textSelectedColor value="$preset_fs25_colorMainDark"/>
+            <textDisabledColor value="$preset_colorDisabled"/>
         </Profile>
 
     </GUIProfiles>

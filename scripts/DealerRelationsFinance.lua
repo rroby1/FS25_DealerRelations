@@ -558,7 +558,7 @@ function DealerRelations.Finance:closeLoan(loan, repossessed)
 end
 
 -------------------------------------------------------------------------------
--- Early Payoff and Principal Payment
+-- Early Payoff
 -------------------------------------------------------------------------------
 
 --- Processes a full early payoff for a loan.
@@ -608,72 +608,6 @@ function DealerRelations.Finance:processEarlyPayoff(loan)
     )
 
     self:closeLoan(loan, false)
-
-    return true, nil
-end
-
---- Processes a principal payment for a loan.
---
--- Accepts any amount greater than zero and up to the remaining principal.
--- Recalculates monthly payment from new principal and remaining term.
--- No confidence impact.
---
--- @param loan table Loan record.
--- @param amount number Amount to apply to principal.
--- @return boolean True if payment succeeded.
--- @return string Reason string if payment failed, nil otherwise.
-function DealerRelations.Finance:processPrincipalPayment(loan, amount)
-    if loan == nil then
-        return false, "No loan provided."
-    end
-
-    amount = tonumber(amount) or 0
-
-    if amount <= 0 then
-        return false, "Payment amount must be greater than zero."
-    end
-
-    if amount > loan.remainingPrincipal then
-        return false, "Payment amount exceeds remaining principal."
-    end
-
-    local farmId = loan.farmId or 1
-    local balance = g_currentMission:getMoney(farmId)
-
-    if balance < amount then
-        return false, "Insufficient funds."
-    end
-
-    g_currentMission:addMoney(
-        -amount,
-        farmId,
-        MoneyType.SHOP_VEHICLE_BUY,
-        true,
-        true
-    )
-
-    loan.remainingPrincipal = loan.remainingPrincipal - amount
-
-    -- Recalculate monthly payment from new principal and remaining term.
-    loan.monthlyPayment = self:calculateMonthlyPayment(
-        loan.remainingPrincipal,
-        loan.annualRate,
-        loan.remainingMonths
-    )
-
-    DealerRelations.log(string.format(
-        "Principal payment processed: uniqueId=%s name=%s amount=%d remaining=%d newPayment=%d",
-        tostring(loan.uniqueId),
-        tostring(loan.name),
-        amount,
-        loan.remainingPrincipal,
-        loan.monthlyPayment
-    ))
-
-    -- Loan fully repaid by principal payment.
-    if loan.remainingPrincipal <= 0 then
-        self:closeLoan(loan, false)
-    end
 
     return true, nil
 end
