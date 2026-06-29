@@ -89,3 +89,24 @@ function DealerRelations.Utils:getCategoryDisplayName(categoryName)
 
     return category ~= nil and category.title or categoryKey
 end
+
+-------------------------------------------------------------------------------
+-- Returns the player-facing month name for a calendar month index.
+--
+-- Rationale:
+-- Loan origination dates are stored as separate month and year values.
+-- This helper converts the month index to a readable name for display
+-- in the Financing tab without duplicating the mapping elsewhere.
+--
+-- @param month number Calendar month index (1 = January, 12 = December).
+-- @return string Month name, or "Unknown" if the index is out of range.
+-------------------------------------------------------------------------------
+function DealerRelations.Utils:getMonthName(month)
+    local monthNames = {
+        "January", "February", "March",     "April",
+        "May",      "June",     "July",      "August",
+        "September","October",  "November",  "December"
+    }
+
+    return monthNames[month] or "Unknown"
+end

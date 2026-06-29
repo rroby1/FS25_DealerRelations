@@ -85,6 +85,53 @@ DealerRelations.CONSTANTS = {
     OVERDUE_MISS_2 = 1,
     OVERDUE_MISS_3 = 2,
     OVERDUE_MISS_4 = 3,
+
+    -- ---------------------------------------------------------------------------
+    -- Financing system rates and terms.
+    -- Rationale:
+    -- Named per relationship level so usage sites are self-documenting.
+    -- Annual rates stored as decimals (0.02 = 2%).
+    -- ---------------------------------------------------------------------------
+    FINANCE_RATE_LEVEL_PARTNER = 0.02,
+    FINANCE_RATE_LEVEL_PREFERRED = 0.04,
+    FINANCE_RATE_LEVEL_TRUSTED = 0.06,
+    FINANCE_RATE_LEVEL_FAMILIAR = 0.08,
+    FINANCE_RATE_LEVEL_NEUTRAL = 0.10,
+
+    FINANCE_TERM_LEVEL_PARTNER = 60,  --Months
+    FINANCE_TERM_LEVEL_PREFERRED = 60,
+    FINANCE_TERM_LEVEL_TRUSTED = 48,
+    FINANCE_TERM_LEVEL_FAMILIAR = 48,
+    FINANCE_TERM_LEVEL_NEUTRAL = 36,
+
+    -- Missed payment ladder confidence impacts.
+    -- Rationale:
+    -- Per-level hits are intentionally graduated. Reaching Miss 4 requires
+    -- four consecutive missed payments — the player must ignore both the
+    -- miss ladder warnings and the base game loan option to get there.
+    -- Recovery via passive confidence (+1/month) is slow but the miss
+    -- counter resets on any successful payment, rewarding course correction.
+    FINANCE_MISS_1_CONFIDENCE = -5,
+    FINANCE_MISS_2_CONFIDENCE = -10,
+    FINANCE_MISS_3_CONFIDENCE = -10,
+    FINANCE_MISS_4_CONFIDENCE = -15,
+    FINANCE_MISS_INSUFFICIENT_FUNDS_CONFIDENCE = -5,
+
+    -- Confidence impacts for finance lifecycle events.
+    FINANCE_ORIGINATION_CONFIDENCE = 1,
+    FINANCE_ONTIME_CONFIDENCE = 1,
+    FINANCE_ANNUAL_CONFIDENCE = 1,
+    FINANCE_PAYOFF_CONFIDENCE = 3,
+    FINANCE_RECOVERY_CONFIDENCE = 1,
+
+    -- Credit score calculation.
+    CREDIT_SCORE_BASE = 600,
+    CREDIT_SCORE_FLOOR = 300,
+    CREDIT_SCORE_CEILING = 850,
+    CREDIT_SCORE_REFUSAL_THRESHOLD = 550,
+    CREDIT_SCORE_PER_REPAID_LOAN = 15,
+    CREDIT_SCORE_REPAID_CAP = 75,
+    CREDIT_SCORE_PER_MISSED_PAYMENT = -50,
 }
 
 
@@ -138,6 +185,19 @@ DealerRelations.dealerData = {
     -- Suspension months to apply when the demo is resolved.
     -- Set at Miss 2 and updated at Miss 3. Applied on return, buy, or repossession.
     pendingSuspensionMonths = nil,
+
+    -- Active dealer-issued loans.
+    -- Each entry is a loan record created by DealerRelationsFinance.lua.
+    -- An empty table means no active loans exist.
+    activeLoans = {},
+
+    -- Lifetime count of loans fully repaid.
+    -- Used in credit score calculation.
+    totalLoansRepaid = 0,
+
+    -- Lifetime count of missed payments across all loans.
+    -- Reduced by one when a loan with missed payments is paid off.
+    totalMissedPayments = 0,
 }
 
 -------------------------------------------------------------------------------
@@ -996,4 +1056,288 @@ end
 -- Called after the suspension has been applied on demo resolution.
 function DealerRelations.Data:clearPendingSuspensionMonths()
     DealerRelations.dealerData.pendingSuspensionMonths = nil
+end
+
+-------------------------------------------------------------------------------
+-- Active Loans
+-------------------------------------------------------------------------------
+
+--- Returns the list of active loan records.
+--
+-- @return table List of active loan records. Empty table if none exist.
+function DealerRelations.Data:getActiveLoans()
+    return DealerRelations.dealerData.activeLoans or {}
+end
+
+--- Adds a loan record to the active loans list.
+--
+-- @param loan table Loan record to add.
+function DealerRelations.Data:addActiveLoan(loan)
+    if loan == nil then
+        DealerRelations.warning("Cannot add active loan: loan is nil")
+        return
+    end
+
+    if loan.uniqueId == nil then
+        DealerRelations.warning("Cannot add active loan: uniqueId is nil")
+        return
+    end
+
+    table.insert(DealerRelations.dealerData.activeLoans, loan)
+
+    DealerRelations.log(string.format(
+        "Active loan added: uniqueId=%s name=%s",
+        tostring(loan.uniqueId),
+        tostring(loan.name)
+    ))
+end
+
+--- Removes an active loan record by uniqueId.
+--
+-- @param uniqueId string UniqueId of the loan to remove.
+function DealerRelations.Data:removeActiveLoanByUniqueId(uniqueId)
+    local loans = DealerRelations.dealerData.activeLoans
+
+    for i = #loans, 1, -1 do
+        if loans[i].uniqueId == uniqueId then
+            table.remove(loans, i)
+
+            DealerRelations.log(string.format(
+                "Active loan removed: uniqueId=%s",
+                tostring(uniqueId)
+            ))
+
+            return
+        end
+    end
+end
+
+--- Returns whether an active loan exists for the given uniqueId.
+--
+-- @param uniqueId string UniqueId to check.
+-- @return boolean True if an active loan exists for this uniqueId.
+function DealerRelations.Data:hasActiveLoan(uniqueId)
+    for _, loan in ipairs(self:getActiveLoans()) do
+        if loan.uniqueId == uniqueId then
+            return true
+        end
+    end
+
+    return false
+end
+
+--- Returns whether any active loan has a missed payment.
+--
+-- @return boolean True if any loan has missCount greater than zero.
+function DealerRelations.Data:hasOverdueLoans()
+    for _, loan in ipairs(self:getActiveLoans()) do
+        if (loan.missCount or 0) > 0 then
+            return true
+        end
+    end
+
+    return false
+end
+
+-------------------------------------------------------------------------------
+-- Loan Miss State
+-------------------------------------------------------------------------------
+
+--- Returns the consecutive missed payment count for a loan.
+--
+-- @param loan table Loan record.
+-- @return number Missed payment count (0-4).
+function DealerRelations.Data:getLoanMissCount(loan)
+    if loan == nil then
+        return 0
+    end
+
+    return loan.missCount or 0
+end
+
+--- Sets the consecutive missed payment count for a loan.
+--
+-- @param loan table Loan record.
+-- @param count number Missed payment count (0-4).
+function DealerRelations.Data:setLoanMissCount(loan, count)
+    if loan == nil then
+        return
+    end
+
+    loan.missCount = tonumber(count) or 0
+end
+
+--- Returns whether the consequence for the current miss level has fired.
+--
+-- @param loan table Loan record.
+-- @return boolean True if the notice has been sent for the current miss level.
+function DealerRelations.Data:getLoanMissNoticeSent(loan)
+    if loan == nil then
+        return false
+    end
+
+    return loan.missNoticeSent == true
+end
+
+--- Sets whether the consequence for the current miss level has fired.
+-- Reset to false when the miss count advances or a payment succeeds.
+--
+-- @param loan table Loan record.
+-- @param sent boolean True when the consequence has fired.
+function DealerRelations.Data:setLoanMissNoticeSent(loan, sent)
+    if loan == nil then
+        return
+    end
+
+    loan.missNoticeSent = sent == true
+end
+
+-------------------------------------------------------------------------------
+-- Lifetime Loan Statistics
+-------------------------------------------------------------------------------
+
+--- Returns the lifetime count of loans fully repaid.
+--
+-- @return number Total loans repaid.
+function DealerRelations.Data:getTotalLoansRepaid()
+    return DealerRelations.dealerData.totalLoansRepaid or 0
+end
+
+--- Increments the lifetime repaid loan count by one.
+function DealerRelations.Data:incrementTotalLoansRepaid()
+    DealerRelations.dealerData.totalLoansRepaid =
+        self:getTotalLoansRepaid() + 1
+end
+
+--- Returns the lifetime count of missed payments across all loans.
+--
+-- @return number Total missed payments.
+function DealerRelations.Data:getTotalMissedPayments()
+    return DealerRelations.dealerData.totalMissedPayments or 0
+end
+
+--- Increments the lifetime missed payment count by one.
+function DealerRelations.Data:incrementTotalMissedPayments()
+    DealerRelations.dealerData.totalMissedPayments =
+        self:getTotalMissedPayments() + 1
+end
+
+--- Decrements the lifetime missed payment count by one.
+-- Called when a loan with missed payments is paid off.
+-- Floor of zero prevents the count going negative.
+function DealerRelations.Data:decrementTotalMissedPayments()
+    DealerRelations.dealerData.totalMissedPayments =
+        math.max(0, self:getTotalMissedPayments() - 1)
+end
+
+-------------------------------------------------------------------------------
+-- Credit Score and Financing Terms
+-------------------------------------------------------------------------------
+
+--- Calculates and returns the current credit score.
+--
+-- Score is derived at runtime and never stored.
+-- Base score is modified by relationship level, loans repaid, and
+-- missed payments. Result is clamped to floor and ceiling.
+--
+-- @return number Credit score (300-850).
+function DealerRelations.Data:getCreditScore()
+    local constants = DealerRelations.CONSTANTS
+    local score = constants.CREDIT_SCORE_BASE
+    local level = self:getRelationshipLevel()
+
+    if level == 5 then
+        score = score + 100
+    elseif level == 4 then
+        score = score + 75
+    elseif level == 3 then
+        score = score + 50
+    elseif level == 2 then
+        score = score + 25
+    elseif level <= 0 then
+        score = score + (level * 50)
+    end
+
+    local repaidBonus = math.min(
+        self:getTotalLoansRepaid() * constants.CREDIT_SCORE_PER_REPAID_LOAN,
+        constants.CREDIT_SCORE_REPAID_CAP
+    )
+    score = score + repaidBonus
+
+    score = score + (self:getTotalMissedPayments() * constants.CREDIT_SCORE_PER_MISSED_PAYMENT)
+
+    return self:clamp(score, constants.CREDIT_SCORE_FLOOR, constants.CREDIT_SCORE_CEILING)
+end
+
+--- Returns the annual interest rate for the current relationship level,
+-- modified by credit score.
+--
+-- Does not apply the floor rule or refusal threshold.
+-- Eligibility checks are the responsibility of DealerRelationsFinance.lua.
+--
+-- @return number Annual interest rate as a decimal (e.g. 0.06 for 6%).
+--         Returns nil if relationship level does not qualify for financing.
+function DealerRelations.Data:getFinanceRate()
+    local constants = DealerRelations.CONSTANTS
+    local level = self:getRelationshipLevel()
+
+    -- Negative relationship levels do not qualify for financing.
+    if level <= 0 then
+        return nil
+    end
+
+    local baseRate
+    if level == 5 then
+        baseRate = constants.FINANCE_RATE_LEVEL_PARTNER
+    elseif level == 4 then
+        baseRate = constants.FINANCE_RATE_LEVEL_PREFERRED
+    elseif level == 3 then
+        baseRate = constants.FINANCE_RATE_LEVEL_TRUSTED
+    elseif level == 2 then
+        baseRate = constants.FINANCE_RATE_LEVEL_FAMILIAR
+    else
+        baseRate = constants.FINANCE_RATE_LEVEL_NEUTRAL
+    end
+
+    -- Apply credit score modifier.
+    local score = self:getCreditScore()
+    local modifier = 0
+
+    if score >= 750 then
+        modifier = -0.02
+    elseif score >= 700 then
+        modifier = -0.01
+    elseif score < 550 then
+        modifier = 0.02
+    end
+
+    return math.max(0, baseRate + modifier)
+end
+
+--- Returns the loan term in months for the current relationship level.
+--
+-- Term is not affected by credit score.
+--
+-- @return number Loan term in months.
+--         Returns nil if relationship level does not qualify for financing.
+function DealerRelations.Data:getFinanceTerm()
+    local constants = DealerRelations.CONSTANTS
+    local level = self:getRelationshipLevel()
+
+    -- Negative relationship levels do not qualify for financing.
+    if level <= 0 then
+        return nil
+    end
+
+    if level == 5 then
+        return constants.FINANCE_TERM_LEVEL_PARTNER
+    elseif level == 4 then
+        return constants.FINANCE_TERM_LEVEL_PREFERRED
+    elseif level == 3 then
+        return constants.FINANCE_TERM_LEVEL_TRUSTED
+    elseif level == 2 then
+        return constants.FINANCE_TERM_LEVEL_FAMILIAR
+    end
+
+    return constants.FINANCE_TERM_LEVEL_NEUTRAL
 end

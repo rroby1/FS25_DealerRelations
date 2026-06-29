@@ -15,7 +15,7 @@
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.15.0"
+DealerRelations.version = "0.16.0"
 
 -- Store the mod directory for later runtime use.
 -- Rationale: g_currentModDirectory is available while sourcing files,
@@ -36,6 +36,7 @@ source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsUI.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsScreen.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsDemoManager.lua")
+source(g_currentModDirectory .. "scripts/DealerRelationsFinance.lua")
 
 -------------------------------------------------------------------------------
 -- Called by the game when a map is loaded.
@@ -82,6 +83,8 @@ function DealerRelations:loadMap()
     -- This creates the screen instance, registers the page and tab,
     -- and initializes the Dealer Relations user interface.
     DealerRelations.Screen:register()
+
+    DealerRelations.registerConsoleCommands()
     
     DealerRelations.UI:notifyModDisabled()
     DealerRelations.UI:notifyRelationshipStatus()
@@ -120,13 +123,30 @@ end
 
 -- Checks whether a monthly demo evaluation should occur and creates a new offer.
 function DealerRelations:checkMonthlyDemo()
-    -- Note: currentPeriod is 1-based from March, not January.
-    -- Period 1 = March, Period 12 = February.
+    -- currentPeriod increments each period change and functions as a
+    -- monotonic month counter. Used here to detect when a new month
+    -- has started rather than as a calendar month value.
     local currentMonth = g_currentMission.environment.currentPeriod
     local lastMonth = DealerRelations.Data:getLastDemoCheckMonth()
 
     if currentMonth ~= lastMonth then
         DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
+
+        -- Process passive confidence recovery before loan payments.
+        DealerRelations.Finance:checkPassiveConfidenceRecovery()
+
+        -- Process monthly loan payments before demo offer generation.
+        -- Rationale:
+        -- Payment state gates new demo offers. Loans must be processed first
+        -- so hasOverdueLoans() reflects the current month when the offer
+        -- check runs.
+        local allPaid = DealerRelations.Finance:checkMonthlyLoanPayments()
+
+        if not allPaid then
+            DealerRelations.log(
+                "Monthly demo offer skipped: one or more loan payments missed"
+            )
+        end
 
         -- Existing active demos must continue to age/expire even when the mod is
         -- disabled, otherwise the player can become stuck with a demo they cannot
@@ -160,6 +180,14 @@ function DealerRelations:checkMonthlyDemo()
         if DealerRelations.Data:isUnderSuspension() then
             DealerRelations.log(
                 "Monthly demo offer skipped: player is under demo suspension"
+            )
+            return
+        end
+
+        -- Prevent new demo offers while any loan has missed payments.
+        if DealerRelations.Data:hasOverdueLoans() then
+            DealerRelations.log(
+                "Monthly demo offer skipped: active loan in missed state"
             )
             return
         end

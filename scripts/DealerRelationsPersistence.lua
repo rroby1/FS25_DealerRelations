@@ -53,6 +53,7 @@ function DealerRelations.Persistence:save(savegameDirectory)
     self:saveRecentDemoCandidates(xmlFile)
     self:saveActiveDemoOffer(xmlFile)
     self:saveActiveDemoVehicles(xmlFile)
+    self:saveActiveLoans(xmlFile)
 
     -- Player settings
     self:saveCategoryFilters(xmlFile)
@@ -94,6 +95,12 @@ function DealerRelations.Persistence:saveCoreData(xmlFile)
     if pendingSuspensionMonths ~= nil then
         setXMLInt(xmlFile, "dealerRelations.pendingSuspensionMonths", pendingSuspensionMonths)
     end
+
+    setXMLInt(xmlFile, "dealerRelations.totalLoansRepaid",
+        DealerRelations.Data:getTotalLoansRepaid())
+
+    setXMLInt(xmlFile, "dealerRelations.totalMissedPayments",
+        DealerRelations.Data:getTotalMissedPayments())
 end
 
 -------------------------------------------------------------------------------
@@ -286,6 +293,42 @@ function DealerRelations.Persistence:saveDealerName(xmlFile)
 end
 
 -------------------------------------------------------------------------------
+-- Saves active loan records to XML.
+--
+-- Each loan record is saved as a child element with all fields as attributes.
+-- Mirrors the structure used by saveActiveDemoVehicles.
+--
+-- @param xmlFile number Active XML file handle.
+-------------------------------------------------------------------------------
+function DealerRelations.Persistence:saveActiveLoans(xmlFile)
+    local activeLoans = DealerRelations.Data:getActiveLoans()
+
+    for index, loan in ipairs(activeLoans) do
+        local key = string.format(
+            "dealerRelations.activeLoans.loan(%d)",
+            index - 1
+        )
+
+        setXMLString(xmlFile, key .. "#uniqueId",           loan.uniqueId)
+        setXMLString(xmlFile, key .. "#name",               loan.name)
+        setXMLString(xmlFile, key .. "#brand",              loan.brand)
+        setXMLString(xmlFile, key .. "#xmlFilename",        loan.xmlFilename)
+        setXMLInt(xmlFile,    key .. "#farmId",             loan.farmId or 1)
+        setXMLFloat(xmlFile,  key .. "#principal",          loan.principal or 0)
+        setXMLFloat(xmlFile,  key .. "#remainingPrincipal", loan.remainingPrincipal or 0)
+        setXMLFloat(xmlFile,  key .. "#annualRate",         loan.annualRate or 0)
+        setXMLInt(xmlFile,    key .. "#termMonths",         loan.termMonths or 0)
+        setXMLInt(xmlFile,    key .. "#remainingMonths",    loan.remainingMonths or 0)
+        setXMLFloat(xmlFile,  key .. "#monthlyPayment",     loan.monthlyPayment or 0)
+        setXMLInt(xmlFile,    key .. "#missCount",          loan.missCount or 0)
+        setXMLBool(xmlFile,   key .. "#missNoticeSent",     loan.missNoticeSent == true)
+        setXMLInt(xmlFile,    key .. "#originationMonth",   loan.originationMonth or 0)
+        setXMLInt(xmlFile,    key .. "#originationYear",    loan.originationYear or 0)
+        setXMLInt(xmlFile,    key .. "#monthsSinceLastBoost", loan.monthsSinceLastBoost or 0)
+    end
+end
+
+-------------------------------------------------------------------------------
 -- Load
 -------------------------------------------------------------------------------
 
@@ -358,6 +401,7 @@ function DealerRelations.Persistence:load(savegameDirectory)
     self:loadRecentDemoCandidates(xmlFile)
     self:loadActiveDemoOffer(xmlFile)
     self:loadActiveDemoVehicles(xmlFile)
+    self:loadActiveLoans(xmlFile)
     
     -- Player settings
     self:loadCategoryFilters(xmlFile)
@@ -421,6 +465,16 @@ function DealerRelations.Persistence:loadCoreData(xmlFile)
         DealerRelations.Data:setPendingSuspensionMonths(pendingSuspensionMonths)
     else
         DealerRelations.Data:clearPendingSuspensionMonths()
+    end
+
+    local totalLoansRepaid = getXMLInt(xmlFile, "dealerRelations.totalLoansRepaid")
+    if totalLoansRepaid ~= nil then
+        DealerRelations.dealerData.totalLoansRepaid = totalLoansRepaid
+    end
+
+    local totalMissedPayments = getXMLInt(xmlFile, "dealerRelations.totalMissedPayments")
+    if totalMissedPayments ~= nil then
+        DealerRelations.dealerData.totalMissedPayments = totalMissedPayments
     end
 end
 
@@ -702,4 +756,59 @@ function DealerRelations.Persistence:loadDealerName(xmlFile)
     if dealerName ~= nil then
         DealerRelations.Data:setDealerName(dealerName)
     end
+end
+
+-------------------------------------------------------------------------------
+-- Loads active loan records from XML.
+--
+-- Resets the active loans table before loading.
+-- Missing fields default to safe values for forward compatibility.
+--
+-- @param xmlFile number Loaded XML file handle.
+-------------------------------------------------------------------------------
+function DealerRelations.Persistence:loadActiveLoans(xmlFile)
+    DealerRelations.dealerData.activeLoans = {}
+
+    local index = 0
+
+    while true do
+        local key = string.format(
+            "dealerRelations.activeLoans.loan(%d)",
+            index
+        )
+
+        local uniqueId = getXMLString(xmlFile, key .. "#uniqueId")
+
+        if uniqueId == nil then
+            break
+        end
+
+        table.insert(
+            DealerRelations.dealerData.activeLoans,
+            {
+                uniqueId           = uniqueId,
+                name               = getXMLString(xmlFile, key .. "#name"),
+                brand              = getXMLString(xmlFile, key .. "#brand"),
+                xmlFilename        = getXMLString(xmlFile, key .. "#xmlFilename"),
+                farmId             = getXMLInt(xmlFile,    key .. "#farmId") or 1,
+                principal          = getXMLFloat(xmlFile,  key .. "#principal") or 0,
+                remainingPrincipal = getXMLFloat(xmlFile,  key .. "#remainingPrincipal") or 0,
+                annualRate         = getXMLFloat(xmlFile,  key .. "#annualRate") or 0,
+                termMonths         = getXMLInt(xmlFile,    key .. "#termMonths") or 0,
+                remainingMonths    = getXMLInt(xmlFile,    key .. "#remainingMonths") or 0,
+                monthlyPayment     = getXMLFloat(xmlFile,  key .. "#monthlyPayment") or 0,
+                missCount          = getXMLInt(xmlFile,    key .. "#missCount") or 0,
+                missNoticeSent     = getXMLBool(xmlFile,   key .. "#missNoticeSent") == true,
+                originationMonth   = getXMLInt(xmlFile,    key .. "#originationMonth") or 0,
+                originationYear    = getXMLInt(xmlFile,    key .. "#originationYear") or 0,
+                monthsSinceLastBoost = getXMLInt(xmlFile,  key .. "#monthsSinceLastBoost") or 0,
+            }
+        )
+
+        index = index + 1
+    end
+
+    DealerRelations.log(
+        "Loaded active loans: " .. tostring(#DealerRelations.dealerData.activeLoans)
+    )
 end
