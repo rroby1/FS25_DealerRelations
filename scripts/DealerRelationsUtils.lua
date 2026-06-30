@@ -91,22 +91,24 @@ function DealerRelations.Utils:getCategoryDisplayName(categoryName)
 end
 
 -------------------------------------------------------------------------------
--- Returns the player-facing month name for a calendar month index.
+-- Returns the player-facing month name for a currentPeriod value.
 --
 -- Rationale:
--- Loan origination dates are stored as separate month and year values.
--- This helper converts the month index to a readable name for display
--- in the Financing tab without duplicating the mapping elsewhere.
+-- Loan origination dates are stored using currentPeriod, the mod's
+-- standard monotonic month counter, where 1 = March rather than
+-- January. This helper converts a currentPeriod value to a readable
+-- month name for display in the Financing tab without duplicating the
+-- mapping elsewhere.
 --
--- @param month number Calendar month index (1 = January, 12 = December).
+-- @param period number currentPeriod value (1 = March, 12 = February).
 -- @return string Month name, or "Unknown" if the index is out of range.
 -------------------------------------------------------------------------------
-function DealerRelations.Utils:getMonthName(month)
+function DealerRelations.Utils:getMonthName(period)
     local monthNames = {
-        "January", "February", "March",     "April",
-        "May",      "June",     "July",      "August",
-        "September","October",  "November",  "December"
+        "March",     "April",     "May",       "June",
+        "July",      "August",    "September", "October",
+        "November",  "December",  "January",   "February"
     }
 
-    return monthNames[month] or "Unknown"
+    return monthNames[period] or "Unknown"
 end

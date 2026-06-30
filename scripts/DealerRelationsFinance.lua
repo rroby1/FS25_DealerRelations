@@ -189,7 +189,7 @@ function DealerRelations.Finance:originateLoan(demoVehicle)
         missCount = 0,
         missNoticeSent = false,
 
-        originationMonth = g_currentMission.environment.currentMonth,
+        originationMonth = g_currentMission.environment.currentPeriod,
         originationYear = g_currentMission.environment.currentYear,
         monthsSinceLastBoost = 0,
     }
