@@ -199,6 +199,10 @@ DealerRelations.dealerData = {
     -- Lifetime count of missed payments across all loans.
     -- Reduced by one when a loan with missed payments is paid off.
     totalMissedPayments = 0,
+
+    -- Per-save crop history. Append-only set of fruit type names the player
+    -- has ever grown on owned land. Never reflects current planting state.
+    cropsEverGrown = {},
 }
 
 -------------------------------------------------------------------------------
@@ -1356,4 +1360,48 @@ end
 -- Stores the forestry equipment toggle setting.
 function DealerRelations.Data:setForestryEnabled(enabled)
     DealerRelations.dealerData.settings.forestryEnabled = enabled == true
+end
+
+-------------------------------------------------------------------------------
+-- Returns the per-save crop history set.
+--
+-- Rationale:
+-- Crop history is append-only and represents every crop the player has
+-- ever grown on owned land, not what is currently planted. Read by
+-- crop-eligibility filtering and persisted by DealerRelationsPersistence.lua.
+--
+-- @return table Set of fruit type names the player has grown, keyed by name.
+-------------------------------------------------------------------------------
+function DealerRelations.Data:getCropsEverGrown()
+    return DealerRelations.dealerData.cropsEverGrown
+end
+
+-------------------------------------------------------------------------------
+-- Returns whether a given crop has ever been grown by the player.
+--
+-- @param fruitTypeName string Fruit type name (e.g. "WHEAT").
+-- @return boolean True if the crop has been recorded in crop history.
+-------------------------------------------------------------------------------
+function DealerRelations.Data:hasCropBeenGrown(fruitTypeName)
+    if fruitTypeName == nil then
+        return false
+    end
+
+    return DealerRelations.dealerData.cropsEverGrown[tostring(fruitTypeName)] == true
+end
+
+-------------------------------------------------------------------------------
+-- Records a crop as having been grown by the player.
+--
+-- Crop history is append-only. Once recorded, a crop is never removed,
+-- even if the player stops growing it in later seasons.
+--
+-- @param fruitTypeName string Fruit type name (e.g. "WHEAT").
+-------------------------------------------------------------------------------
+function DealerRelations.Data:addCropEverGrown(fruitTypeName)
+    if fruitTypeName == nil then
+        return
+    end
+
+    DealerRelations.dealerData.cropsEverGrown[tostring(fruitTypeName)] = true
 end

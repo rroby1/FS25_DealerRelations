@@ -54,6 +54,7 @@ function DealerRelations.Persistence:save(savegameDirectory)
     self:saveActiveDemoOffer(xmlFile)
     self:saveActiveDemoVehicles(xmlFile)
     self:saveActiveLoans(xmlFile)
+    self:saveCropsEverGrown(xmlFile)
 
     -- Player settings
     self:saveCategoryFilters(xmlFile)
@@ -335,6 +336,35 @@ function DealerRelations.Persistence:saveActiveLoans(xmlFile)
 end
 
 -------------------------------------------------------------------------------
+-- Saves the per-save crop history to XML.
+--
+-- Crop history is append-only; only crop names are written, since presence
+-- in the list is the only meaningful state — there is no "disabled" crop.
+-- Crops are sorted alphabetically for consistent XML output.
+--
+-- @param xmlFile number Active XML file handle.
+-------------------------------------------------------------------------------
+function DealerRelations.Persistence:saveCropsEverGrown(xmlFile)
+    local cropsEverGrown = DealerRelations.Data:getCropsEverGrown()
+    local crops = {}
+
+    for fruitTypeName, _ in pairs(cropsEverGrown) do
+        table.insert(crops, fruitTypeName)
+    end
+
+    table.sort(crops)
+
+    for index, fruitTypeName in ipairs(crops) do
+        local key = string.format(
+            "dealerRelations.cropsEverGrown.crop(%d)",
+            index - 1
+        )
+
+        setXMLString(xmlFile, key .. "#name", fruitTypeName)
+    end
+end
+
+-------------------------------------------------------------------------------
 -- Load
 -------------------------------------------------------------------------------
 
@@ -408,6 +438,7 @@ function DealerRelations.Persistence:load(savegameDirectory)
     self:loadActiveDemoOffer(xmlFile)
     self:loadActiveDemoVehicles(xmlFile)
     self:loadActiveLoans(xmlFile)
+    self:loadCropsEverGrown(xmlFile)
     
     -- Player settings
     self:loadCategoryFilters(xmlFile)
@@ -828,3 +859,40 @@ function DealerRelations.Persistence:loadActiveLoans(xmlFile)
         "Loaded active loans: " .. tostring(#DealerRelations.dealerData.activeLoans)
     )
 end
+
+-------------------------------------------------------------------------------
+-- Loads the per-save crop history from XML.
+--
+-- Missing crop history is not treated as an error — new saves, and saves
+-- from before crop history existed, simply start with an empty set. The
+-- next scan (on load or monthly) begins populating it from there.
+--
+-- @param xmlFile number Loaded XML file handle.
+-------------------------------------------------------------------------------
+function DealerRelations.Persistence:loadCropsEverGrown(xmlFile)
+    DealerRelations.dealerData.cropsEverGrown = {}
+
+    local index = 0
+
+    while true do
+        local key = string.format(
+            "dealerRelations.cropsEverGrown.crop(%d)",
+            index
+        )
+
+        local fruitTypeName = getXMLString(xmlFile, key .. "#name")
+
+        if fruitTypeName == nil then
+            break
+        end
+
+        DealerRelations.Data:addCropEverGrown(fruitTypeName)
+
+        index = index + 1
+    end
+
+    DealerRelations.log(
+        "Loaded crop history: " .. tostring(index) .. " crop(s)"
+    )
+end
+
