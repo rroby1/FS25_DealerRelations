@@ -33,6 +33,7 @@ source(g_currentModDirectory .. "scripts/DealerRelationsUtils.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsData.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsPersistence.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")
+source(g_currentModDirectory .. "scripts/DealerRelationsCrops.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsUI.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsScreen.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsDemoManager.lua")
@@ -70,6 +71,12 @@ function DealerRelations:loadMap()
 
     -- Build the eligible equipment list.
     DealerRelations.Equipment:discover()
+
+    -- Populate crop history from currently planted fields.
+    -- Rationale:
+    -- Captures the map's starting crop rotation on first load so early
+    -- demo offers can already account for crops the player didn't choose.
+    DealerRelations.Crops:scanOwnedFields()
 
     -- Validate active offer and demo against current store manager.
     -- Rationale:
@@ -129,22 +136,18 @@ function DealerRelations:checkMonthlyDemo()
     local currentMonth = g_currentMission.environment.currentPeriod
     local lastMonth = DealerRelations.Data:getLastDemoCheckMonth()
 
-    -- TEMP CODE START
-    if not DealerRelations._debugFruitNameLogged then
-        DealerRelations._debugFruitNameLogged = true
-
-        for _, idx in ipairs({0, 1, 2, 3, 13, 23}) do
-            local name = g_fruitTypeManager:getFruitTypeNameByIndex(idx)
-            Logging.info("[DealerRelations] fruitTypeIndex=%s -> name=%s", tostring(idx), tostring(name))
-        end
-    end
-    -- TEMP CODE END
-
     if currentMonth ~= lastMonth then
         DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
 
         -- Process passive confidence recovery before loan payments.
         DealerRelations.Finance:checkPassiveConfidenceRecovery()
+
+        -- Rescan owned fields for new crops each month.
+        -- Rationale:
+        -- Crop history should keep accumulating even while Dealer Relations
+        -- is disabled, consistent with loan aging continuing regardless of
+        -- the enabled setting.
+        DealerRelations.Crops:scanOwnedFields()
 
         -- Process monthly loan payments before demo offer generation.
         -- Rationale:
