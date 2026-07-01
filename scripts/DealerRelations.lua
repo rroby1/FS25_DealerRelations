@@ -129,6 +129,17 @@ function DealerRelations:checkMonthlyDemo()
     local currentMonth = g_currentMission.environment.currentPeriod
     local lastMonth = DealerRelations.Data:getLastDemoCheckMonth()
 
+    -- TEMP CODE START
+    if not DealerRelations._debugFruitNameLogged then
+        DealerRelations._debugFruitNameLogged = true
+
+        for _, idx in ipairs({0, 1, 2, 3, 13, 23}) do
+            local name = g_fruitTypeManager:getFruitTypeNameByIndex(idx)
+            Logging.info("[DealerRelations] fruitTypeIndex=%s -> name=%s", tostring(idx), tostring(name))
+        end
+    end
+    -- TEMP CODE END
+
     if currentMonth ~= lastMonth then
         DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
 

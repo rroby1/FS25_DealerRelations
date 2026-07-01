@@ -171,6 +171,7 @@ DealerRelations.dealerData = {
     settings = {
         enabled = false,
         debug = false,
+        forestryEnabled = false,
     },
     -- Display name for the dealership assigned to this save.
     -- Rationale:
@@ -1340,4 +1341,19 @@ function DealerRelations.Data:getFinanceTerm()
     end
 
     return constants.FINANCE_TERM_LEVEL_NEUTRAL
+end
+
+-- Returns whether forestry equipment categories are eligible for demo offers.
+--
+-- Rationale:
+-- Forestry has no reliable auto-detection signal, so it is exposed as a
+-- single manual toggle covering all forestry categories rather than
+-- per-category filters. Default OFF until Settings UI (0.18.0).
+function DealerRelations.Data:isForestryEnabled()
+    return DealerRelations.dealerData.settings.forestryEnabled == true
+end
+
+-- Stores the forestry equipment toggle setting.
+function DealerRelations.Data:setForestryEnabled(enabled)
+    DealerRelations.dealerData.settings.forestryEnabled = enabled == true
 end

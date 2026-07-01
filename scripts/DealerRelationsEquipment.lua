@@ -73,7 +73,33 @@ DealerRelations.Equipment.EXCLUDED_CATEGORIES = {
     TRAILERSCHANGINGSYSTEM = true,
     TRAILERSSEMI = true,
 
-    BALINGMISC = true
+    BALINGMISC = true,
+    WEIGHTS = true,
+    WINTEREQUIPMENT = true,
+    BELTS  = true
+}
+
+-------------------------------------------------------------------------------
+-- Forestry categories are gated behind a single player-facing toggle rather
+-- than individual per-category filters.
+--
+-- Forestry has no reliable ownership/usage signal the way fields have for
+-- crops, so it cannot be auto-detected. These categories remain listed in
+-- DEFAULT_CATEGORY_FILTERS as valid equipment categories, but are only
+-- offered when the Forestry setting is enabled. Default OFF.
+-------------------------------------------------------------------------------
+DealerRelations.Equipment.FORESTRY_CATEGORIES = {
+    FORESTRYEXCAVATORS = true,
+    FORESTRYEXCAVATORTOOLS = true,
+    FORESTRYFORWARDERS = true,
+    FORESTRYHARVESTERS = true,
+    FORESTRYMISC = true,
+    FORESTRYMULCHERS = true,
+    FORESTRYPLANTERS = true,
+    FORESTRYSTUMPCUTTERS = true,
+    FORESTRYWINCHES = true,
+    WOODCHIPPERS = true,
+    WOODTRANSPORT = true,
 }
 
 -------------------------------------------------------------------------------
@@ -87,8 +113,7 @@ DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
     BEETHARVESTERCUTTERS = true,
     BEETHARVESTERS = true,
     BEETLOADING = true,
-    BELTS = true,
-
+    
     COMBINEWINDROWER = true,
     CORNHEADERS = true,
     CUTTERS = true,
@@ -127,18 +152,6 @@ DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
     TEDDERS = true,
     WINDROWERS = true,
 
-    FORESTRYEXCAVATORS = true,
-    FORESTRYEXCAVATORTOOLS = true,
-    FORESTRYFORWARDERS = true,
-    FORESTRYHARVESTERS = true,
-    FORESTRYMISC = true,
-    FORESTRYMULCHERS = true,
-    FORESTRYPLANTERS = true,
-    FORESTRYSTUMPCUTTERS = true,
-    FORESTRYWINCHES = true,
-    WOODCHIPPERS = true,
-    WOODTRANSPORT = true,
-
     FORKLIFTS = true,
     FRONTLOADERS = true,
     FRONTLOADERTOOLS = true,
@@ -172,9 +185,7 @@ DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
     VEGETABLEPLANTERS = true,
 
     CUTTERTRAILERS = true,
-    WEIGHTS = true,
-    WINTEREQUIPMENT = true,
-
+    
     LOWLOADERS = true,
     SLURRYTRANSPORT = true,
     SUGARCANETRANSPORT = true,
@@ -219,6 +230,10 @@ function DealerRelations.Equipment:isDemoCandidate(item)
 
     if DealerRelations.Equipment.EXCLUDED_CATEGORIES[category] == true then
         return false
+    end
+
+    if DealerRelations.Equipment.FORESTRY_CATEGORIES[category] == true then
+        return DealerRelations.Data:isForestryEnabled()
     end
 
     if DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS[category] == nil then

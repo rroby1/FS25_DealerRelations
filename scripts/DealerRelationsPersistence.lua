@@ -123,6 +123,12 @@ function DealerRelations.Persistence:saveSettings(xmlFile)
         "dealerRelations.settings#debug",
         DealerRelations.Data:isDebugEnabled()
     )
+
+    setXMLBool(
+        xmlFile,
+        "dealerRelations.settings#forestryEnabled",
+        DealerRelations.Data:isForestryEnabled()
+    )
 end
 
 -------------------------------------------------------------------------------
@@ -497,6 +503,11 @@ function DealerRelations.Persistence:loadSettings(xmlFile)
         "dealerRelations.settings#debug"
     )
 
+    local forestryEnabled = getXMLBool(
+        xmlFile,
+        "dealerRelations.settings#forestryEnabled"
+    )
+
     if enabled ~= nil then
         DealerRelations.Data:setEnabled(enabled)
     end
@@ -505,10 +516,15 @@ function DealerRelations.Persistence:loadSettings(xmlFile)
         DealerRelations.Data:setDebugEnabled(debug)
     end
 
+    if forestryEnabled ~= nil then
+        DealerRelations.Data:setForestryEnabled(forestryEnabled)
+    end
+
     DealerRelations.log(string.format(
-        "Loaded settings: enabled=%s, debug=%s",
+        "Loaded settings: enabled=%s, debug=%s, forestryEnabled=%s",
         tostring(DealerRelations.Data:isEnabled()),
-        tostring(DealerRelations.Data:isDebugEnabled())
+        tostring(DealerRelations.Data:isDebugEnabled()),
+        tostring(DealerRelations.Data:isForestryEnabled())
     ))
 end
 

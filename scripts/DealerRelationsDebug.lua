@@ -130,6 +130,20 @@ function DealerRelations.registerConsoleCommands()
         DealerRelations
     )
 
+    addConsoleCommand(
+        "dr_toggleForestry",
+        "Toggle the forestry equipment demo setting",
+        "consoleCommandToggleForestry",
+        DealerRelations
+    )
+
+    addConsoleCommand(
+        "dr_forestryCount",
+        "Count forestry items in discovered equipment list",
+        "consoleCommandForestryCount",
+        DealerRelations
+    )
+    
     DealerRelations.log("Console commands registered")
 end
 
@@ -149,6 +163,10 @@ function DealerRelations:consoleCommandStatus()
         data:getConfidence(),
         data:getRelationshipName(),
         data:getRelationshipLevel()
+    ))
+    print(string.format(
+        "[DealerRelations] Forestry Demos Enabled: %s",
+        tostring(data:isForestryEnabled())
     ))
     print(string.format(
         "[DealerRelations] Credit Score: %d | Finance Rate: %s | Finance Term: %s",
@@ -360,3 +378,38 @@ function DealerRelations:consoleCommandResetAll()
 
     return "dr_resetAll: all Dealer Relations state reset to defaults"
 end
+
+-------------------------------------------------------------------------------
+-- Toggles the forestry equipment demo setting.
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandToggleForestry()
+    local newValue = not DealerRelations.Data:isForestryEnabled()
+    DealerRelations.Data:setForestryEnabled(newValue)
+
+    return string.format(
+        "dr_toggleForestry: forestry demos now %s",
+        tostring(newValue)
+    )
+end
+
+-------------------------------------------------------------------------------
+-- Counts forestry-category entries in the discovered equipment list.
+-- Useful for verifying the forestry toggle without relying on random
+-- demo offers to happen to surface (or not surface) a forestry item.
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandForestryCount()
+    local count = 0
+
+    for _, entry in ipairs(DealerRelations.equipmentList) do
+        if DealerRelations.Equipment.FORESTRY_CATEGORIES[tostring(entry.category)] == true then
+            count = count + 1
+        end
+    end
+
+    return string.format(
+        "dr_forestryCount: %d forestry item(s) in equipment list (forestryEnabled=%s)",
+        count,
+        tostring(DealerRelations.Data:isForestryEnabled())
+    )
+end
+
