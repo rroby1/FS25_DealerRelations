@@ -54,8 +54,8 @@ function DealerRelations.Crops:scanOwnedFields()
 
                 if fruitTypeName ~= nil
                     and fruitTypeName ~= "UNKNOWN"
-                    and not DealerRelations.Data:hasCropBeenGrown(fruitTypeName) then
-                    DealerRelations.Data:addCropEverGrown(fruitTypeName)
+                    and not DealerRelations.Data:hasCropBeenGrown(fruitTypeName:upper()) then
+                    DealerRelations.Data:addCropEverGrown(fruitTypeName:upper())
                     newCropCount = newCropCount + 1
                 end
             end
@@ -67,4 +67,71 @@ function DealerRelations.Crops:scanOwnedFields()
         fieldCount,
         newCropCount
     ))
+end
+
+-------------------------------------------------------------------------------
+-- Maps orchard/vineyard placeable config filenames to the fruit type they
+-- represent. Unlike field crops, these are not read from fieldState —
+-- the placeable's configFileName is the only signal that identifies which
+-- crop it represents.
+-------------------------------------------------------------------------------
+DealerRelations.Crops.PLACEABLE_CROP_MAP = {
+    ["data/placeables/orchards/grape/grapeSingleton.xml"] = "GRAPE",
+    ["data/placeables/orchards/olive/oliveSingleton.xml"] = "OLIVE"
+}
+
+-------------------------------------------------------------------------------
+-- Scans all placeables owned by the player's farm and records any orchard
+-- or vineyard crop into the per-save crop history.
+--
+-- Rationale:
+-- Orchards and vineyards are placeables, not fields, so they are invisible
+-- to scanOwnedFields(). configFileName is the only available signal for
+-- which crop a given placeable represents, since Placeable exposes no
+-- generic fruit type field. See PLACEABLE_CROP_MAP.
+--
+-- Called once during map load, and again on every PERIOD_CHANGED event,
+-- alongside scanOwnedFields() via the scanCropSources() coordinator.
+-------------------------------------------------------------------------------
+function DealerRelations.Crops:scanOwnedPlaceables()
+    if g_currentMission == nil or g_currentMission.placeableSystem == nil then
+        DealerRelations.warning("Cannot scan placeables: placeable system is unavailable")
+        return
+    end
+
+    local farmId = g_currentMission.player and g_currentMission.player.farmId or 1
+    local placeableCount = 0
+    local newCropCount = 0
+
+    for _, placeable in ipairs(g_currentMission.placeableSystem.placeables) do
+        placeableCount = placeableCount + 1
+
+        if placeable:getOwnerFarmId() == farmId then
+            local fruitTypeName = DealerRelations.Crops.PLACEABLE_CROP_MAP[placeable.configFileName]
+
+            if fruitTypeName ~= nil and not DealerRelations.Data:hasCropBeenGrown(fruitTypeName) then
+                DealerRelations.Data:addCropEverGrown(fruitTypeName)
+                newCropCount = newCropCount + 1
+            end
+        end
+    end
+
+    DealerRelations.log(string.format(
+        "Placeable scan complete: %d placeable(s) checked, %d new crop(s) recorded",
+        placeableCount,
+        newCropCount
+    ))
+end
+
+-------------------------------------------------------------------------------
+-- Coordinates a full crop history scan across every crop source.
+--
+-- Acts as the orchestration point only: calls each source-specific scan
+-- in turn. Adding a new crop source (e.g. a future greenhouse output, if
+-- ever tied to demo eligibility) means adding one more call here, not
+-- touching the callers of this function.
+-------------------------------------------------------------------------------
+function DealerRelations.Crops:scanCropSources()
+    self:scanOwnedFields()
+    self:scanOwnedPlaceables()
 end

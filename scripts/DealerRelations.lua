@@ -76,7 +76,7 @@ function DealerRelations:loadMap()
     -- Rationale:
     -- Captures the map's starting crop rotation on first load so early
     -- demo offers can already account for crops the player didn't choose.
-    DealerRelations.Crops:scanOwnedFields()
+    DealerRelations.Crops:scanCropSources()
 
     -- Validate active offer and demo against current store manager.
     -- Rationale:
@@ -136,6 +136,12 @@ function DealerRelations:checkMonthlyDemo()
     local currentMonth = g_currentMission.environment.currentPeriod
     local lastMonth = DealerRelations.Data:getLastDemoCheckMonth()
 
+DealerRelations.log(string.format("Total currently eligible: %d", eligibleCount))
+for category, count in pairs(eligibleByCategory) do
+    DealerRelations.log(string.format("  %s: %d", category, count))
+end
+-- TEMP CODE END
+
     if currentMonth ~= lastMonth then
         DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
 
@@ -147,7 +153,7 @@ function DealerRelations:checkMonthlyDemo()
         -- Crop history should keep accumulating even while Dealer Relations
         -- is disabled, consistent with loan aging continuing regardless of
         -- the enabled setting.
-        DealerRelations.Crops:scanOwnedFields()
+         DealerRelations.Crops:scanCropSources()
 
         -- Process monthly loan payments before demo offer generation.
         -- Rationale:
