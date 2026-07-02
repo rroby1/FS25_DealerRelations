@@ -1,0 +1,304 @@
+name: Sync Upstream (branches + tags + releases + safe mirror)
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      force_mirror:
+        description: 'Eseguire reset hard e force-push su main? (true/false)'
+        required: false
+        default: 'false'
+      create_release:
+        description: 'Creare una release pulita? (true/false)'
+        required: false
+        default: 'false'
+      release_tag:
+        description: 'Tag della release (opzionale).'
+        required: false
+        default: ''
+      release_name:
+        description: 'Nome della release (opzionale).'
+        required: false
+        default: ''
+      create_pr:
+        description: 'Creare una Pull Request pulita? (true/false)'
+        required: false
+        default: 'false'
+      pr_files:
+        description: 'File/percorsi separati da virgola da includere nella PR.'
+        required: false
+        default: ''
+      pr_branch:
+        description: 'Nome branch per la PR (opzionale).'
+        required: false
+        default: ''
+      pr_title:
+        description: 'Titolo della PR (opzionale).'
+        required: false
+        default: ''
+      pr_body:
+        description: 'Corpo della PR (opzionale).'
+        required: false
+        default: ''
+      pr_base:
+        description: 'Branch di base sull upstream per la PR (default: main).'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: write
+  issues: write
+
+env:
+  UPSTREAM_REPO: rroby1/FS25_DealerRelations
+  FORK_REPO: FirenzeIT/FS25_DealerRelations
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout fork full
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y curl jq zip unzip coreutils ca-certificates gnupg lsb-release apt-transport-https || true
+          if ! command -v gh >/dev/null 2>&1; then
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg 2>/dev/null || true
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg || true
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt-get update -y
+            sudo apt-get install -y gh || {
+              GH_DEB_URL=$(curl -s https://api.github.com/repos/cli/cli/releases/latest | jq -r '.assets[] | select(.name|test("linux_amd64.deb$")) | .browser_download_url')
+              if [ -n "$GH_DEB_URL" ]; then
+                curl -L -o gh.deb "$GH_DEB_URL"
+                sudo dpkg -i gh.deb || sudo apt-get -f install -y
+                rm -f gh.deb
+              else
+                echo "Could not find gh .deb URL"; exit 1
+              fi
+            }
+          fi
+          gh --version || true
+          jq --version || true
+          sha256sum --version || true
+          zip -v || true
+
+      - name: Configure gh auth
+        env:
+          PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        run: |
+          if [ -n "${PERSONAL_TOKEN:-}" ]; then
+            echo "${PERSONAL_TOKEN}" | gh auth login --with-token >/dev/null 2>&1 || true
+          else
+            echo "${GITHUB_TOKEN}" | gh auth login --with-token >/dev/null 2>&1 || true
+          fi
+
+      - name: Add upstream remote and fetch
+        run: |
+          git remote remove upstream 2>/dev/null || true
+          git remote add upstream https://github.com/${UPSTREAM_REPO}.git
+          git fetch upstream --tags --prune
+
+      - name: Sync all branches fast-forward only
+        run: |
+          git fetch origin --prune
+          for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/upstream/ | grep -v 'HEAD$' || true); do
+            branch=${ref#upstream/}
+            [ -z "$branch" ] && continue
+            echo "Processing branch: $branch"
+            if git show-ref --verify --quiet refs/heads/"$branch"; then
+              git checkout "$branch"
+              if ! git diff --quiet || [ -n "$(git log --pretty=%H upstream/$branch..$branch 2>/dev/null)" ]; then
+                echo "Skipping $branch (local changes or diverged commits)"
+                continue
+              fi
+              git merge --ff-only upstream/"$branch" || { echo "FF failed for $branch, skipping"; continue; }
+            else
+              git rev-parse --verify --quiet "upstream/$branch" >/dev/null || { echo "Invalid upstream ref, skipping $branch"; continue; }
+              git checkout -b "$branch" upstream/"$branch"
+            fi
+            git push origin "$branch"
+          done
+          if git show-ref --verify --quiet refs/heads/main; then git checkout main || true; elif git show-ref --verify --quiet refs/heads/master; then git checkout master || true; fi
+
+      - name: Sync all tags
+        run: |
+          git fetch upstream --tags
+          git push origin --tags || echo "Warning: pushing tags returned non-zero status"
+
+      - name: Sync releases and assets with checksums
+        run: |
+          set -o pipefail
+          NOTIFY_BODY="Sync report - $(date -u)\n\n"
+          releases_json=$(gh api repos/${UPSTREAM_REPO}/releases --jq '.')
+          if [ -z "$releases_json" ] || [ "$releases_json" = "null" ]; then
+            NOTIFY_BODY="${NOTIFY_BODY}No releases found on upstream.\n"
+          else
+            echo "$releases_json" | jq -c '.[]' | while read -r release; do
+              tag=$(echo "$release" | jq -r '.tag_name // empty')
+              title=$(echo "$release" | jq -r '.name // empty')
+              body=$(echo "$release" | jq -r '.body // ""')
+              [ -z "$tag" ] && { NOTIFY_BODY="${NOTIFY_BODY}Skipped release without tag.\n"; continue; }
+              if gh release view "$tag" --repo ${FORK_REPO} >/dev/null 2>&1; then
+                NOTIFY_BODY="${NOTIFY_BODY}${tag}: already exists in fork\n"
+                continue
+              fi
+              if gh release create "$tag" --repo ${FORK_REPO} --title "$title" --notes "$body"; then
+                NOTIFY_BODY="${NOTIFY_BODY}${tag}: created in fork\n"
+              else
+                NOTIFY_BODY="${NOTIFY_BODY}${tag}: ERROR creating release\n"
+                continue
+              fi
+              assets=$(echo "$release" | jq -c '.assets[]?' 2>/dev/null || true)
+              [ -z "$assets" ] && { NOTIFY_BODY="${NOTIFY_BODY}  - No assets\n"; continue; }
+              echo "$assets" | while read -r asset; do
+                asset_name=$(echo "$asset" | jq -r '.name // empty')
+                asset_url=$(echo "$asset" | jq -r '.browser_download_url // empty')
+                asset_size=$(echo "$asset" | jq -r '.size // 0')
+                if [ -z "$asset_name" ] || [ -z "$asset_url" ]; then
+                  NOTIFY_BODY="${NOTIFY_BODY}  - Skipped invalid asset metadata\n"; continue;
+                fi
+                if ! curl -L --fail -o "$asset_name" "$asset_url"; then
+                  NOTIFY_BODY="${NOTIFY_BODY}  - ERROR downloading ${asset_name}\n"; rm -f "$asset_name"; continue;
+                fi
+                downloaded_size=$(stat -c%s "$asset_name" 2>/dev/null || echo 0)
+                if [ "$asset_size" -ne 0 ] && [ "$downloaded_size" -ne "$asset_size" ]; then NOTIFY_BODY="${NOTIFY_BODY}  - Size mismatch ${asset_name}\n"; rm -f "$asset_name"; continue; fi
+                checksum=$(sha256sum "$asset_name" | awk '{print $1}')
+                NOTIFY_BODY="${NOTIFY_BODY}  - ${asset_name}, size:${downloaded_size}, sha256:${checksum}\n"
+                gh release upload "$tag" "$asset_name" --repo ${FORK_REPO} || NOTIFY_BODY="${NOTIFY_BODY}    -> ERROR uploading\n"
+                rm -f "$asset_name"
+              done
+            done
+          fi
+          echo -e "$NOTIFY_BODY" > sync_report.txt
+          cat sync_report.txt
+
+      - name: Create backup mirror artifact (always)
+        run: |
+          set -euo pipefail
+          BACKUP_DIR=$(mktemp -d)
+          echo "Creating mirror backup in $BACKUP_DIR"
+          git clone --mirror https://github.com/${FORK_REPO}.git "$BACKUP_DIR/repo-backup.git"
+          TARFILE="repo-backup-$(date -u +%Y%m%dT%H%MZ).tar.gz"
+          tar -C "$BACKUP_DIR" -czf "$TARFILE" repo-backup.git
+          sha256sum "$TARFILE" > "${TARFILE}.sha256"
+          mkdir -p artifacts
+          mv "$TARFILE" "${TARFILE}.sha256" artifacts/
+          ls -l artifacts
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: repo-backup
+          path: artifacts/
+
+      - name: Enforce mirror of upstream main on fork safe (destructive)
+        if: ${{ github.event.inputs.force_mirror == 'true' }}
+        run: |
+          set -euo pipefail
+          echo "=== Safe mirror: checking divergence before destructive reset ==="
+          git fetch upstream main:refs/remotes/upstream/main
+          git fetch origin main:refs/remotes/origin/main || true
+          AHEAD_ORIGIN=$(git rev-list --left-only --count origin/main...upstream/main 2>/dev/null || echo 0)
+          AHEAD_UPSTREAM=$(git rev-list --right-only --count origin/main...upstream/main 2>/dev/null || echo 0)
+          echo "origin/main ahead count: $AHEAD_ORIGIN"
+          echo "upstream/main ahead count: $AHEAD_UPSTREAM"
+          if [ "$AHEAD_ORIGIN" -gt 0 ]; then
+            echo "Aborting: origin/main has $AHEAD_ORIGIN commits not present in upstream/main. To avoid data loss, do not force mirror automatically."
+            exit 1
+          fi
+          echo "No commits on origin/main that would be lost. Proceeding with destructive reset."
+          if git show-ref --verify --quiet refs/heads/main; then
+            git checkout main
+          else
+            git checkout -b main upstream/main
+          fi
+          git reset --hard upstream/main
+          git push --force origin main
+          echo "=== Mirror enforced: fork main now matches upstream/main ==="
+
+      - name: Create clean release archive and upload (conditional)
+        if: ${{ github.event.inputs.create_release == 'true' }}
+        env:
+          FORK_REPO: ${{ env.FORK_REPO }}
+        run: |
+          set -euo pipefail
+          INPUT_TAG="${{ github.event.inputs.release_tag }}"
+          if [ -n "$INPUT_TAG" ]; then RELEASE_TAG="$INPUT_TAG"; else RELEASE_TAG="v$(date -u +%Y%m%d%H%M)"; fi
+          RELEASE_NAME="${{ github.event.inputs.release_name }}"
+          if [ -z "$RELEASE_NAME" ]; then RELEASE_NAME="Mod Release ${RELEASE_TAG}"; fi
+          RELEASE_BODY="Release automatica della mod. Contenuto pulito."
+          release_include_paths="mod data README.md LICENSE"
+          ARCHIVE_NAME="mod-release-${RELEASE_TAG}.zip"
+          CHECKSUM_FILE="${ARCHIVE_NAME}.sha256"
+          TMPDIR=$(mktemp -d)
+          for p in $release_include_paths; do
+            if [ -e "$p" ]; then mkdir -p "$TMPDIR/$(dirname "$p")"; cp -a "$p" "$TMPDIR/$p"; else echo "Warning: $p not found"; fi
+          done
+          find "$TMPDIR" -type d -name ".github" -prune -exec rm -rf {} + || true
+          find "$TMPDIR" -type d -name ".git" -prune -exec rm -rf {} + || true
+          (cd "$TMPDIR" && zip -r "../${ARCHIVE_NAME}" .) >/dev/null
+          mv "${ARCHIVE_NAME}" .
+          sha256sum "${ARCHIVE_NAME}" | awk '{print $1 "  " $2}' > "${CHECKSUM_FILE}"
+          if gh release view "${RELEASE_TAG}" --repo "${FORK_REPO}" >/dev/null 2>&1; then echo "Release exists, uploading assets"; else gh release create "${RELEASE_TAG}" --repo "${FORK_REPO}" --title "${RELEASE_NAME}" --notes "${RELEASE_BODY}"; fi
+          gh release upload "${RELEASE_TAG}" "${ARCHIVE_NAME}" --repo "${FORK_REPO}" || echo "Upload archive failed"
+          gh release upload "${RELEASE_TAG}" "${CHECKSUM_FILE}" --repo "${FORK_REPO}" || echo "Upload checksum failed"
+          rm -rf "$TMPDIR"
+
+      - name: Create clean PR branch and open PR (conditional)
+        if: ${{ github.event.inputs.create_pr == 'true' }}
+        env:
+          UPSTREAM_REPO: ${{ env.UPSTREAM_REPO }}
+          FORK_REPO: ${{ env.FORK_REPO }}
+        run: |
+          set -euo pipefail
+          PR_FILES_RAW="${{ github.event.inputs.pr_files }}"
+          PR_BRANCH_INPUT="${{ github.event.inputs.pr_branch }}"
+          PR_TITLE_INPUT="${{ github.event.inputs.pr_title }}"
+          PR_BODY_INPUT="${{ github.event.inputs.pr_body }}"
+          PR_BASE="${{ github.event.inputs.pr_base || 'main' }}"
+          if [ -z "$PR_FILES_RAW" ]; then echo "No pr_files provided. Aborting PR creation."; exit 1; fi
+          IFS=',' read -r -a PR_FILES <<< "$PR_FILES_RAW"
+          if [ -n "$PR_BRANCH_INPUT" ]; then PR_BRANCH="$PR_BRANCH_INPUT"; else PR_BRANCH="pr-clean-$(date -u +%Y%m%d%H%M%S)"; fi
+          if [ -n "$PR_TITLE_INPUT" ]; then PR_TITLE="$PR_TITLE_INPUT"; else PR_TITLE="Clean PR: ${PR_FILES[0]}"; fi
+          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD || echo "main")
+          git fetch origin "$PR_BASE":"refs/remotes/origin/$PR_BASE"
+          git checkout -b "$PR_BRANCH" "refs/remotes/origin/$PR_BASE"
+          TMPDIR=$(mktemp -d)
+          for p in "${PR_FILES[@]}"; do
+            p_trimmed=$(echo "$p" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            if [ -e "$p_trimmed" ]; then mkdir -p "$TMPDIR/$(dirname "$p_trimmed")"; cp -a "$p_trimmed" "$TMPDIR/$p_trimmed"; else echo "Warning: $p_trimmed not found"; fi
+          done
+          find "$TMPDIR" -type d -name ".github" -prune -exec rm -rf {} + || true
+          find "$TMPDIR" -type d -name ".git" -prune -exec rm -rf {} + || true
+          rsync -a --delete --exclude='.git' --exclude='.github' "$TMPDIR"/ ./
+          for p in "${PR_FILES[@]}"; do p_trimmed=$(echo "$p" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); if [ -e "$p_trimmed" ]; then git add -- "$p_trimmed"; fi; done
+          if git diff --cached --quiet; then echo "No changes to commit. Aborting."; git checkout "$CURRENT_BRANCH"; rm -rf "$TMPDIR"; exit 0; fi
+          git commit -m "$PR_TITLE"
+          git push -u origin "$PR_BRANCH"
+          ORIGIN_URL=$(git config --get remote.origin.url || true)
+          FORK_OWNER=""
+          if [[ "$ORIGIN_URL" =~ github.com[:/]+([^/]+)/([^/.]+)(\.git)?$ ]]; then FORK_OWNER="${BASH_REMATCH[1]}"; fi
+          if [ -z "$FORK_OWNER" ]; then FORK_OWNER=$(gh api user --jq .login 2>/dev/null || true); fi
+          HEAD_REF="${FORK_OWNER}:${PR_BRANCH}"
+          TARGET_REPO="${UPSTREAM_REPO}"
+          if [ -n "$PR_BODY_INPUT" ]; then gh pr create --repo "${TARGET_REPO}" --title "$PR_TITLE" --body "$PR_BODY_INPUT" --base "$PR_BASE" --head "$HEAD_REF"; else gh pr create --repo "${TARGET_REPO}" --title "$PR_TITLE" --base "$PR_BASE" --head "$HEAD_REF"; fi
+          rm -rf "$TMPDIR"
+          git checkout "$CURRENT_BRANCH"
+
+      - name: Create update notification issue (always)
+        if: always()
+        run: |
+          REPORT=$(cat sync_report.txt || echo "No report available")
+          TITLE="Fork aggiornato automaticamente - $(date -u +"%Y-%m-%d %H:%M UTC")"
+          gh issue create --repo ${FORK_REPO} --title "$TITLE" --body "$REPORT" || echo "Issue creation returned non-zero status"
+
+      - name: Final log
+        run: |
+          echo "=== [$(date -u)] Sync job finished ==="
