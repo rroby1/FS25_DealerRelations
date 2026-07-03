@@ -443,8 +443,15 @@ function DealerRelations.Equipment:resolveDemoCandidate(item)
     local powerMin = xmlData ~= nil and xmlData.powerMin or nil
     local powerMax = xmlData ~= nil and xmlData.powerMax or nil
 
-    if DealerRelations.Equipment.POWER_MANAGED_CATEGORIES[category] == true
-        and powerRole == "NONE" then
+    -- Any automatically-managed category (crop, forestry, or power-managed)
+    -- defaults to 0 HP when the XML defines no neededPower, rather than
+    -- falling through to powerRole "NONE" and becoming invisible to both
+    -- HP eligibility and selection weighting. Tractors are excluded since
+    -- they already set powerRole explicitly during config expansion above.
+    if powerRole == "NONE"
+        and (DealerRelations.Equipment.CROP_CATEGORIES[category] ~= nil
+            or DealerRelations.Equipment.FORESTRY_CATEGORIES[category] ~= nil
+            or DealerRelations.Equipment.POWER_MANAGED_CATEGORIES[category] == true) then
         powerRole = "IMPLEMENT"
         displayPower = 0
         powerMin = 0
@@ -546,13 +553,38 @@ function DealerRelations.Equipment:getRandomDemoCandidate()
         return nil
     end
 
+    -- Computed once per selection cycle, not per candidate, since both
+    -- values depend only on current ownership state.
+    local ownedMaxTractorPower = self:getOwnedMaxTractorPower()
+    local ownedMaxImplementNeededPower = self:getOwnedMaxImplementNeededPower()
+
+    local weights = {}
+    local totalWeight = 0
+
+    for i, candidate in ipairs(eligibleCandidates) do
+        local weight = self:getHpWeight(candidate, ownedMaxTractorPower, ownedMaxImplementNeededPower)
+        weights[i] = weight
+        totalWeight = totalWeight + weight
+    end
+
     local candidate = nil
     local candidateKey = nil
     local attemptsRemaining = #eligibleCandidates
 
     repeat
-        local index = math.random(1, #eligibleCandidates)
-        candidate = eligibleCandidates[index]
+        local roll = math.random() * totalWeight
+        local cumulative = 0
+        local pickedIndex = #eligibleCandidates
+
+        for i, weight in ipairs(weights) do
+            cumulative = cumulative + weight
+            if roll <= cumulative then
+                pickedIndex = i
+                break
+            end
+        end
+
+        candidate = eligibleCandidates[pickedIndex]
         candidateKey = self:getDemoCandidateKey(candidate)
 
         if DealerRelations.Data:isRecentDemoCandidate(candidateKey) then
@@ -858,4 +890,42 @@ function DealerRelations.Equipment:getOwnedMaxImplementNeededPower()
     end
 
     return maxNeededPower
+end
+
+-------------------------------------------------------------------------------
+-- Returns a candidate's selection weight based on HP distance from the
+-- relevant boundary:
+--   - Tractor configs: distance above the owned-implement floor (biases
+--     toward the cheapest config that still clears it).
+--   - Implements: distance below the owned-tractor ceiling (biases toward
+--     the implement closest to, but under, the ceiling).
+--   - Anything else (categories still on a manual toggle): flat weight of 1.
+--     No dedicated fallback constant, since manual categories are being
+--     phased out.
+--
+-- @param candidate table Entry from equipmentList.
+-- @param ownedMaxTractorPower number Precomputed once per selection cycle.
+-- @param ownedMaxImplementNeededPower number Precomputed once per selection
+--        cycle.
+-- @return number Selection weight, always > 0.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:getHpWeight(candidate, ownedMaxTractorPower, ownedMaxImplementNeededPower)
+    local distance = nil
+
+    if DealerRelations.Equipment.TRACTOR_CATEGORIES[candidate.category] == true
+        and candidate.displayPower ~= nil then
+        distance = candidate.displayPower - ownedMaxImplementNeededPower
+    elseif candidate.powerRole == "IMPLEMENT" and candidate.displayPower ~= nil then
+        distance = ownedMaxTractorPower - candidate.displayPower
+    end
+
+    if distance == nil then
+        return 1
+    end
+
+    -- Eligibility should already guarantee this, but never let a negative
+    -- distance reach the exponent.
+    distance = math.max(distance, 0)
+
+    return 1 / (distance + DealerRelations.CONSTANTS.HP_WEIGHT_CONSTANT) ^ DealerRelations.CONSTANTS.HP_WEIGHT_STEEPNESS
 end

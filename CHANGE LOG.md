@@ -1,5 +1,19 @@
 # Changelog
 
+## Version 0.18.0
+
+- Added bidirectional HP eligibility: implements require an owned tractor with sufficient power; tractor demos require sufficient power for the player's most demanding owned implement. No ceiling/floor beyond what's actually owned on the other side.
+- Added per-engine-configuration expansion for tractors: each motor configuration is now its own demo candidate, not one entry per model.
+- Added weighted demo selection: candidates chosen via HP-distance weighting instead of uniform random — tractor configs biased toward the cheapest that clears the floor, implements biased toward the closest match under the ceiling.
+- Added `TRACTOR_CATEGORIES` and `POWER_MANAGED_CATEGORIES`: tractors and towed tillage implements (cultivators, disc harrows, mulchers, power harrows, rollers, spaders, stone pickers, subsoilers, weeders) removed from manual category filters, now fully automatic.
+- Added `PLOWS` to `CROP_CATEGORIES`, gated on MAIZE/POTATO/SUGARBEET crop history; removed from manual filter.
+- Generalized the missing-power default: any automatically-managed category (crop, forestry, power-managed) defaults to 0 HP when its XML defines none, rather than becoming invisible to eligibility and weighting.
+- Added `HP_WEIGHT_CONSTANT` and `HP_WEIGHT_STEEPNESS` constants for tuning selection weighting.
+- Added `dr_motorConfigs` console command (debug) for inspecting owned vehicle engine configuration data.
+- Deferred: self-propelled harvester/forager HP eligibility and header-to-harvester connector compatibility.
+- Deferred: mass/weight-based gating for sprayers and fertilizer spreaders (remain manually toggled).
+- Deferred: UI rebuild, still pending further automated selection logic.
+
 ## Version 0.17.0
 
 - Added crop-eligibility gating: equipment tied to specific crops becomes demo-eligible once the player has ever grown a fruit type it requires, resolved from XML (`fruitTypeCategories`, `fruitTypes`, or `vineFruitType`) rather than a hardcoded crop-to-category map.

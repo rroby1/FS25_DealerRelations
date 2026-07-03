@@ -132,6 +132,9 @@ DealerRelations.CONSTANTS = {
     CREDIT_SCORE_PER_REPAID_LOAN = 15,
     CREDIT_SCORE_REPAID_CAP = 75,
     CREDIT_SCORE_PER_MISSED_PAYMENT = -50,
+
+    HP_WEIGHT_CONSTANT = 20,     -- Shapes weight falloff near the boundary
+    HP_WEIGHT_STEEPNESS = 1,     -- Shapes weight falloff across the full range
 }
 
 
