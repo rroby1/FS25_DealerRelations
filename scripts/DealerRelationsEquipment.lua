@@ -179,6 +179,23 @@ DealerRelations.Equipment.TRACTOR_CATEGORIES = {
 }
 
 -------------------------------------------------------------------------------
+-- Categories managed entirely by HP eligibility rather than a manual
+-- player toggle. Missing neededPower in an item's XML defaults to 0 HP
+-- (resolveDemoCandidate), not exclusion from discovery.
+-------------------------------------------------------------------------------
+DealerRelations.Equipment.POWER_MANAGED_CATEGORIES = {
+    CULTIVATORS = true,
+    DISCHARROWS = true,
+    MULCHERS = true,
+    POWERHARROWS = true,
+    ROLLERS = true,
+    SPADERS = true,
+    STONEPICKERS = true,
+    SUBSOILERS = true,
+    WEEDERS = true,
+}
+
+-------------------------------------------------------------------------------
 -- Default player-configurable category filters.
 --
 -- These categories are valid equipment-demo categories. New saves will start
@@ -240,6 +257,7 @@ function DealerRelations.Equipment:isDemoCandidate(item)
     if DealerRelations.Equipment.CROP_CATEGORIES[category] == nil
         and DealerRelations.Equipment.FORESTRY_CATEGORIES[category] == nil
         and DealerRelations.Equipment.TRACTOR_CATEGORIES[category] == nil
+        and DealerRelations.Equipment.POWER_MANAGED_CATEGORIES[category] == nil
         and DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS[category] == nil then
         DealerRelations.warning("Unclassified equipment category: " .. category)
         return false
@@ -247,7 +265,6 @@ function DealerRelations.Equipment:isDemoCandidate(item)
 
     return true
 end
-
 
 -------------------------------------------------------------------------------
 -- Reads equipment data directly from a vehicle XML file.
@@ -414,6 +431,26 @@ function DealerRelations.Equipment:resolveDemoCandidate(item)
         -- config data doesn't silently vanish from the equipment list.
     end
 
+    -- Categories fully managed by HP eligibility default to a 0 HP
+    -- requirement when the XML defines none, rather than falling through
+    -- to powerRole "NONE" and becoming invisible to both the eligibility
+    -- gate and the selection weighting. A modder omitting neededPower is
+    -- treated the same as an implement that genuinely needs none — the
+    -- resulting low weight against large tractors is an acceptable outcome
+    -- either way.
+    local powerRole = xmlData ~= nil and xmlData.powerRole or "NONE"
+    local displayPower = xmlData ~= nil and xmlData.displayPower or nil
+    local powerMin = xmlData ~= nil and xmlData.powerMin or nil
+    local powerMax = xmlData ~= nil and xmlData.powerMax or nil
+
+    if DealerRelations.Equipment.POWER_MANAGED_CATEGORIES[category] == true
+        and powerRole == "NONE" then
+        powerRole = "IMPLEMENT"
+        displayPower = 0
+        powerMin = 0
+        powerMax = 0
+    end
+
     return {
         {
             name = item.name,
@@ -425,10 +462,10 @@ function DealerRelations.Equipment:resolveDemoCandidate(item)
             price = item.price,
             xmlFilename = item.xmlFilename,
             storeImage = xmlData ~= nil and xmlData.storeImage or nil,
-            powerRole = xmlData ~= nil and xmlData.powerRole or "NONE",
-            displayPower = xmlData ~= nil and xmlData.displayPower or nil,
-            powerMin = xmlData ~= nil and xmlData.powerMin or nil,
-            powerMax = xmlData ~= nil and xmlData.powerMax or nil,
+            powerRole = powerRole,
+            displayPower = displayPower,
+            powerMin = powerMin,
+            powerMax = powerMax,
         }
     }
 end
@@ -732,6 +769,10 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
 
     if DealerRelations.Equipment.FORESTRY_CATEGORIES[candidate.category] == true then
         return DealerRelations.Data:isForestryEnabled()
+    end
+
+    if DealerRelations.Equipment.POWER_MANAGED_CATEGORIES[candidate.category] == true then
+        return true
     end
 
     if DealerRelations.Equipment.CROP_CATEGORIES[candidate.category] ~= nil then
