@@ -15,7 +15,7 @@
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.17.0"
+DealerRelations.version = "0.18.0"
 
 -- Store the mod directory for later runtime use.
 -- Rationale: g_currentModDirectory is available while sourcing files,

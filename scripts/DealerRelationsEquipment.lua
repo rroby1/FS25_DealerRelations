@@ -15,6 +15,7 @@ DealerRelations.Equipment = DealerRelations.Equipment or {}
 -------------------------------------------------------------------------------
 
 DealerRelations.equipmentList = {}
+DealerRelations.equipmentByXmlFilename = {}
 
 -------------------------------------------------------------------------------
 -- Categories that Dealer Relations should never offer as equipment demos.
@@ -159,6 +160,8 @@ DealerRelations.Equipment.CROP_CATEGORIES = {
     BALERSROUND = "WINDROW",
     BALETRANSPORT = "WINDROW",
     BALEWRAPPERS = { "GRASS" },
+
+    PLOWS = { "MAIZE", "POTATO", "SUGARBEET" },
 }
 
 -------------------------------------------------------------------------------
@@ -183,17 +186,6 @@ DealerRelations.Equipment.TRACTOR_CATEGORIES = {
 -------------------------------------------------------------------------------
 DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
     AUGERWAGONS = true,
-
-    CULTIVATORS = true,
-    DISCHARROWS = true,
-    MULCHERS = true,
-    PLOWS = true,
-    POWERHARROWS = true,
-    ROLLERS = true,
-    SPADERS = true,
-    STONEPICKERS = true,
-    SUBSOILERS = true,
-    WEEDERS = true,
 
     FERTILIZERSPREADERS = true,
     MANURESPREADERS = true,
@@ -247,6 +239,7 @@ function DealerRelations.Equipment:isDemoCandidate(item)
 
     if DealerRelations.Equipment.CROP_CATEGORIES[category] == nil
         and DealerRelations.Equipment.FORESTRY_CATEGORIES[category] == nil
+        and DealerRelations.Equipment.TRACTOR_CATEGORIES[category] == nil
         and DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS[category] == nil then
         DealerRelations.warning("Unclassified equipment category: " .. category)
         return false
@@ -368,38 +361,75 @@ end
 -------------------------------------------------------------------------------
 function DealerRelations.Equipment:resolveDemoCandidate(item)
     if not self:isDemoCandidate(item) then
-        return nil
+        return {}
     end
 
     local category = tostring(item.categoryName)
     local xmlData = self:readEquipmentXml(item.xmlFilename)
 
-    -- Prefer the brand resolved from the vehicle XML when available.
-    -- Fall back to the store item brand so discovery can still continue
-    -- if XML brand data cannot be read.
     local brand = xmlData ~= nil and xmlData.brand or item.brandName
-
-    -- Ensure every discovered brand has a per-save filter entry.
-    -- New brands default to enabled so mod-added brands remain eligible
-    -- unless the player disables them later. This is one-time housekeeping,
-    -- not an eligibility check — whether the brand is currently enabled is
-    -- decided fresh at selection time, not here.
     DealerRelations.Data:ensureBrandFilter(brand)
 
+    -- Tractors are expanded into one candidate per engine configuration so
+    -- HP eligibility and future weighted selection operate on the specific
+    -- configuration actually offered, not the model's full range. Deferred
+    -- for other self-propelled categories (harvesters, foragers) until
+    -- their own HP-eligibility work is scoped.
+    if DealerRelations.Equipment.TRACTOR_CATEGORIES[category] == true
+        and item.configurations ~= nil
+        and item.configurations["motor"] ~= nil then
+
+        local candidates = {}
+
+        for _, configEntry in ipairs(item.configurations["motor"]) do
+            if configEntry.power ~= nil and configEntry.isSelectable ~= false then
+                table.insert(candidates, {
+                    name = configEntry.name or item.name,
+                    brand = brand,
+                    storeBrand = item.brandName,
+                    xmlBrand = xmlData ~= nil and xmlData.brand or nil,
+                    category = category,
+                    fruitTypes = xmlData ~= nil and xmlData.fruitTypes or nil,
+                    -- Assumes configEntry.price is the incremental upgrade
+                    -- cost added to the base vehicle price ("0, 6000,
+                    -- 13000..." pattern seen in store XML) — flagging as an
+                    -- assumption, not yet separately confirmed.
+                    price = item.price + (configEntry.price or 0),
+                    xmlFilename = item.xmlFilename,
+                    storeImage = xmlData ~= nil and xmlData.storeImage or nil,
+                    powerRole = "SELF_PROPELLED",
+                    displayPower = configEntry.power,
+                    powerMin = configEntry.power,
+                    powerMax = configEntry.power,
+                    motorConfigId = configEntry.index,
+                })
+            end
+        end
+
+        if #candidates > 0 then
+            return candidates
+        end
+        -- Fall through to single-candidate behavior below if no usable
+        -- motor configuration data was found, so a tractor with malformed
+        -- config data doesn't silently vanish from the equipment list.
+    end
+
     return {
-        name = item.name,
-        brand = brand,
-        storeBrand = item.brandName,
-        xmlBrand = xmlData ~= nil and xmlData.brand or nil,
-        category = category,
-        fruitTypes = xmlData ~= nil and xmlData.fruitTypes or nil,
-        price = item.price,
-        xmlFilename = item.xmlFilename,
-        storeImage = xmlData ~= nil and xmlData.storeImage or nil,  -- Store image path for Overview display
-        powerRole = xmlData ~= nil and xmlData.powerRole or "NONE",
-        displayPower = xmlData ~= nil and xmlData.displayPower or nil,
-        powerMin = xmlData ~= nil and xmlData.powerMin or nil,
-        powerMax = xmlData ~= nil and xmlData.powerMax or nil
+        {
+            name = item.name,
+            brand = brand,
+            storeBrand = item.brandName,
+            xmlBrand = xmlData ~= nil and xmlData.brand or nil,
+            category = category,
+            fruitTypes = xmlData ~= nil and xmlData.fruitTypes or nil,
+            price = item.price,
+            xmlFilename = item.xmlFilename,
+            storeImage = xmlData ~= nil and xmlData.storeImage or nil,
+            powerRole = xmlData ~= nil and xmlData.powerRole or "NONE",
+            displayPower = xmlData ~= nil and xmlData.displayPower or nil,
+            powerMin = xmlData ~= nil and xmlData.powerMin or nil,
+            powerMax = xmlData ~= nil and xmlData.powerMax or nil,
+        }
     }
 end
 
@@ -415,6 +445,7 @@ end
 -------------------------------------------------------------------------------
 function DealerRelations.Equipment:discover()
     DealerRelations.equipmentList = {}
+    DealerRelations.equipmentByXmlFilename = {}
 
     if g_storeManager == nil or g_storeManager.items == nil then
         DealerRelations.warning("Cannot discover equipment: store manager is unavailable")
@@ -427,11 +458,20 @@ function DealerRelations.Equipment:discover()
     for _, item in pairs(g_storeManager.items) do
         storeItemCount = storeItemCount + 1
 
-        local candidate = self:resolveDemoCandidate(item)
+        local candidates = self:resolveDemoCandidate(item)
 
-        if candidate ~= nil then
+        for _, candidate in ipairs(candidates) do
             candidateCount = candidateCount + 1
             table.insert(DealerRelations.equipmentList, candidate)
+
+            -- Only implements are looked up by xmlFilename (see
+            -- getOwnedMaxImplementNeededPower). Tractors are expanded into
+            -- multiple entries sharing one xmlFilename and would collide
+            -- here, but nothing looks tractors up through this map, so
+            -- skipping them is safe.
+            if candidate.powerRole == "IMPLEMENT" and candidate.xmlFilename ~= nil then
+                DealerRelations.equipmentByXmlFilename[candidate.xmlFilename] = candidate
+            end
         end
     end
 
@@ -673,6 +713,23 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
         return false
     end
 
+    -- Implements requiring more power than the player's best owned tractor
+    -- are excluded. No floor beyond this.
+    if candidate.powerRole == "IMPLEMENT" and candidate.displayPower ~= nil then
+        if self:getOwnedMaxTractorPower() < candidate.displayPower then
+            return false
+        end
+    end
+
+    -- Tractor configurations underpowered for the player's most demanding
+    -- owned implement are excluded. No ceiling beyond this.
+    if DealerRelations.Equipment.TRACTOR_CATEGORIES[candidate.category] == true
+        and candidate.displayPower ~= nil then
+        if candidate.displayPower < self:getOwnedMaxImplementNeededPower() then
+            return false
+        end
+    end
+
     if DealerRelations.Equipment.FORESTRY_CATEGORIES[candidate.category] == true then
         return DealerRelations.Data:isForestryEnabled()
     end
@@ -681,5 +738,83 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
         return self:isCropEligible(candidate.category, candidate.fruitTypes)
     end
 
+    if DealerRelations.Equipment.TRACTOR_CATEGORIES[candidate.category] == true then
+        -- Tractors no longer have a DEFAULT_CATEGORY_FILTERS entry; the HP
+        -- gate above is their only eligibility check.
+        return true
+    end
+
     return DealerRelations.Data:isCategoryEnabled(candidate.category)
+end
+
+-------------------------------------------------------------------------------
+-- Returns the highest engine power (HP) among the player's currently owned
+-- tractors.
+--
+-- Evaluated fresh at selection time, not cached at discovery, since owned
+-- tractors change mid-save. Only the specific engine configuration the
+-- player owns counts, not the store's full range of purchasable options.
+-- Scoped to TRACTOR_CATEGORIES only.
+--
+-- @return number Highest owned tractor power in HP, 0 if none owned.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:getOwnedMaxTractorPower()
+    local maxPower = 0
+
+    if g_currentMission == nil or g_currentMission.vehicleSystem == nil
+        or g_currentMission.vehicleSystem.vehicles == nil then
+        return maxPower
+    end
+
+    for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+        if vehicle.configurations ~= nil and vehicle.configurations["motor"] ~= nil then
+            local storeItem = g_storeManager:getItemByXMLFilename(vehicle.configFileName)
+
+            if storeItem ~= nil
+                and DealerRelations.Equipment.TRACTOR_CATEGORIES[tostring(storeItem.categoryName)] == true
+                and storeItem.configurations ~= nil
+                and storeItem.configurations["motor"] ~= nil then
+
+                local motorConfigId = vehicle.configurations["motor"]
+                local configEntry = storeItem.configurations["motor"][motorConfigId]
+
+                if configEntry ~= nil and configEntry.power ~= nil and configEntry.power > maxPower then
+                    maxPower = configEntry.power
+                end
+            end
+        end
+    end
+
+    return maxPower
+end
+
+-------------------------------------------------------------------------------
+-- Returns the highest required power (neededPower) among the player's
+-- currently owned implements.
+--
+-- Uses the equipmentByXmlFilename lookup built at discovery rather than
+-- re-reading XML, since implement power requirements are static. Ownership
+-- itself is live state, so this loop still runs fresh on every call.
+--
+-- @return number Highest owned implement neededPower in HP, 0 if none owned.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:getOwnedMaxImplementNeededPower()
+    local maxNeededPower = 0
+
+    if g_currentMission == nil or g_currentMission.vehicleSystem == nil
+        or g_currentMission.vehicleSystem.vehicles == nil then
+        return maxNeededPower
+    end
+
+    for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+        local entry = DealerRelations.equipmentByXmlFilename[vehicle.configFileName]
+
+        if entry ~= nil and entry.powerRole == "IMPLEMENT" and entry.displayPower ~= nil then
+            if entry.displayPower > maxNeededPower then
+                maxNeededPower = entry.displayPower
+            end
+        end
+    end
+
+    return maxNeededPower
 end
