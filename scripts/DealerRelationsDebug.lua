@@ -150,6 +150,13 @@ function DealerRelations.registerConsoleCommands()
         "consoleCommandEligibleCount",
         DealerRelations
     )
+
+    addConsoleCommand(
+        "dr_motorConfigs",
+        "Dump store-side motor configuration data for owned vehicles",
+        "consoleCommandMotorConfigs",
+        DealerRelations
+    )
     
     DealerRelations.log("Console commands registered")
 end
@@ -454,4 +461,50 @@ function DealerRelations:consoleCommandEligibleCount()
         eligibleCount,
         categoryCount
     )
+end
+
+-------------------------------------------------------------------------------
+-- Dumps store-side "motor" configuration data for every owned vehicle that
+-- has one. Temporary — used to confirm actual field names (specifically HP)
+-- before writing HP-eligibility logic.
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandMotorConfigs()
+    if g_currentMission == nil or g_currentMission.vehicleSystem == nil
+        or g_currentMission.vehicleSystem.vehicles == nil then
+        return "dr_motorConfigs: vehicleSystem.vehicles unavailable"
+    end
+
+    local count = 0
+
+    for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+        if vehicle.configurations ~= nil and vehicle.configurations["motor"] ~= nil then
+            count = count + 1
+            local motorConfigId = vehicle.configurations["motor"]
+            local storeItem = g_storeManager:getItemByXMLFilename(vehicle.configFileName)
+
+            print(string.format(
+                "[DealerRelations] vehicle='%s' configFileName='%s' motorConfigId=%s",
+                tostring(vehicle.getName ~= nil and vehicle:getName() or "?"),
+                tostring(vehicle.configFileName),
+                tostring(motorConfigId)
+            ))
+
+            if storeItem == nil then
+                print("[DealerRelations]   storeItem is nil")
+            elseif storeItem.configurations == nil or storeItem.configurations["motor"] == nil then
+                print("[DealerRelations]   storeItem.configurations[\"motor\"] is nil")
+            else
+                local configEntry = storeItem.configurations["motor"][motorConfigId]
+                if configEntry == nil then
+                    print("[DealerRelations]   configEntry is nil for this id")
+                else
+                    for key, value in pairs(configEntry) do
+                        print(string.format("[DealerRelations]   configEntry.%s = %s", tostring(key), tostring(value)))
+                    end
+                end
+            end
+        end
+    end
+
+    return string.format("dr_motorConfigs: checked %d vehicle(s) with a motor config", count)
 end

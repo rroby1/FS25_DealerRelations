@@ -1,5 +1,22 @@
 # Changelog
 
+## Version 0.17.0
+
+- Added crop-eligibility gating: equipment tied to specific crops becomes demo-eligible once the player has ever grown a fruit type it requires, resolved from XML (`fruitTypeCategories`, `fruitTypes`, or `vineFruitType`) rather than a hardcoded crop-to-category map.
+- Added windrow-tied equipment eligibility: mowers, windrowers, balers, and bale transport unlock once the player has grown any crop whose fruit type produces a windrow, checked live against `g_fruitTypeManager` so mod-added windrow crops qualify automatically.
+- Added orchard/vineyard crop tracking: new `scanOwnedPlaceables()` complements `scanOwnedFields()` so grape/olive equipment can gate on planted trees/vines, not just field crops.
+- Added forestry toggle: forestry categories are gated behind a single player-facing setting (default off) rather than individual per-category filters, since forestry has no ownership signal to auto-detect.
+- Consolidated `CROP_CATEGORIES` into a single table supporting three eligibility shapes: full XML-resolved multi-crop categories, single/fixed crop lists, and the `"WINDROW"` sentinel.
+- Removed all crop-gated categories from `DEFAULT_CATEGORY_FILTERS`, since eligibility for those is now automatic rather than a manual player toggle.
+- Added `LOWLOADERS` and `FORAGEHARVESTERCUTTERTRAILERS` to permanent category exclusions.
+- Re-evaluated eligibility fresh on every demo selection (`isCurrentlyEligible()`) rather than caching at map load (`discover()`), since crop history, category toggles, brand toggles, and the forestry toggle can all change mid-save.
+- Added console command `dr_forestryCount`: counts forestry-category items in the discovered equipment list.
+- Added console command `dr_eligibleCount`: counts currently-eligible demo candidates by category, re-evaluated live rather than from a stale discovery-time snapshot.
+- Deferred `TRAILERS` category reconsideration to a future version.
+- Deferred HP-based eligibility (implement power requirements vs. owned tractor power, in both directions) to 0.18.0.
+- Deferred demo configuration selection (currently always selects the first available configuration rather than choosing among available options) to 0.18.0.
+- Deferred UI rebuild (`fs25_menuContainer`, full-width Overview+Financing, Help as popup dialog) until automated selection logic is more complete.
+
 ## Version 0.16.0
 
 - Added financing system: loans originate from demo vehicles at relationship-based rates and terms.

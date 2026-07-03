@@ -128,6 +128,8 @@ DealerRelations.Equipment.CROP_CATEGORIES = {
     SPECIALHEADERS = true,
     PLANTERS = true,
     SEEDERS = true,
+    VEGETABLEHARVESTERS = true,
+    VEGETABLEPLANTERS = true,
 
     BEETHARVESTERCUTTERS = { "SUGARBEET" },
     BEETHARVESTERS = { "SUGARBEET" },
@@ -157,6 +159,20 @@ DealerRelations.Equipment.CROP_CATEGORIES = {
     BALERSROUND = "WINDROW",
     BALETRANSPORT = "WINDROW",
     BALEWRAPPERS = { "GRASS" },
+}
+
+-------------------------------------------------------------------------------
+-- Categories considered "tractor" for HP-eligibility purposes.
+--
+-- Scoped intentionally to tractors only for 0.17.0. Self-propelled
+-- harvesters, foragers, and other motorized equipment also carry a "motor"
+-- configuration but are out of scope here — their own HP-eligibility
+-- treatment (if any) is deferred to the harvester/header work.
+-------------------------------------------------------------------------------
+DealerRelations.Equipment.TRACTOR_CATEGORIES = {
+    TRACTORSS = true,
+    TRACTORSM = true,
+    TRACTORSL = true,
 }
 
 -------------------------------------------------------------------------------
@@ -193,17 +209,10 @@ DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
     STRAWBLOWERS = true,
 
     HARVESTERS = true,
-    VEGETABLEHARVESTERS = true,
-    VEGETABLEPLANTERS = true,
-
     CUTTERTRAILERS = true,
 
     SLURRYTRANSPORT = true,
     TRAILERS = true,
-
-    TRACTORSS = true,
-    TRACTORSM = true,
-    TRACTORSL = true
 }
 
 -------------------------------------------------------------------------------
