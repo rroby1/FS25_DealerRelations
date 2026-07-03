@@ -136,12 +136,6 @@ function DealerRelations:checkMonthlyDemo()
     local currentMonth = g_currentMission.environment.currentPeriod
     local lastMonth = DealerRelations.Data:getLastDemoCheckMonth()
 
-DealerRelations.log(string.format("Total currently eligible: %d", eligibleCount))
-for category, count in pairs(eligibleByCategory) do
-    DealerRelations.log(string.format("  %s: %d", category, count))
-end
--- TEMP CODE END
-
     if currentMonth ~= lastMonth then
         DealerRelations.Data:setLastDemoCheckMonth(currentMonth)
 

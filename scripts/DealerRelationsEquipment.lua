@@ -73,12 +73,24 @@ DealerRelations.Equipment.EXCLUDED_CATEGORIES = {
     TRAILERSCHANGINGSYSTEM = true,
     TRAILERSSEMI = true,
 
+    BALELOADERS = true,
     BALINGMISC = true,
     WEIGHTS = true,
     WINTEREQUIPMENT = true,
     BELTS  = true,
     LOWLOADERS = true,
-    FORAGEHARVESTERCUTTERTRAILERS = true
+    FORAGEHARVESTERCUTTERTRAILERS = true,
+
+    FORKLIFTS = true,
+    FRONTLOADERS = true,
+    FRONTLOADERTOOLS = true,
+    FRONTLOADERVEHICLES = true,
+    SKIDSTEERTOOLS = true,
+    SKIDSTEERVEHICLES = true,
+    TELELOADERTOOLS = true,
+    TELELOADERVEHICLES = true,
+    WHEELLOADERTOOLS = true,
+    WHEELLOADERVEHICLES = true,
 }
 
 -------------------------------------------------------------------------------
@@ -135,7 +147,16 @@ DealerRelations.Equipment.CROP_CATEGORIES = {
     SPINACHHARVESTERS = { "SPINACH" },
     SUGARCANEHARVESTERS = { "SUGARCANE" },
     SUGARCANEPLANTERS = { "SUGARCANE" },
-    SUGARCANETRANSPORT = { "SUGARCANE" }
+    SUGARCANETRANSPORT = { "SUGARCANE" },
+    TEDDERS = { "GRASS", "ALFALFA", "CLOVER" },
+    GRASSLANDCARE = { "GRASS" },
+
+    MOWERS = "WINDROW",
+    WINDROWERS = "WINDROW",
+    BALERSSQUARE = "WINDROW",
+    BALERSROUND = "WINDROW",
+    BALETRANSPORT = "WINDROW",
+    BALEWRAPPERS = { "GRASS" },
 }
 
 -------------------------------------------------------------------------------
@@ -168,23 +189,8 @@ DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
 
     FORAGEHARVESTERS = true,
     FORAGEMIXERS = true,
-    GRASSLANDCARE = true,
     LOADERWAGONS = true,
-    MOWERS = true,
     STRAWBLOWERS = true,
-    TEDDERS = true,
-    WINDROWERS = true,
-
-    FORKLIFTS = true,
-    FRONTLOADERS = true,
-    FRONTLOADERTOOLS = true,
-    FRONTLOADERVEHICLES = true,
-    SKIDSTEERTOOLS = true,
-    SKIDSTEERVEHICLES = true,
-    TELELOADERTOOLS = true,
-    TELELOADERVEHICLES = true,
-    WHEELLOADERTOOLS = true,
-    WHEELLOADERVEHICLES = true,
 
     HARVESTERS = true,
     VEGETABLEHARVESTERS = true,
@@ -194,12 +200,6 @@ DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
 
     SLURRYTRANSPORT = true,
     TRAILERS = true,
-
-    BALERSSQUARE = true,
-    BALERSROUND = true,
-    BALELOADERS = true,
-    BALEWRAPPERS = true,
-    BALETRANSPORT = true,
 
     TRACTORSS = true,
     TRACTORSM = true,
@@ -589,6 +589,10 @@ function DealerRelations.Equipment:isCropEligible(category, fruitTypes)
         return true
     end
 
+    if cropRule == "WINDROW" then
+        return self:hasGrownAnyWindrowCrop()
+    end
+
     if cropRule == true then
         if fruitTypes == nil then
             return false
@@ -605,6 +609,31 @@ function DealerRelations.Equipment:isCropEligible(category, fruitTypes)
 
     for _, cropName in ipairs(cropRule) do
         if DealerRelations.Data:hasCropBeenGrown(cropName) then
+            return true
+        end
+    end
+
+    return false
+end
+
+-------------------------------------------------------------------------------
+-- Returns true when the player has ever grown any crop whose fruit type
+-- definition produces a windrow (fruitType.hasWindrow == true).
+--
+-- Unlike other crop-gated categories, windrow-tied equipment (mowers,
+-- windrowers, balers) isn't linked to a fixed crop list — any crop that
+-- produces a windrow qualifies, including future mod-added crops with no
+-- entry in CROP_CATEGORIES. This checks live against g_fruitTypeManager
+-- rather than a hardcoded list, so new windrow-capable crops are picked
+-- up automatically.
+--
+-- @return boolean True if any crop in cropsEverGrown has hasWindrow == true.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:hasGrownAnyWindrowCrop()
+    for cropName in pairs(DealerRelations.Data:getCropsEverGrown()) do
+        local fruitType = g_fruitTypeManager:getFruitTypeByName(cropName)
+
+        if fruitType ~= nil and fruitType.hasWindrow then
             return true
         end
     end

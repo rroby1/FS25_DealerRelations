@@ -143,6 +143,13 @@ function DealerRelations.registerConsoleCommands()
         "consoleCommandForestryCount",
         DealerRelations
     )
+
+    addConsoleCommand(
+        "dr_eligibleCount",
+        "Count currently eligible demo candidates by category",
+        "consoleCommandEligibleCount",
+        DealerRelations
+    )
     
     DealerRelations.log("Console commands registered")
 end
@@ -413,3 +420,38 @@ function DealerRelations:consoleCommandForestryCount()
     )
 end
 
+-------------------------------------------------------------------------------
+-- Counts currently-eligible demo candidates by category, re-evaluating
+-- eligibility fresh via isCurrentlyEligible() rather than reading a stale
+-- snapshot from discovery time. Useful for verifying category toggles and
+-- crop-history gating without waiting on a random monthly offer to happen
+-- to surface (or not surface) a given category.
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandEligibleCount()
+    local eligibleByCategory = {}
+    local eligibleCount = 0
+    local categoryCount = 0
+
+    for _, candidate in ipairs(DealerRelations.equipmentList) do
+        if DealerRelations.Equipment:isCurrentlyEligible(candidate) then
+            eligibleCount = eligibleCount + 1
+
+            if eligibleByCategory[candidate.category] == nil then
+                categoryCount = categoryCount + 1
+            end
+
+            eligibleByCategory[candidate.category] = (eligibleByCategory[candidate.category] or 0) + 1
+        end
+    end
+
+    print(string.format("[DealerRelations] Total currently eligible: %d", eligibleCount))
+    for category, count in pairs(eligibleByCategory) do
+        print(string.format("[DealerRelations]   %s: %d", category, count))
+    end
+
+    return string.format(
+        "dr_eligibleCount: %d total eligible item(s) across %d categorie(s) (see log for breakdown)",
+        eligibleCount,
+        categoryCount
+    )
+end
