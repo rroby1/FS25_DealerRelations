@@ -157,6 +157,20 @@ function DealerRelations.registerConsoleCommands()
         "consoleCommandMotorConfigs",
         DealerRelations
     )
+
+    addConsoleCommand(
+        "dr_fillTypeDensities",
+        "Dump massPerLiter (raw and kg/L) for LIME, FERTILIZER, and HERBICIDE",
+        "consoleCommandFillTypeDensities",
+        DealerRelations
+    )
+
+    addConsoleCommand(
+        "dr_massEligibility",
+        "Dump dry mass, capacity, resolved density, and computed HP for all mass-managed candidates",
+        "consoleCommandMassEligibility",
+        DealerRelations
+    )
     
     DealerRelations.log("Console commands registered")
 end
@@ -507,4 +521,113 @@ function DealerRelations:consoleCommandMotorConfigs()
     end
 
     return string.format("dr_motorConfigs: checked %d vehicle(s) with a motor config", count)
+end
+
+-------------------------------------------------------------------------------
+-- Dumps massPerLiter for LIME, FERTILIZER, and HERBICIDE, both as stored at
+-- runtime and unscaled back to kg/L.
+--
+-- GDN source (FillTypeDesc:loadFromXMLFile) shows massPerLiter is read from
+-- XML then multiplied by 0.001 on load:
+--   self.massPerLiter = xmlFile:getValue(key..".physics#massPerLiter", ...) * 0.001
+-- The XML attribute itself is kg/L (confirmed: lime = 1.2 in this mod's
+-- fillTypes.xml). This means g_fillTypeManager:getFillTypeByName(name)
+-- .massPerLiter is NOT directly usable as kg/L at runtime — it must be
+-- multiplied back by 1000. This command exists to confirm that live,
+-- rather than trust the source read alone.
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandFillTypeDensities()
+    if g_fillTypeManager == nil then
+        return "dr_fillTypeDensities: g_fillTypeManager unavailable"
+    end
+
+    local namesToCheck = { "LIME", "FERTILIZER", "HERBICIDE" }
+
+    for _, fillTypeName in ipairs(namesToCheck) do
+        local fillType = g_fillTypeManager:getFillTypeByName(fillTypeName)
+
+        if fillType == nil then
+            print(string.format("[DealerRelations] FillType '%s' not found", fillTypeName))
+        else
+            local raw = fillType.massPerLiter
+            local unscaled = raw ~= nil and (raw * 1000) or nil
+
+            print(string.format(
+                "[DealerRelations] FillType='%s' massPerLiter(raw)=%s massPerLiter(x1000, expected kg/L)=%s",
+                fillTypeName,
+                tostring(raw),
+                tostring(unscaled)
+            ))
+        end
+    end
+
+    return "dr_fillTypeDensities: checked LIME, FERTILIZER, HERBICIDE"
+end
+
+-------------------------------------------------------------------------------
+-- Dumps dry mass, max capacity, resolved fill-type density, and computed
+-- required HP for every discovered SPRAYERS/FERTILIZERSPREADERS candidate.
+--
+-- Independently re-reads XML and recomputes rather than trusting the
+-- cached candidate.displayPower alone -- if the two disagree, that points
+-- to a real bug in resolveDemoCandidate()'s wiring, not just a value to
+-- eyeball. Requires discover() to have already run (equipmentList
+-- populated) -- run after a save has loaded.
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandMassEligibility()
+    if DealerRelations.equipmentList == nil or #DealerRelations.equipmentList == 0 then
+        return "dr_massEligibility: equipmentList unavailable -- has discover() run yet?"
+    end
+
+    local count = 0
+
+    for _, candidate in ipairs(DealerRelations.equipmentList) do
+        if DealerRelations.Equipment.MASS_MANAGED_CATEGORIES[candidate.category] == true then
+            count = count + 1
+
+            if candidate.powerRole == "SELF_PROPELLED" then
+                print(string.format(
+                    "[DealerRelations] name='%s' category=%s SELF_PROPELLED -- mass formula not applied, real engine HP=%s",
+                    tostring(candidate.name),
+                    tostring(candidate.category),
+                    tostring(candidate.displayPower)
+                ))
+            else
+                local xmlData = DealerRelations.Equipment:readEquipmentXml(candidate.xmlFilename)
+                local dryMass = xmlData ~= nil and xmlData.dryMass or nil
+                local maxCapacity = xmlData ~= nil and xmlData.maxCapacity or nil
+                local density = xmlData ~= nil
+                    and DealerRelations.Equipment:getMaxFillTypeDensity(xmlData.fillTypeNames)
+                    or nil
+                local recomputedPower = xmlData ~= nil
+                    and DealerRelations.Equipment:getMassBasedRequiredPower(dryMass, maxCapacity, xmlData.fillTypeNames)
+                    or nil
+
+                local fillTypeList = {}
+                if xmlData ~= nil and xmlData.fillTypeNames ~= nil then
+                    for name in pairs(xmlData.fillTypeNames) do
+                        table.insert(fillTypeList, name)
+                    end
+                end
+
+                print(string.format(
+                    "[DealerRelations] name='%s' category=%s dryMass=%s maxCapacity=%s density=%s fillTypes=%s recomputedHP=%s cachedHP=%s",
+                    tostring(candidate.name),
+                    tostring(candidate.category),
+                    tostring(dryMass),
+                    tostring(maxCapacity),
+                    tostring(density),
+                    table.concat(fillTypeList, ","),
+                    tostring(recomputedPower),
+                    tostring(candidate.displayPower)
+                ))
+            end
+        end
+    end
+
+    if count == 0 then
+        return "dr_massEligibility: no mass-managed candidates found -- check MASS_MANAGED_CATEGORIES / DEFAULT_CATEGORY_FILTERS migration"
+    end
+
+    return string.format("dr_massEligibility: checked %d mass-managed candidate(s)", count)
 end

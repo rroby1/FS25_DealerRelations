@@ -1,5 +1,18 @@
 # Changelog
 
+## Version 0.19.0
+
+- Added mass-based HP eligibility for `SPRAYERS` and `FERTILIZERSPREADERS` via new `MASS_MANAGED_CATEGORIES`, since neither carries a `neededPower` attribute in XML: required power computed from laden mass (dry mass + max capacity × heaviest supported fill type's real density) rather than read from XML.
+- Added `MASS_TO_HP_RATIO` constant (~97 kg/HP), calibrated against a third-party mod's own documented "Required Power" values for the same real-world models and validated live in-game to a near-exact match.
+- Fill type density now resolved live from `g_fillTypeManager` at read time rather than hardcoded — confirmed the internal `massPerLiter` field is stored at 1/1000th of the XML kg/L value and must be unscaled accordingly.
+- Added `collectFillTypeNames()`, `getMaxFillTypeDensity()`, `getMassBasedRequiredPower()` to `DealerRelationsEquipment.lua`; `readEquipmentXml()` now also reads dry mass, max capacity, and fill types for every item.
+- Existing `isCurrentlyEligible()` HP gate required no changes — mass-derived candidates flow through the same `IMPLEMENT`/`displayPower` check tractors and power-managed implements already use.
+- Moved `AUGERWAGONS` from manual filter to `POWER_MANAGED_CATEGORIES`: confirmed both real models actually carry genuine `neededPower` data, so no mass-based logic was needed after all.
+- Moved `TRAILERS` from manual filter to `EXCLUDED_CATEGORIES`: worst-supported-fill-type isn't representative for a category this broad (a grain trailer that also supports stone/dirt would gate on the heavier material), and a plain hauling trailer doesn't fit the purpose of a demo system in the first place.
+- Added `dr_fillTypeDensities` and `dr_massEligibility` console commands (debug) for verifying fill type density unscaling and cross-checking cached vs. recomputed mass-based HP per candidate.
+- Deferred: manure/slurry equipment, still earmarked for a future animal-related filter grouping.
+- Deferred: self-propelled sprayer HP eligibility — would be a tractor-style `neededPower`/`getOwnedMaxTractorPower()` problem if ever needed, not mass-based; nothing currently indicates it's needed.
+
 ## Version 0.18.0
 
 - Added bidirectional HP eligibility: implements require an owned tractor with sufficient power; tractor demos require sufficient power for the player's most demanding owned implement. No ceiling/floor beyond what's actually owned on the other side.

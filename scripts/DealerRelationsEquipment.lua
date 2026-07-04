@@ -26,6 +26,7 @@ DealerRelations.equipmentByXmlFilename = {}
 DealerRelations.Equipment.EXCLUDED_CATEGORIES = {
     ANIMALPENS = true,
     ANIMALTRANSPORT = true,
+    TRAILERS = true,
 
     BALES = true,
     BIGBAGPALLETS = true,
@@ -193,6 +194,22 @@ DealerRelations.Equipment.POWER_MANAGED_CATEGORIES = {
     STONEPICKERS = true,
     SUBSOILERS = true,
     WEEDERS = true,
+    AUGERWAGONS = true,
+}
+
+-------------------------------------------------------------------------------
+-- Categories whose eligibility is governed by laden mass rather than a
+-- manual player toggle or a real neededPower attribute in XML.
+--
+-- Neither sprayers nor fertilizer spreaders carry neededPower — confirmed
+-- via XML inspection in 0.18.0. Their real constraint is the mass of the
+-- implement plus whatever it's loaded with at max capacity (lime/dry
+-- fertilizer for spreaders, liquid fertilizer/herbicide for sprayers).
+-- See vault design note: 0.19.0 Mass-Based HP Eligibility.
+-------------------------------------------------------------------------------
+DealerRelations.Equipment.MASS_MANAGED_CATEGORIES = {
+    FERTILIZERSPREADERS = true,
+    SPRAYERS = true,
 }
 
 -------------------------------------------------------------------------------
@@ -202,13 +219,9 @@ DealerRelations.Equipment.POWER_MANAGED_CATEGORIES = {
 -- with these enabled, and later save-specific settings can override them.
 -------------------------------------------------------------------------------
 DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
-    AUGERWAGONS = true,
-
-    FERTILIZERSPREADERS = true,
     MANURESPREADERS = true,
     SLURRYTOOLS = true,
-    SPRAYERS = true,
-
+    
     SEEDTANKS = true,
     SLURRYTANKS = true,
 
@@ -221,7 +234,6 @@ DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
     CUTTERTRAILERS = true,
 
     SLURRYTRANSPORT = true,
-    TRAILERS = true,
 }
 
 -------------------------------------------------------------------------------
@@ -258,6 +270,7 @@ function DealerRelations.Equipment:isDemoCandidate(item)
         and DealerRelations.Equipment.FORESTRY_CATEGORIES[category] == nil
         and DealerRelations.Equipment.TRACTOR_CATEGORIES[category] == nil
         and DealerRelations.Equipment.POWER_MANAGED_CATEGORIES[category] == nil
+        and DealerRelations.Equipment.MASS_MANAGED_CATEGORIES[category] == nil
         and DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS[category] == nil then
         DealerRelations.warning("Unclassified equipment category: " .. category)
         return false
@@ -306,10 +319,74 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename)
     local fruitTypesDirect = getXMLString(xmlFile, "vehicle.cutter#fruitTypes")
     local vineFruitType = getXMLString(xmlFile, "vehicle.vineCutter#fruitType")
 
+    -- Dry mass: component can repeat (confirmed — the MF 9S tractor has two,
+    -- summing to total chassis mass), so this sums every index found rather
+    -- than assuming one. Same loop-until-nil shape as the motorConfiguration
+    -- read below.
+    local dryMass = nil
+    local componentIndex = 0
+    local componentMass = getXMLFloat(xmlFile, string.format("vehicle.base.components.component(%d)#mass", componentIndex))
+
+    while componentMass ~= nil do
+        dryMass = (dryMass or 0) + componentMass
+        componentIndex = componentIndex + 1
+        componentMass = getXMLFloat(xmlFile, string.format("vehicle.base.components.component(%d)#mass", componentIndex))
+    end
+
+    -- Capacity and fill types: both fillUnitConfiguration and fillUnit can
+    -- repeat (confirmed — the K165 has two fillUnitConfigurations, 15600L and
+    -- 18950L). Existence is checked via the #capacity read itself, same
+    -- nil-terminated pattern as everything else in this function, rather than
+    -- a separate existence-check API not otherwise used in this codebase.
+    -- Max capacity across all entries is kept (worst-case load); fill type
+    -- names accumulate across all entries into one combined set.
+    local maxCapacity = nil
+    local fillTypeNames = {}
+    local configIndex = 0
+
+    while true do
+        local unitIndex = 0
+        local foundAnyUnit = false
+
+        while true do
+            local unitKey = string.format(
+                "vehicle.fillUnit.fillUnitConfigurations.fillUnitConfiguration(%d).fillUnits.fillUnit(%d)",
+                configIndex, unitIndex
+            )
+            local capacity = getXMLFloat(xmlFile, unitKey .. "#capacity")
+
+            if capacity == nil then
+                break
+            end
+
+            foundAnyUnit = true
+
+            if maxCapacity == nil or capacity > maxCapacity then
+                maxCapacity = capacity
+            end
+
+            local fillTypesDirect = getXMLString(xmlFile, unitKey .. "#fillTypes")
+            local fillTypeCategories = getXMLString(xmlFile, unitKey .. "#fillTypeCategories")
+
+            self:collectFillTypeNames(fillTypeNames, fillTypesDirect, fillTypeCategories)
+
+            unitIndex = unitIndex + 1
+        end
+
+        if not foundAnyUnit then
+            break
+        end
+
+        configIndex = configIndex + 1
+    end
+
     local data = {
         brand = getXMLString(xmlFile, "vehicle.storeData.brand"),
         storeImage = getXMLString(xmlFile, "vehicle.storeData.image"),  -- Store image path for Overview display
         fruitTypes = self:resolveFruitTypes(fruitTypeCategories, fruitTypesDirect, vineFruitType),
+        dryMass = dryMass,
+        maxCapacity = maxCapacity,
+        fillTypeNames = fillTypeNames,
         powerRole = "NONE",
         displayPower = nil,
         powerMin = nil,
@@ -456,6 +533,30 @@ function DealerRelations.Equipment:resolveDemoCandidate(item)
         displayPower = 0
         powerMin = 0
         powerMax = 0
+    end
+
+    -- Mass-managed categories (SPRAYERS, FERTILIZERSPREADERS) also carry no
+    -- neededPower, but unlike the categories above they don't default to 0 HP
+    -- -- their real constraint is laden mass, computed from the dry mass, max
+    -- capacity, and fill type data read in readEquipmentXml(). Falls back to
+    -- 0 HP if that data is missing/malformed, same "modder omission treated
+    -- like genuine non-requirement" philosophy as the block above, rather
+    -- than excluding the item from discovery.
+    --
+    -- A self-propelled sprayer never reaches this branch: it already
+    -- resolved to powerRole "SELF_PROPELLED" via storeData.specs.power
+    -- upstream in readEquipmentXml(), excluded by construction.
+    if powerRole == "NONE"
+        and DealerRelations.Equipment.MASS_MANAGED_CATEGORIES[category] == true then
+
+        local massBasedPower = xmlData ~= nil
+            and self:getMassBasedRequiredPower(xmlData.dryMass, xmlData.maxCapacity, xmlData.fillTypeNames)
+            or nil
+
+        powerRole = "IMPLEMENT"
+        displayPower = massBasedPower or 0
+        powerMin = displayPower
+        powerMax = displayPower
     end
 
     return {
@@ -683,6 +784,49 @@ function DealerRelations.Equipment:resolveFruitTypes(fruitTypeCategories, fruitT
     end
 
     return result
+end
+
+-------------------------------------------------------------------------------
+-- Resolves the set of fill type names a single fillUnit entry supports,
+-- from whichever fill-type-linkage attribute is present in its XML, and
+-- adds them into an accumulating result set.
+--
+-- Mirrors resolveFruitTypes() in shape: checked in order, first match wins.
+--   1. fillTypeCategories — one or more space-separated category names,
+--      resolved via g_fillTypeManager:getFillTypesByCategoryNames()
+--   2. fillTypes          — direct fill type name(s), space-separated
+--
+-- Takes a `result` set rather than returning a new one, since an implement
+-- can have multiple fillUnitConfigurations/fillUnits (e.g. two tank-size
+-- tiers) whose fill types need to accumulate into one combined set.
+--
+-- @param result table Set to add resolved names into, keyed by name.
+-- @param fillTypesDirect string|nil Direct fillTypes attribute value.
+-- @param fillTypeCategories string|nil fillTypeCategories attribute value.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:collectFillTypeNames(result, fillTypesDirect, fillTypeCategories)
+    if fillTypeCategories ~= nil then
+        for categoryName in fillTypeCategories:gmatch("%S+") do
+            local fillTypeIndices = g_fillTypeManager:getFillTypesByCategoryNames(categoryName)
+
+            if fillTypeIndices ~= nil then
+                for _, fillTypeIndex in ipairs(fillTypeIndices) do
+                    local fillTypeName = g_fillTypeManager:getFillTypeNameByIndex(fillTypeIndex)
+
+                    if fillTypeName ~= nil then
+                        result[string.upper(fillTypeName)] = true
+                    end
+                end
+            end
+        end
+        return
+    end
+
+    if fillTypesDirect ~= nil then
+        for name in fillTypesDirect:gmatch("%S+") do
+            result[string.upper(name)] = true
+        end
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -928,4 +1072,79 @@ function DealerRelations.Equipment:getHpWeight(candidate, ownedMaxTractorPower, 
     distance = math.max(distance, 0)
 
     return 1 / (distance + DealerRelations.CONSTANTS.HP_WEIGHT_CONSTANT) ^ DealerRelations.CONSTANTS.HP_WEIGHT_STEEPNESS
+end
+
+-------------------------------------------------------------------------------
+-- Returns the highest real-world density (kg/L) among a set of resolved
+-- fill type names, read live from g_fillTypeManager rather than any
+-- hardcoded per-fill-type constant.
+--
+-- g_fillTypeManager:getFillTypeByName(name).massPerLiter is stored
+-- internally at 1/1000th of the XML kg/L value (confirmed via GDN source
+-- and live dr_fillTypeDensities output: LIME raw 0.0012 -> x1000 -> 1.2,
+-- matching XML) -- must be multiplied back by 1000 here.
+--
+-- Taking the max reproduces the lime-overrides-fertilizer rule (1.2 > 0.8)
+-- without a hardcoded per-category branch, and resolves correctly if a
+-- map/mod changes any density or adds another fill type.
+--
+-- @param fillTypeNames table Set of fill type names, keyed by name.
+-- @return number|nil Highest density in kg/L, nil if none resolved.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:getMaxFillTypeDensity(fillTypeNames)
+    if fillTypeNames == nil or g_fillTypeManager == nil then
+        return nil
+    end
+
+    local maxDensity = nil
+
+    for fillTypeName in pairs(fillTypeNames) do
+        local fillType = g_fillTypeManager:getFillTypeByName(fillTypeName)
+
+        if fillType ~= nil and fillType.massPerLiter ~= nil then
+            local densityKgPerLiter = fillType.massPerLiter * 1000
+
+            if maxDensity == nil or densityKgPerLiter > maxDensity then
+                maxDensity = densityKgPerLiter
+            end
+        end
+    end
+
+    return maxDensity
+end
+
+-------------------------------------------------------------------------------
+-- Computes required HP for a mass-managed implement (SPRAYERS,
+-- FERTILIZERSPREADERS), derived from laden mass rather than a real
+-- neededPower XML attribute -- neither category carries one (confirmed
+-- 0.18.0).
+--
+-- ladenMass = dryMass + (maxCapacity * densityOfHeaviestSupportedFillType)
+-- requiredPower = ladenMass / MASS_TO_HP_RATIO
+--
+-- Gates on max capacity (worst-case load), not current fill level, since
+-- demo selection happens before an implement is ever loaded -- same
+-- static-attribute assumption HP eligibility already makes for neededPower.
+-- See vault design note: 0.19.0 Mass-Based HP Eligibility.
+--
+-- @param dryMass number|nil Implement dry mass in kg.
+-- @param maxCapacity number|nil Max fillUnit capacity in liters.
+-- @param fillTypeNames table|nil Set of supported fill type names.
+-- @return number|nil Required HP, nil if mass, capacity, or density
+--         couldn't be resolved.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:getMassBasedRequiredPower(dryMass, maxCapacity, fillTypeNames)
+    if dryMass == nil or maxCapacity == nil then
+        return nil
+    end
+
+    local density = self:getMaxFillTypeDensity(fillTypeNames)
+
+    if density == nil then
+        return nil
+    end
+
+    local ladenMass = dryMass + (maxCapacity * density)
+
+    return ladenMass / DealerRelations.CONSTANTS.MASS_TO_HP_RATIO
 end

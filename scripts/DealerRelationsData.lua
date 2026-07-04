@@ -135,6 +135,15 @@ DealerRelations.CONSTANTS = {
 
     HP_WEIGHT_CONSTANT = 20,     -- Shapes weight falloff near the boundary
     HP_WEIGHT_STEEPNESS = 1,     -- Shapes weight falloff across the full range
+
+    -- Converts a mass-managed implement's laden mass (kg) into a required HP
+    -- value, for categories with no neededPower in XML (SPRAYERS,
+    -- FERTILIZERSPREADERS). Calibrated from real spreader mass data cross-
+    -- referenced against a third-party mod's own "Required Power" values for
+    -- the same real-world models (Bredal K105/K165) — not a physics constant,
+    -- a tuned value in the same spirit as HP_WEIGHT_CONSTANT/STEEPNESS.
+    -- See vault design note: 0.19.0 Mass-Based HP Eligibility.
+    MASS_TO_HP_RATIO = 97,
 }
 
 
