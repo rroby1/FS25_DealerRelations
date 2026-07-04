@@ -160,6 +160,7 @@ DealerRelations.Equipment.CROP_CATEGORIES = {
     BALERSSQUARE = "WINDROW",
     BALERSROUND = "WINDROW",
     BALETRANSPORT = "WINDROW",
+    LOADERWAGONS = "WINDROW",
     BALEWRAPPERS = { "GRASS" },
 
     PLOWS = { "MAIZE", "POTATO", "SUGARBEET" },
@@ -213,28 +214,37 @@ DealerRelations.Equipment.MASS_MANAGED_CATEGORIES = {
 }
 
 -------------------------------------------------------------------------------
+-- Categories whose eligibility depends on live animal ownership and/or
+-- husbandry building capability, rather than a manual filter, crop history,
+-- or HP.
+--
+-- Unlike CROP_CATEGORIES, "ever" has no meaning here -- animal ownership is
+-- binary and re-evaluated live at isCurrentlyEligible() time. See vault
+-- design note: Bucket D - Animal-Tied Equipment.
+-------------------------------------------------------------------------------
+DealerRelations.Equipment.ANIMAL_CATEGORIES = {
+    FORAGEMIXERS = "CATTLE",
+
+    MANURESPREADERS = "MANURE_HEAP",
+
+    SLURRYTANKS = "SLURRY",
+    SLURRYTOOLS = "SLURRY",
+    SLURRYTRANSPORT = "SLURRY",
+
+    STRAWBLOWERS = "STRAW_BARN",
+}
+
+-------------------------------------------------------------------------------
 -- Default player-configurable category filters.
 --
 -- These categories are valid equipment-demo categories. New saves will start
 -- with these enabled, and later save-specific settings can override them.
 -------------------------------------------------------------------------------
 DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
-    MANURESPREADERS = true,
-    SLURRYTOOLS = true,
-    
     SEEDTANKS = true,
-    SLURRYTANKS = true,
-
-    FORAGEHARVESTERS = true,
-    FORAGEMIXERS = true,
-    LOADERWAGONS = true,
-    STRAWBLOWERS = true,
-
     HARVESTERS = true,
     CUTTERTRAILERS = true,
-
-    SLURRYTRANSPORT = true,
-}
+}    
 
 -------------------------------------------------------------------------------
 -- Returns true when a store item should be considered for dealer demos.
@@ -271,6 +281,7 @@ function DealerRelations.Equipment:isDemoCandidate(item)
         and DealerRelations.Equipment.TRACTOR_CATEGORIES[category] == nil
         and DealerRelations.Equipment.POWER_MANAGED_CATEGORIES[category] == nil
         and DealerRelations.Equipment.MASS_MANAGED_CATEGORIES[category] == nil
+        and DealerRelations.Equipment.ANIMAL_CATEGORIES[category] == nil
         and DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS[category] == nil then
         DealerRelations.warning("Unclassified equipment category: " .. category)
         return false
@@ -879,6 +890,39 @@ function DealerRelations.Equipment:isCropEligible(category, fruitTypes)
 end
 
 -------------------------------------------------------------------------------
+-- Returns true when a candidate's animal-tied eligibility rule is currently
+-- satisfied.
+--
+-- @param category string Candidate's store category.
+-- @return boolean True when eligible, or when category has no animal rule.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:isAnimalEligible(category)
+    local rule = DealerRelations.Equipment.ANIMAL_CATEGORIES[category]
+
+    if rule == nil then
+        return true
+    end
+
+    if rule == "CATTLE" then
+        return self:ownsCattleNow()
+    end
+
+    if rule == "MANURE_HEAP" then
+        return self:ownsCattleNow() and self:ownsAnyManureHeapPlaceable()
+    end
+
+    if rule == "SLURRY" then
+        return self:ownsAccumulatedSlurry()
+    end
+
+    if rule == "STRAW_BARN" then
+        return self:ownsCattleNow() and self:ownsStrawCapableBarn()
+    end
+
+    return false
+end
+
+-------------------------------------------------------------------------------
 -- Returns true when the player has ever grown any crop whose fruit type
 -- definition produces a windrow (fruitType.hasWindrow == true).
 --
@@ -953,6 +997,10 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
 
     if DealerRelations.Equipment.CROP_CATEGORIES[candidate.category] ~= nil then
         return self:isCropEligible(candidate.category, candidate.fruitTypes)
+    end
+
+    if DealerRelations.Equipment.ANIMAL_CATEGORIES[candidate.category] ~= nil then
+        return self:isAnimalEligible(candidate.category)
     end
 
     if DealerRelations.Equipment.TRACTOR_CATEGORIES[candidate.category] == true then
@@ -1147,4 +1195,149 @@ function DealerRelations.Equipment:getMassBasedRequiredPower(dryMass, maxCapacit
     local ladenMass = dryMass + (maxCapacity * density)
 
     return ladenMass / DealerRelations.CONSTANTS.MASS_TO_HP_RATIO
+end
+
+-------------------------------------------------------------------------------
+-- Returns true when the player currently owns any cattle on a farm-owned
+-- husbandry placeable.
+--
+-- Live/current signal only -- no "ever owned" tracking, unlike crop history.
+-- Detects via AnimalType.COW at the barn level (confirmed via dr_animalTypes
+-- debug dump: AnimalType.COW = 1), not via subType/cluster matching or the
+-- base-game ANIMAL fill type category -- animal type is a single barn-level
+-- value (spec_husbandryAnimals.animalTypeIndex via getAnimalTypeIndex()),
+-- not something that needs per-cluster inspection. This correctly includes
+-- all cattle breeds (e.g. water buffalo, highland cattle) as subtypes under
+-- the one COW type, rather than needing each breed enumerated separately.
+--
+-- @return boolean True if any farm-owned husbandry placeable currently has
+--         cattle.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:ownsCattleNow()
+    if g_currentMission == nil or g_currentMission.placeableSystem == nil then
+        return false
+    end
+
+    local farmId = g_currentMission:getFarmId()
+
+    for _, placeable in pairs(g_currentMission.placeableSystem.placeables) do
+        if placeable.spec_husbandryAnimals ~= nil
+            and placeable:getOwnerFarmId() == farmId
+            and placeable:getAnimalTypeIndex() == AnimalType.COW
+            and placeable:getNumOfAnimals() > 0 then
+            return true
+        end
+    end
+
+    return false
+end
+
+-------------------------------------------------------------------------------
+-- Returns true when the player currently has a manure heap (or extension)
+-- linked to a farm-owned husbandry placeable.
+--
+-- Confirmed live via dr_husbandryCapacity: a cow barn's own MANURE capacity
+-- is 0 with no heap connected (cowBarnSmall, matching cowBarnBig's static
+-- store XML), and becomes nonzero once a manure heap + extension are placed
+-- and linked as a storage extension (cowBarnMedium, capacity=4000000 after
+-- linking, confirmed by Rick). Barns never store dry manure internally --
+-- capacity > 0 is a direct signal that an external heap is currently
+-- linked, not a search for a separate heap placeable.
+--
+-- @return boolean True if any farm-owned husbandry placeable currently has
+--         nonzero MANURE capacity.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:ownsAnyManureHeapPlaceable()
+    if g_currentMission == nil or g_currentMission.placeableSystem == nil
+        or g_fillTypeManager == nil then
+        return false
+    end
+
+    local manureIndex = g_fillTypeManager:getFillTypeIndexByName("MANURE")
+
+    if manureIndex == nil then
+        return false
+    end
+
+    local farmId = g_currentMission:getFarmId()
+
+    for _, placeable in pairs(g_currentMission.placeableSystem.placeables) do
+        if placeable.spec_husbandry ~= nil
+            and placeable:getOwnerFarmId() == farmId
+            and placeable:getHusbandryCapacity(manureIndex, farmId) > 0 then
+            return true
+        end
+    end
+
+    return false
+end
+
+-------------------------------------------------------------------------------
+-- Returns true when the player currently has any LIQUIDMANURE accumulated
+-- in a farm-owned husbandry placeable.
+--
+-- Accumulation signal, not capability -- LIQUIDMANURE production has no
+-- straw dependency (cows produce it regardless of bedding), and slow
+-- production means a demo offered before any has accumulated would be
+-- useless for the entire demo window. getHusbandryFillLevel() is a live
+-- runtime call (registered function, delegates to
+-- unloadingStation:getFillLevel()), replacing the save-XML "search for an
+-- accumulated fill node" approach entirely.
+--
+-- @return boolean True if any farm-owned husbandry placeable currently has
+--         LIQUIDMANURE fill level > 0.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:ownsAccumulatedSlurry()
+    if g_currentMission == nil or g_currentMission.placeableSystem == nil
+        or g_fillTypeManager == nil then
+        return false
+    end
+
+    local liquidManureIndex = g_fillTypeManager:getFillTypeIndexByName("LIQUIDMANURE")
+
+    if liquidManureIndex == nil then
+        return false
+    end
+
+    local farmId = g_currentMission:getFarmId()
+
+    for _, placeable in pairs(g_currentMission.placeableSystem.placeables) do
+        if placeable.spec_husbandry ~= nil
+            and placeable:getOwnerFarmId() == farmId
+            and placeable:getHusbandryFillLevel(liquidManureIndex, farmId) > 0 then
+            return true
+        end
+    end
+
+    return false
+end
+
+-------------------------------------------------------------------------------
+-- Returns true when the player currently owns a husbandry placeable capable
+-- of accepting straw.
+--
+-- Capability signal, not accumulation -- confirmed via
+-- PlaceableHusbandryStraw.lua: the straw/manure mechanism only exists on a
+-- placeable at all if its XML defines a <husbandry.straw> block, exposed at
+-- runtime as spec_husbandryStraw. Presence of this spec table is a direct
+-- existence check, requiring no fill-type index lookup.
+--
+-- @return boolean True if any farm-owned husbandry placeable currently
+--         supports straw intake.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:ownsStrawCapableBarn()
+    if g_currentMission == nil or g_currentMission.placeableSystem == nil then
+        return false
+    end
+
+    local farmId = g_currentMission:getFarmId()
+
+    for _, placeable in pairs(g_currentMission.placeableSystem.placeables) do
+        if placeable.spec_husbandryStraw ~= nil
+            and placeable:getOwnerFarmId() == farmId then
+            return true
+        end
+    end
+
+    return false
 end

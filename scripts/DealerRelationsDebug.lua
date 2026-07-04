@@ -171,6 +171,20 @@ function DealerRelations.registerConsoleCommands()
         "consoleCommandMassEligibility",
         DealerRelations
     )
+
+    addConsoleCommand(
+        "dr_husbandryCapacity",
+        "Dump MANURE/LIQUIDMANURE/STRAW capacity and fill level for all owned husbandry placeables",
+        "consoleCommandHusbandryCapacity",
+        DealerRelations
+    )
+
+    addConsoleCommand(
+        "dr_animalCategoryCount",
+        "Counts total discovered candidates (regardless of eligibility)",
+        "consoleCommandAnimalCategoryCount",
+        DealerRelations
+    )    
     
     DealerRelations.log("Console commands registered")
 end
@@ -630,4 +644,88 @@ function DealerRelations:consoleCommandMassEligibility()
     end
 
     return string.format("dr_massEligibility: checked %d mass-managed candidate(s)", count)
+end
+
+-------------------------------------------------------------------------------
+-- Dumps MANURE, LIQUIDMANURE, and STRAW capacity and current fill level for
+-- every farm-owned husbandry placeable. Temporary -- used to verify whether
+-- MANURE capacity going from 0 to nonzero actually reflects a manure heap
+-- being linked as a storage extension (inferred from the
+-- "info_husbandryMissingManureHeap" string in PlaceableHusbandryStraw's
+-- getConditionInfos(), but not yet confirmed against a live placeable with
+-- and without a heap connected).
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandHusbandryCapacity()
+    if g_currentMission == nil or g_currentMission.placeableSystem == nil then
+        return "dr_husbandryCapacity: placeableSystem unavailable"
+    end
+
+    local farmId = g_currentMission:getFarmId()
+    local namesToCheck = { "MANURE", "LIQUIDMANURE", "STRAW" }
+    local count = 0
+
+    for _, placeable in pairs(g_currentMission.placeableSystem.placeables) do
+        if placeable.spec_husbandry ~= nil and placeable:getOwnerFarmId() == farmId then
+            count = count + 1
+
+            print(string.format(
+                "[DealerRelations] placeable='%s' hasStraw=%s",
+                tostring(placeable.configFileName),
+                tostring(placeable.spec_husbandryStraw ~= nil)
+            ))
+
+            for _, fillTypeName in ipairs(namesToCheck) do
+                local fillTypeIndex = g_fillTypeManager ~= nil
+                    and g_fillTypeManager:getFillTypeIndexByName(fillTypeName)
+                    or nil
+
+                if fillTypeIndex == nil then
+                    print(string.format("[DealerRelations]   %s: fill type not found", fillTypeName))
+                else
+                    local capacity = placeable:getHusbandryCapacity(fillTypeIndex, farmId)
+                    local fillLevel = placeable:getHusbandryFillLevel(fillTypeIndex, farmId)
+
+                    print(string.format(
+                        "[DealerRelations]   %s: capacity=%s fillLevel=%s",
+                        fillTypeName,
+                        tostring(capacity),
+                        tostring(fillLevel)
+                    ))
+                end
+            end
+        end
+    end
+
+    if count == 0 then
+        return "dr_husbandryCapacity: no owned husbandry placeables found"
+    end
+
+    return string.format("dr_husbandryCapacity: checked %d husbandry placeable(s) -- see log", count)
+end
+
+-------------------------------------------------------------------------------
+-- Counts total discovered candidates (regardless of eligibility) for each
+-- ANIMAL_CATEGORIES category. Temporary -- used to distinguish "no items in
+-- this category exist in equipmentList" from "isAnimalEligible() is
+-- returning false when it shouldn't."
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandAnimalCategoryCount()
+    local countByCategory = {}
+
+    for _, candidate in ipairs(DealerRelations.equipmentList) do
+        if DealerRelations.Equipment.ANIMAL_CATEGORIES[candidate.category] ~= nil then
+            countByCategory[candidate.category] = (countByCategory[candidate.category] or 0) + 1
+        end
+    end
+
+    for category in pairs(DealerRelations.Equipment.ANIMAL_CATEGORIES) do
+        print(string.format(
+            "[DealerRelations] %s: %d discovered (eligible=%s)",
+            category,
+            countByCategory[category] or 0,
+            tostring(DealerRelations.Equipment:isAnimalEligible(category))
+        ))
+    end
+
+    return "dr_animalCategoryCount: see log"
 end

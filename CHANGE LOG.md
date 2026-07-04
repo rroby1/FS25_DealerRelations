@@ -1,5 +1,21 @@
 # Changelog
 
+## Version 0.20.0
+
+- Resolved Bucket D (animal-tied equipment) in full: `FORAGEMIXERS`, `MANURESPREADERS`, `SLURRYTANKS`, `SLURRYTOOLS`, `SLURRYTRANSPORT`, `STRAWBLOWERS`, and `LOADERWAGONS` all moved off manual category filters onto live, ownership-based eligibility gates.
+- Added `ANIMAL_CATEGORIES` table and `isAnimalEligible()` dispatcher to `DealerRelationsEquipment.lua`, following the same per-category-rule pattern as `CROP_CATEGORIES`/`isCropEligible()` rather than a flat toggle table, since the four gate shapes (cattle-only, cattle+heap, slurry accumulation, cattle+straw-barn) aren't interchangeable.
+- Added four new live detection functions: `ownsCattleNow()`, `ownsAnyManureHeapPlaceable()`, `ownsAccumulatedSlurry()`, `ownsStrawCapableBarn()`.
+- Cattle detection confirmed via `AnimalType.COW` (barn-level `getAnimalTypeIndex()`/`getNumOfAnimals()`), not the originally planned `COW_` subType-prefix match — animal type is a single barn-level value, not something requiring per-cluster inspection, and this correctly covers all cattle breeds (including water buffalo, highland cattle) as subtypes under one type rather than needing each enumerated.
+- Manure heap linkage confirmed to be readable directly off the barn placeable itself via `getHusbandryCapacity(FillType.MANURE)`, rather than searching for a separate manure heap/extension placeable — barns never store dry manure internally (capacity is `0` until a heap is linked as a storage extension), so capacity `> 0` is itself the live "heap connected" signal. Removed the need for a dedicated heap-search function entirely.
+- Slurry accumulation and straw capability both resolved to direct live API calls instead of save-XML parsing: `getHusbandryFillLevel(FillType.LIQUIDMANURE)` for accumulation, `spec_husbandryStraw ~= nil` for straw capability — both confirmed against real GIANTS specialization source (`PlaceableHusbandry.lua`, `PlaceableHusbandryAnimals.lua`, `PlaceableHusbandryStraw.lua`) rather than assumed from save file shape alone.
+- `LOADERWAGONS` required no dedicated function at all — joined `CROP_CATEGORIES` under the existing `"WINDROW"` rule, since `hasGrownAnyWindrowCrop()` (built in 0.17.0) already covers grass/hay and straw-dropping cereals like wheat in one flag with no hardcoded crop list.
+- Fixed a real discovery-time bug caught during testing: `isDemoCandidate()`'s category allow-list checked six specific tables but not the new `ANIMAL_CATEGORIES`, silently excluding all seven categories from `equipmentList` before `isCurrentlyEligible()` ever ran. All animal-tied categories showed zero discovered candidates until this was added.
+- Added `dr_animalTypes`, `dr_husbandryCapacity`, and `dr_animalCategoryCount` console commands (debug) — used to confirm the `AnimalType` enum, verify barn/heap capacity behavior live (`cowBarnSmall` vs. `cowBarnMedium` with heap linked), and isolate the discovery-vs-eligibility bug above.
+- Verified live in-game, both negative and positive cases: starting cows alone correctly enabled only `FORAGEMIXERS`; adding a straw-capable barn with a linked manure heap correctly added `MANURESPREADERS` and `STRAWBLOWERS` without affecting any other category's count.
+- Not yet stress-tested live: `SLURRYTANKS`/`SLURRYTOOLS`/`SLURRYTRANSPORT` flipping eligible once `LIQUIDMANURE` actually accumulates — logic confirmed via the same API, just not observed live due to production time.
+- Open question carried forward from the design note: whether `LIQUIDMANURE` persists in storage after a player sells off all cattle, which would leave a farm eligible on old slurry alone. Not stress-tested.
+- Deferred: HP-aware selection for equipment-pairing dependencies (harvester/header) and broader HP-awareness beyond mass-managed/tractor categories — earmarked as its own future bucket, likely alongside finance-aware selection.
+
 ## Version 0.19.0
 
 - Added mass-based HP eligibility for `SPRAYERS` and `FERTILIZERSPREADERS` via new `MASS_MANAGED_CATEGORIES`, since neither carries a `neededPower` attribute in XML: required power computed from laden mass (dry mass + max capacity × heaviest supported fill type's real density) rather than read from XML.
