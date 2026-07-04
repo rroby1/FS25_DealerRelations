@@ -144,6 +144,14 @@ DealerRelations.CONSTANTS = {
     -- a tuned value in the same spirit as HP_WEIGHT_CONSTANT/STEEPNESS.
     -- See vault design note: 0.19.0 Mass-Based HP Eligibility.
     MASS_TO_HP_RATIO = 97,
+
+    -- Converts a header's raw PTO power draw (kW, from powerConsumer#neededMaxPtoPower
+    -- in the base vehicle XML) into the same HP units used everywhere else in the
+    -- HP-eligibility system. Headers carry no storeData.specs.neededPower the way
+    -- ordinary implements do, so this is the only source of required power for them.
+    -- Standard metric kW-to-HP conversion, not a tuned value.
+    -- See vault design note: 0.21.0 Header/Harvester/Trailer/SeedTank Eligibility.
+    KW_TO_HP_RATIO = 1.35962,
 }
 
 

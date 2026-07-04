@@ -184,7 +184,29 @@ function DealerRelations.registerConsoleCommands()
         "Counts total discovered candidates (regardless of eligibility)",
         "consoleCommandAnimalCategoryCount",
         DealerRelations
-    )    
+    )
+    
+    addConsoleCommand(
+        "dr_headerHarvesterMatch",
+        "Dump raw combination xmlFilenames and configFileNames for owned/candidate headers and harvesters",
+        "consoleCommandHeaderHarvesterMatch",
+        DealerRelations
+    )
+
+    addConsoleCommand(
+        "dr_headerHarvesterEligibility",
+        "Dump comboMatch/hpMatch/displayPower for all discovered header/harvester candidates",
+        "consoleCommandHeaderHarvesterEligibility",
+        DealerRelations
+    )
+
+    addConsoleCommand(
+        "dr_testXmlFileLoad",
+        "Compare raw XML read vs XMLFile.load (parentFile-aware?) for a given file/path",
+        "consoleCommandTestXmlFileLoad",
+        DealerRelations,
+        "[xmlFilename] [path]"
+    )
     
     DealerRelations.log("Console commands registered")
 end
@@ -728,4 +750,183 @@ function DealerRelations:consoleCommandAnimalCategoryCount()
     end
 
     return "dr_animalCategoryCount: see log"
+end
+
+-------------------------------------------------------------------------------
+-- Dumps raw combinationXmlFilenames and xmlFilename/configFileName values
+-- for every owned harvester/header and every discovered header/harvester
+-- candidate. Temporary -- used to diagnose why isCombinationMatch() is
+-- returning false across the board (see dr_eligibleCount-adjacent testing,
+-- 0.21.0 header/harvester session): the derived comboMatch/hpMatch booleans
+-- don't show *why* a match fails, only that it did. This prints the actual
+-- strings being compared so a path/case mismatch is visible directly rather
+-- than inferred.
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandHeaderHarvesterMatch()
+    if DealerRelations.equipmentList == nil or #DealerRelations.equipmentList == 0 then
+        return "dr_headerHarvesterMatch: equipmentList unavailable -- has discover() run yet?"
+    end
+
+    print("[DealerRelations] === Owned harvesters/headers ===")
+
+    if g_currentMission ~= nil and g_currentMission.vehicleSystem ~= nil
+        and g_currentMission.vehicleSystem.vehicles ~= nil then
+
+        for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+            local entry = DealerRelations.equipmentByXmlFilename[vehicle.configFileName]
+
+            if entry ~= nil
+                and (DealerRelations.Equipment.HARVESTER_CATEGORIES[entry.category] == true
+                    or DealerRelations.Equipment.HEADER_CATEGORIES[entry.category] == true) then
+
+                print(string.format(
+                    "[DealerRelations] OWNED name='%s' category=%s configFileName='%s' xmlFilename='%s'",
+                    tostring(entry.name),
+                    tostring(entry.category),
+                    tostring(vehicle.configFileName),
+                    tostring(entry.xmlFilename)
+                ))
+
+                if entry.combinationXmlFilenames == nil or #entry.combinationXmlFilenames == 0 then
+                    print("[DealerRelations]   combinationXmlFilenames: (none)")
+                else
+                    for _, comboFilename in ipairs(entry.combinationXmlFilenames) do
+                        print(string.format("[DealerRelations]   combinationXmlFilenames: '%s'", tostring(comboFilename)))
+                    end
+                end
+            end
+        end
+    end
+
+    print("[DealerRelations] === Discovered header/harvester candidates ===")
+
+    for _, candidate in ipairs(DealerRelations.equipmentList) do
+        if DealerRelations.Equipment.HARVESTER_CATEGORIES[candidate.category] == true
+            or DealerRelations.Equipment.HEADER_CATEGORIES[candidate.category] == true then
+
+            print(string.format(
+                "[DealerRelations] CANDIDATE name='%s' category=%s xmlFilename='%s'",
+                tostring(candidate.name),
+                tostring(candidate.category),
+                tostring(candidate.xmlFilename)
+            ))
+
+            if candidate.combinationXmlFilenames == nil or #candidate.combinationXmlFilenames == 0 then
+                print("[DealerRelations]   combinationXmlFilenames: (none)")
+            else
+                for _, comboFilename in ipairs(candidate.combinationXmlFilenames) do
+                    print(string.format("[DealerRelations]   combinationXmlFilenames: '%s'", tostring(comboFilename)))
+                end
+            end
+        end
+    end
+
+    return "dr_headerHarvesterMatch: see log"
+end
+
+-------------------------------------------------------------------------------
+-- Dumps comboMatch, hpMatch, and displayPower for every discovered header/
+-- harvester candidate, recomputing the same signals isCurrentlyEligible()
+-- uses rather than reading a cached decision. Temporary -- used to verify
+-- the combo/HP eligibility gate in isolation, without needing to trigger a
+-- full isCurrentlyEligible() pass across every category via dr_eligibleCount.
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandHeaderHarvesterEligibility()
+    if DealerRelations.equipmentList == nil or #DealerRelations.equipmentList == 0 then
+        return "dr_headerHarvesterEligibility: equipmentList unavailable -- has discover() run yet?"
+    end
+
+    local count = 0
+
+    for _, candidate in ipairs(DealerRelations.equipmentList) do
+        local comboMatch, hpMatch
+
+        if DealerRelations.Equipment.HEADER_CATEGORIES[candidate.category] == true then
+            comboMatch = DealerRelations.Equipment:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.HARVESTER_CATEGORIES)
+            hpMatch = candidate.displayPower ~= nil
+                and candidate.displayPower <= DealerRelations.Equipment:getOwnedMaxHarvesterPower()
+        elseif DealerRelations.Equipment.HARVESTER_CATEGORIES[candidate.category] == true then
+            comboMatch = DealerRelations.Equipment:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.HEADER_CATEGORIES)
+            hpMatch = candidate.displayPower ~= nil
+                and candidate.displayPower >= DealerRelations.Equipment:getOwnedMaxHeaderRequiredPower()
+        end
+
+        if comboMatch ~= nil then
+            count = count + 1
+
+            print(string.format(
+                "[DealerRelations] name='%s' category=%s displayPower=%s comboMatch=%s hpMatch=%s",
+                tostring(candidate.name),
+                tostring(candidate.category),
+                tostring(candidate.displayPower),
+                tostring(comboMatch),
+                tostring(hpMatch)
+            ))
+        end
+    end
+
+    if count == 0 then
+        return "dr_headerHarvesterEligibility: no header/harvester candidates found"
+    end
+
+    return string.format("dr_headerHarvesterEligibility: checked %d candidate(s) -- see log", count)
+end
+
+-------------------------------------------------------------------------------
+-- Compares two ways of reading an XML value: the raw loadXMLFile/getXMLString
+-- mechanism readEquipmentXml() currently uses, versus XMLFile.load() with a
+-- minimal schema -- the mechanism Vehicle:load() actually uses at runtime
+-- (self.xmlFile = XMLFile.load("vehicleXML", self.configFileName,
+-- Vehicle.xmlSchema)). Temporary -- exists to determine whether
+-- XMLFile.load() transparently resolves <parentFile>/<set> rebadge
+-- inheritance (confirmed present in af11.xml, pointing at cr11.xml) before
+-- deciding how to fix the af11-style displayPower=nil gap.
+--
+-- @param xmlFilename string Resolved path, e.g.
+--        "data/vehicles/caseIH/af11/af11.xml" (no leading "$", matching the
+--        format already confirmed working via candidate.xmlFilename).
+-- @param path string Optional XML path to test. Defaults to
+--        "vehicle.storeData.specs.power".
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandTestXmlFileLoad(xmlFilename, path)
+    if xmlFilename == nil or xmlFilename == "" then
+        return "dr_testXmlFileLoad: usage: dr_testXmlFileLoad [xmlFilename] [path] -- e.g. dr_testXmlFileLoad data/vehicles/caseIH/af11/af11.xml vehicle.storeData.specs.power"
+    end
+
+    path = path or "vehicle.storeData.specs.power"
+
+    -- Raw read: same mechanism readEquipmentXml() uses today.
+    local rawResult
+    local rawXmlFile = loadXMLFile("dealerRelationsTestRawXML", xmlFilename)
+
+    if rawXmlFile ~= nil and rawXmlFile ~= 0 then
+        rawResult = tostring(getXMLString(rawXmlFile, path))
+        delete(rawXmlFile)
+    else
+        rawResult = "FAILED TO LOAD"
+    end
+
+    -- Resolved read: XMLFile.load() with a minimal one-path schema, root
+    -- node name forced to "vehicle" to match the actual root element
+    -- (mirrors Vehicle.xmlSchemaSounds needing an explicit setRootNodeName
+    -- when its schema name doesn't match the file's root tag).
+    local resolvedResult
+    local testSchema = XMLSchema.new("dealerRelationsTestSchema")
+    testSchema:setRootNodeName("vehicle")
+    testSchema:register(XMLValueType.STRING, path, "Test value")
+
+    local resolvedXmlFile = XMLFile.load("dealerRelationsTestResolvedXML", xmlFilename, testSchema)
+
+    if resolvedXmlFile ~= nil then
+        resolvedResult = tostring(resolvedXmlFile:getValue(path))
+        resolvedXmlFile:delete()
+    else
+        resolvedResult = "FAILED TO LOAD"
+    end
+
+    print(string.format("[DealerRelations] xmlFilename='%s' path='%s'", tostring(xmlFilename), tostring(path)))
+    print(string.format("[DealerRelations]   raw (loadXMLFile/getXMLString): %s", rawResult))
+    print(string.format("[DealerRelations]   resolved (XMLFile.load):        %s", resolvedResult))
+
+    return "dr_testXmlFileLoad: see log"
 end

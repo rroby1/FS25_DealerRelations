@@ -235,6 +235,33 @@ DealerRelations.Equipment.ANIMAL_CATEGORIES = {
 }
 
 -------------------------------------------------------------------------------
+-- HARVESTERS no longer has a manual toggle. This set exists purely for
+-- category recognition in isDemoCandidate() -- eligibility itself is fully
+-- automatic, handled by the combo/HP gate in isCurrentlyEligible(), mirroring
+-- how TRACTOR_CATEGORIES lost its manual toggle earlier.
+-------------------------------------------------------------------------------
+DealerRelations.Equipment.HARVESTER_CATEGORIES = {
+    HARVESTERS = true,
+}
+
+-------------------------------------------------------------------------------
+-- Categories whose eligibility is governed by harvester-HP matching rather
+-- than a manual player toggle. Distinct from POWER_MANAGED_CATEGORIES since
+-- the comparison is against owned harvester HP, not tractor HP.
+--
+-- COMBINEWINDROWER and VEGETABLEHARVESTERS remain CROP_CATEGORIES-only —
+-- they are not cutting-front attachments and are intentionally excluded
+-- from this gate. Generic multi-brand headers (selectable per-brand
+-- couplers via inputAttacherJointConfigurations) are excluded from the
+-- demo pool entirely; see vault design note: 0.21.0 Header/Harvester/
+-- Trailer/SeedTank Eligibility.
+-------------------------------------------------------------------------------
+DealerRelations.Equipment.HEADER_CATEGORIES = {
+    CORNHEADERS = true,
+    CUTTERS = true,
+    SPECIALHEADERS = true,
+}
+-------------------------------------------------------------------------------
 -- Default player-configurable category filters.
 --
 -- These categories are valid equipment-demo categories. New saves will start
@@ -242,7 +269,6 @@ DealerRelations.Equipment.ANIMAL_CATEGORIES = {
 -------------------------------------------------------------------------------
 DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
     SEEDTANKS = true,
-    HARVESTERS = true,
     CUTTERTRAILERS = true,
 }    
 
@@ -282,6 +308,7 @@ function DealerRelations.Equipment:isDemoCandidate(item)
         and DealerRelations.Equipment.POWER_MANAGED_CATEGORIES[category] == nil
         and DealerRelations.Equipment.MASS_MANAGED_CATEGORIES[category] == nil
         and DealerRelations.Equipment.ANIMAL_CATEGORIES[category] == nil
+        and DealerRelations.Equipment.HARVESTER_CATEGORIES[category] == nil
         and DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS[category] == nil then
         DealerRelations.warning("Unclassified equipment category: " .. category)
         return false
@@ -309,7 +336,7 @@ end
 -- @return table|nil Equipment data table when successful, otherwise nil.
 -----------------------------------------------------------------------------
 
-function DealerRelations.Equipment:readEquipmentXml(xmlFilename)
+function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
     if xmlFilename == nil or xmlFilename == "" then
         DealerRelations.warning("Cannot read equipment XML: xmlFilename is missing")
         return nil
@@ -329,6 +356,42 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename)
     local fruitTypeCategories = getXMLString(xmlFile, "vehicle.cutter#fruitTypeCategories")
     local fruitTypesDirect = getXMLString(xmlFile, "vehicle.cutter#fruitTypes")
     local vineFruitType = getXMLString(xmlFile, "vehicle.vineCutter#fruitType")
+
+    -- Combination entries declare compatible vehicles (harvesters, trailers,
+    -- seeders/planters, etc.) by XML filename. Not type-separated in the XML —
+    -- a single item's list can mix categories — so this just collects the raw
+    -- filenames; resolving what each one actually is happens at eligibility-
+    -- check time via g_storeManager:getItemByXMLFilename(). Confirmed present
+    -- on headers, harvesters, cutter trailers, seed tanks, and seeders/planters.
+    -- Absence of an entry is not evidence of incompatibility -- modders
+    -- frequently omit these even for their own mod's compatible pairs -- so
+    -- this is used as an additional-eligibility signal, never an exclusive one.
+    --
+    -- The raw XML value carries the unresolved "$data" template prefix
+    -- (e.g. "$data/vehicles/caseIH/axialFlow150/axialFlow150.xml"), while
+    -- item.xmlFilename / vehicle.configFileName / equipmentByXmlFilename
+    -- keys all use the resolved form with no "$" (confirmed via
+    -- dr_headerHarvesterMatch -- every comboMatch was silently false
+    -- because of this exact mismatch). Stripping a leading "$" here keeps
+    -- this list in the same key space as everything it gets compared
+    -- against. Only handles the "$data" case actually observed; a
+    -- combination pointing into another mod's own directory (e.g.
+    -- "$moddir_SomeOtherMod/...") hasn't been seen yet and may need
+    -- separate handling if it turns up.
+    -- See vault design note: 0.21.0 Header/Harvester/Trailer/SeedTank Eligibility.
+    local combinationXmlFilenames = {}
+    local combinationIndex = 0
+    local combinationXmlFilename = getXMLString(xmlFile, string.format("vehicle.storeData.specs.combination(%d)#xmlFilename", combinationIndex))
+
+    while combinationXmlFilename ~= nil do
+        if combinationXmlFilename:sub(1, 1) == "$" then
+            combinationXmlFilename = combinationXmlFilename:sub(2)
+        end
+
+        table.insert(combinationXmlFilenames, combinationXmlFilename)
+        combinationIndex = combinationIndex + 1
+        combinationXmlFilename = getXMLString(xmlFile, string.format("vehicle.storeData.specs.combination(%d)#xmlFilename", combinationIndex))
+    end
 
     -- Dry mass: component can repeat (confirmed — the MF 9S tractor has two,
     -- summing to total chassis mass), so this sums every index found rather
@@ -398,6 +461,7 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename)
         dryMass = dryMass,
         maxCapacity = maxCapacity,
         fillTypeNames = fillTypeNames,
+        combinationXmlFilenames = combinationXmlFilenames,
         powerRole = "NONE",
         displayPower = nil,
         powerMin = nil,
@@ -414,6 +478,21 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename)
         data.displayPower = displayNeededPower
         data.powerMin = displayNeededPower
         data.powerMax = displayNeededMaxPower or displayNeededPower
+    elseif DealerRelations.Equipment.HEADER_CATEGORIES[category] == true then
+        -- Headers carry no storeData.specs.neededPower. The only power
+        -- attribute available is the raw physics PTO draw (kW), which needs
+        -- converting to the HP units used everywhere else in this system.
+        -- powerRole "HEADER" is kept distinct from "IMPLEMENT" so a header
+        -- is never accidentally checked against tractor HP.
+        local neededMaxPtoPower = getXMLFloat(xmlFile, "vehicle.powerConsumer#neededMaxPtoPower")
+
+        if neededMaxPtoPower ~= nil then
+            local headerRequiredHp = neededMaxPtoPower * DealerRelations.CONSTANTS.KW_TO_HP_RATIO
+            data.powerRole = "HEADER"
+            data.displayPower = headerRequiredHp
+            data.powerMin = headerRequiredHp
+            data.powerMax = headerRequiredHp
+        end
     end
 
     if data.powerRole == "SELF_PROPELLED" then
@@ -470,7 +549,7 @@ function DealerRelations.Equipment:resolveDemoCandidate(item)
     end
 
     local category = tostring(item.categoryName)
-    local xmlData = self:readEquipmentXml(item.xmlFilename)
+    local xmlData = self:readEquipmentXml(item.xmlFilename, category)
 
     local brand = xmlData ~= nil and xmlData.brand or item.brandName
     DealerRelations.Data:ensureBrandFilter(brand)
@@ -536,10 +615,17 @@ function DealerRelations.Equipment:resolveDemoCandidate(item)
     -- falling through to powerRole "NONE" and becoming invisible to both
     -- HP eligibility and selection weighting. Tractors are excluded since
     -- they already set powerRole explicitly during config expansion above.
+    --
+    -- Headers are excluded too: powerRole "HEADER" is set explicitly in
+    -- readEquipmentXml() when neededMaxPtoPower is present, and a header
+    -- with no neededMaxPtoPower at all is a malformed/unusual case that
+    -- should surface as powerRole "NONE" rather than being silently
+    -- defaulted to 0 HP like the categories below.
     if powerRole == "NONE"
         and (DealerRelations.Equipment.CROP_CATEGORIES[category] ~= nil
             or DealerRelations.Equipment.FORESTRY_CATEGORIES[category] ~= nil
-            or DealerRelations.Equipment.POWER_MANAGED_CATEGORIES[category] == true) then
+            or DealerRelations.Equipment.POWER_MANAGED_CATEGORIES[category] == true)
+        and DealerRelations.Equipment.HEADER_CATEGORIES[category] ~= true then
         powerRole = "IMPLEMENT"
         displayPower = 0
         powerMin = 0
@@ -578,6 +664,7 @@ function DealerRelations.Equipment:resolveDemoCandidate(item)
             xmlBrand = xmlData ~= nil and xmlData.brand or nil,
             category = category,
             fruitTypes = xmlData ~= nil and xmlData.fruitTypes or nil,
+            combinationXmlFilenames = xmlData ~= nil and xmlData.combinationXmlFilenames or nil,
             price = item.price,
             xmlFilename = item.xmlFilename,
             storeImage = xmlData ~= nil and xmlData.storeImage or nil,
@@ -620,12 +707,20 @@ function DealerRelations.Equipment:discover()
             candidateCount = candidateCount + 1
             table.insert(DealerRelations.equipmentList, candidate)
 
-            -- Only implements are looked up by xmlFilename (see
-            -- getOwnedMaxImplementNeededPower). Tractors are expanded into
-            -- multiple entries sharing one xmlFilename and would collide
-            -- here, but nothing looks tractors up through this map, so
-            -- skipping them is safe.
-            if candidate.powerRole == "IMPLEMENT" and candidate.xmlFilename ~= nil then
+            -- Implements, headers, and harvesters are looked up by
+            -- xmlFilename (see getOwnedMaxImplementNeededPower,
+            -- getOwnedMaxHeaderRequiredPower, isCombinationMatchedToOwnedCategory).
+            -- Headers and harvesters are category-gated rather than
+            -- powerRole-gated because harvesters share powerRole
+            -- "SELF_PROPELLED" with tractors, and tractors must stay
+            -- excluded here: they're expanded into multiple candidates
+            -- per engine config sharing one xmlFilename and would collide
+            -- in this map. Headers/harvesters are never expanded this way
+            -- (one candidate per xmlFilename), so caching them is safe.
+            if candidate.xmlFilename ~= nil
+                and (candidate.powerRole == "IMPLEMENT"
+                    or DealerRelations.Equipment.HEADER_CATEGORIES[candidate.category] == true
+                    or DealerRelations.Equipment.HARVESTER_CATEGORIES[candidate.category] == true) then
                 DealerRelations.equipmentByXmlFilename[candidate.xmlFilename] = candidate
             end
         end
@@ -987,6 +1082,41 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
         end
     end
 
+    -- Headers require either a curated compatibility declaration with an
+    -- owned harvester, or a derived HP match -- combo data is confirmed
+    -- unreliable/incomplete (headerC16F has harvester combos but no trailer
+    -- combo; delta9380 has none at all), so this is OR, not AND: either
+    -- signal alone is sufficient, and a header with neither (powerRole
+    -- "NONE", no neededMaxPtoPower in XML) can only qualify via combo match.
+    -- No owned harvester yet means getOwnedMaxHarvesterPower() returns 0,
+    -- which naturally excludes headers until a capable harvester is owned
+    -- -- same floor-of-0 pattern as the implement/tractor gate above.
+    if DealerRelations.Equipment.HEADER_CATEGORIES[candidate.category] == true then
+        local comboMatch = self:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.HARVESTER_CATEGORIES)
+        local hpMatch = candidate.displayPower ~= nil
+            and candidate.displayPower <= self:getOwnedMaxHarvesterPower()
+
+        if not comboMatch and not hpMatch then
+            return false
+        end
+    end
+
+    -- Harvesters require either a curated compatibility declaration with an
+    -- owned header, or a derived HP match -- mirrors the header gate above.
+    -- No owned header yet means getOwnedMaxHeaderRequiredPower() returns 0,
+    -- so this never rejects a harvester on HP alone until the player owns
+    -- a header demanding more than it -- same "base machine always
+    -- available" pattern as tractors relative to implements.
+    if DealerRelations.Equipment.HARVESTER_CATEGORIES[candidate.category] == true then
+        local comboMatch = self:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.HEADER_CATEGORIES)
+        local hpMatch = candidate.displayPower ~= nil
+            and candidate.displayPower >= self:getOwnedMaxHeaderRequiredPower()
+
+        if not comboMatch and not hpMatch then
+            return false
+        end
+    end
+
     if DealerRelations.Equipment.FORESTRY_CATEGORIES[candidate.category] == true then
         return DealerRelations.Data:isForestryEnabled()
     end
@@ -1001,6 +1131,12 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
 
     if DealerRelations.Equipment.ANIMAL_CATEGORIES[candidate.category] ~= nil then
         return self:isAnimalEligible(candidate.category)
+    end
+
+    if DealerRelations.Equipment.HARVESTER_CATEGORIES[candidate.category] == true then
+        -- Harvesters no longer have a DEFAULT_CATEGORY_FILTERS entry; the
+        -- combo/HP gate above is their only eligibility check.
+        return true
     end
 
     if DealerRelations.Equipment.TRACTOR_CATEGORIES[candidate.category] == true then
@@ -1340,4 +1476,157 @@ function DealerRelations.Equipment:ownsStrawCapableBarn()
     end
 
     return false
+end
+
+-------------------------------------------------------------------------------
+-- Returns true if candidate and an owned vehicle's cached equipment entry
+-- reference each other via storeData.specs.combination, checked in both
+-- directions since modders do not reliably mirror these entries (confirmed:
+-- headerC16F lists harvester combos but no trailer combo; delta9380 lists
+-- none at all). A match on either side is sufficient -- this function never
+-- treats absence as disqualifying, only presence as confirming.
+--
+-- Combination xmlFilename strings are compared directly against
+-- equipmentByXmlFilename keys (themselves store item xmlFilename values) --
+-- the same untranslated key space getOwnedMaxImplementNeededPower already
+-- trusts for vehicle.configFileName lookups, so no additional normalization
+-- is applied here.
+--
+-- @param candidate table Entry from equipmentList.
+-- @param ownedEntry table Cached equipment entry for an owned vehicle, from
+--        equipmentByXmlFilename.
+-- @return boolean True if either side's combination list references the other.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:isCombinationMatch(candidate, ownedEntry)
+    if candidate == nil or ownedEntry == nil then
+        return false
+    end
+
+    if candidate.combinationXmlFilenames ~= nil then
+        for _, xmlFilename in ipairs(candidate.combinationXmlFilenames) do
+            if xmlFilename == ownedEntry.xmlFilename then
+                return true
+            end
+        end
+    end
+
+    if ownedEntry.combinationXmlFilenames ~= nil then
+        for _, xmlFilename in ipairs(ownedEntry.combinationXmlFilenames) do
+            if xmlFilename == candidate.xmlFilename then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+-------------------------------------------------------------------------------
+-- Returns true if candidate is combination-matched (either direction, via
+-- isCombinationMatch) to any currently owned vehicle whose category is in
+-- the given category set.
+--
+-- Evaluated fresh at eligibility-check time, not cached, since ownership is
+-- live state -- same rationale as getOwnedMaxTractorPower and
+-- getOwnedMaxImplementNeededPower.
+--
+-- @param candidate table Entry from equipmentList.
+-- @param categorySet table Set of category names to check ownership against
+--        (e.g. { HARVESTERS = true } or HEADER_CATEGORIES).
+-- @return boolean True if a combination match exists with any owned vehicle
+--         in categorySet.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:isCombinationMatchedToOwnedCategory(candidate, categorySet)
+    if g_currentMission == nil or g_currentMission.vehicleSystem == nil
+        or g_currentMission.vehicleSystem.vehicles == nil then
+        return false
+    end
+
+    for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+        local ownedEntry = DealerRelations.equipmentByXmlFilename[vehicle.configFileName]
+
+        if ownedEntry ~= nil and categorySet[ownedEntry.category] == true then
+            if self:isCombinationMatch(candidate, ownedEntry) then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+-------------------------------------------------------------------------------
+-- Returns the highest engine power (HP) among the player's currently owned
+-- harvesters.
+--
+-- Mirrors getOwnedMaxTractorPower() exactly -- reads the live selected motor
+-- configuration rather than the cached equipmentList range, since a specific
+-- owned harvester's actual engine tier (if the store offers more than one)
+-- is what matters for matching against a header's required power, not the
+-- model's full range.
+--
+-- @return number Highest owned harvester power in HP, 0 if none owned.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:getOwnedMaxHarvesterPower()
+    local maxPower = 0
+
+    if g_currentMission == nil or g_currentMission.vehicleSystem == nil
+        or g_currentMission.vehicleSystem.vehicles == nil then
+        return maxPower
+    end
+
+    for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+        if vehicle.configurations ~= nil and vehicle.configurations["motor"] ~= nil then
+            local storeItem = g_storeManager:getItemByXMLFilename(vehicle.configFileName)
+
+            if storeItem ~= nil
+                and tostring(storeItem.categoryName) == "HARVESTERS"
+                and storeItem.configurations ~= nil
+                and storeItem.configurations["motor"] ~= nil then
+
+                local motorConfigId = vehicle.configurations["motor"]
+                local configEntry = storeItem.configurations["motor"][motorConfigId]
+
+                if configEntry ~= nil and configEntry.power ~= nil and configEntry.power > maxPower then
+                    maxPower = configEntry.power
+                end
+            end
+        end
+    end
+
+    return maxPower
+end
+
+-------------------------------------------------------------------------------
+-- Returns the highest required power (derived HP) among the player's
+-- currently owned headers.
+--
+-- Mirrors getOwnedMaxImplementNeededPower() exactly, filtered to powerRole
+-- "HEADER" instead of "IMPLEMENT". Uses the cached equipmentByXmlFilename
+-- entry rather than a live per-config read, since headers don't get the
+-- tractor-style per-motor-config candidate expansion in resolveDemoCandidate
+-- -- a header's required power is fixed per model, not per selected engine
+-- tier.
+--
+-- @return number Highest owned header required power in HP, 0 if none owned.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:getOwnedMaxHeaderRequiredPower()
+    local maxRequiredPower = 0
+
+    if g_currentMission == nil or g_currentMission.vehicleSystem == nil
+        or g_currentMission.vehicleSystem.vehicles == nil then
+        return maxRequiredPower
+    end
+
+    for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+        local entry = DealerRelations.equipmentByXmlFilename[vehicle.configFileName]
+
+        if entry ~= nil and entry.powerRole == "HEADER" and entry.displayPower ~= nil then
+            if entry.displayPower > maxRequiredPower then
+                maxRequiredPower = entry.displayPower
+            end
+        end
+    end
+
+    return maxRequiredPower
 end
