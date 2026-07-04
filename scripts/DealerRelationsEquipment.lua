@@ -272,6 +272,42 @@ DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
     CUTTERTRAILERS = true,
 }    
 
+
+-------------------------------------------------------------------------------
+-- Schema for reading vehicle XML files via XMLFile.load() instead of the
+-- raw loadXMLFile()/getXMLInt()/getXMLString()/getXMLFloat() API.
+--
+-- Confirmed via dr_testXmlFileLoad: the raw API does not resolve
+-- <parentFile>/<set> rebadge inheritance (e.g. af11.xml, which inherits
+-- storeData.specs.power=775 from cr11.xml and never re-declares it).
+-- XMLFile.load() resolves this correctly, matching the mechanism the game
+-- itself uses in Vehicle:load(). Built once here rather than per-call,
+-- mirroring Vehicle.xmlSchema.
+--
+-- setRootNodeName("vehicle") is required since the schema's own name does
+-- not match the file's root element -- confirmed necessary via the same
+-- dr_testXmlFileLoad test.
+-- See vault design note: 0.21.0 Header/Harvester/Trailer/SeedTank Eligibility.
+-------------------------------------------------------------------------------
+DealerRelations.Equipment.xmlSchema = XMLSchema.new("dealerRelationsEquipmentSchema")
+DealerRelations.Equipment.xmlSchema:setRootNodeName("vehicle")
+
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.INT, "vehicle.storeData.specs.power", "Self-propelled display horsepower")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.INT, "vehicle.storeData.specs.neededPower", "Implement required horsepower")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.INT, "vehicle.storeData.specs.neededPower#maxPower", "Implement required horsepower (max)")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.storeData.brand", "Brand")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.storeData.image", "Store image path")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.storeData.specs.combination(?)#xmlFilename", "Combination xmlFilename")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.cutter#fruitTypeCategories", "Cutter fruit type categories")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.cutter#fruitTypes", "Cutter fruit types")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.vineCutter#fruitType", "Vine cutter fruit type")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.FLOAT, "vehicle.base.components.component(?)#mass", "Component mass")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.FLOAT, "vehicle.fillUnit.fillUnitConfigurations.fillUnitConfiguration(?).fillUnits.fillUnit(?)#capacity", "Fill unit capacity")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.fillUnit.fillUnitConfigurations.fillUnitConfiguration(?).fillUnits.fillUnit(?)#fillTypes", "Fill unit fill types")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.fillUnit.fillUnitConfigurations.fillUnitConfiguration(?).fillUnits.fillUnit(?)#fillTypeCategories", "Fill unit fill type categories")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.FLOAT, "vehicle.powerConsumer#neededMaxPtoPower", "Header PTO power draw (kW)")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.INT, "vehicle.motorized.motorConfigurations.motorConfiguration(?)#hp", "Motor configuration horsepower")
+
 -------------------------------------------------------------------------------
 -- Returns true when a store item should be considered for dealer demos.
 --
@@ -335,27 +371,26 @@ end
 -- @param xmlFilename string Path to the equipment XML file.
 -- @return table|nil Equipment data table when successful, otherwise nil.
 -----------------------------------------------------------------------------
-
 function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
     if xmlFilename == nil or xmlFilename == "" then
         DealerRelations.warning("Cannot read equipment XML: xmlFilename is missing")
         return nil
     end
 
-    local xmlFile = loadXMLFile("dealerRelationsEquipmentXML", xmlFilename)
+    local xmlFile = XMLFile.load("dealerRelationsEquipmentXML", xmlFilename, DealerRelations.Equipment.xmlSchema)
 
-    if xmlFile == nil or xmlFile == 0 then
+    if xmlFile == nil then
         DealerRelations.warning("Failed to load equipment XML: " .. tostring(xmlFilename))
         return nil
     end
 
-    local displayPower = getXMLInt(xmlFile, "vehicle.storeData.specs.power")
-    local displayNeededPower = getXMLInt(xmlFile, "vehicle.storeData.specs.neededPower")
-    local displayNeededMaxPower = getXMLInt(xmlFile, "vehicle.storeData.specs.neededPower#maxPower")
+    local displayPower = xmlFile:getValue("vehicle.storeData.specs.power")
+    local displayNeededPower = xmlFile:getValue("vehicle.storeData.specs.neededPower")
+    local displayNeededMaxPower = xmlFile:getValue("vehicle.storeData.specs.neededPower#maxPower")
 
-    local fruitTypeCategories = getXMLString(xmlFile, "vehicle.cutter#fruitTypeCategories")
-    local fruitTypesDirect = getXMLString(xmlFile, "vehicle.cutter#fruitTypes")
-    local vineFruitType = getXMLString(xmlFile, "vehicle.vineCutter#fruitType")
+    local fruitTypeCategories = xmlFile:getValue("vehicle.cutter#fruitTypeCategories")
+    local fruitTypesDirect = xmlFile:getValue("vehicle.cutter#fruitTypes")
+    local vineFruitType = xmlFile:getValue("vehicle.vineCutter#fruitType")
 
     -- Combination entries declare compatible vehicles (harvesters, trailers,
     -- seeders/planters, etc.) by XML filename. Not type-separated in the XML —
@@ -371,17 +406,16 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
     -- (e.g. "$data/vehicles/caseIH/axialFlow150/axialFlow150.xml"), while
     -- item.xmlFilename / vehicle.configFileName / equipmentByXmlFilename
     -- keys all use the resolved form with no "$" (confirmed via
-    -- dr_headerHarvesterMatch -- every comboMatch was silently false
-    -- because of this exact mismatch). Stripping a leading "$" here keeps
-    -- this list in the same key space as everything it gets compared
-    -- against. Only handles the "$data" case actually observed; a
-    -- combination pointing into another mod's own directory (e.g.
+    -- dr_headerHarvesterMatch). Stripping a leading "$" here keeps this
+    -- list in the same key space as everything it gets compared against.
+    -- Only handles the "$data" case actually observed; a combination
+    -- pointing into another mod's own directory (e.g.
     -- "$moddir_SomeOtherMod/...") hasn't been seen yet and may need
     -- separate handling if it turns up.
     -- See vault design note: 0.21.0 Header/Harvester/Trailer/SeedTank Eligibility.
     local combinationXmlFilenames = {}
     local combinationIndex = 0
-    local combinationXmlFilename = getXMLString(xmlFile, string.format("vehicle.storeData.specs.combination(%d)#xmlFilename", combinationIndex))
+    local combinationXmlFilename = xmlFile:getValue(string.format("vehicle.storeData.specs.combination(%d)#xmlFilename", combinationIndex))
 
     while combinationXmlFilename ~= nil do
         if combinationXmlFilename:sub(1, 1) == "$" then
@@ -390,7 +424,7 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
 
         table.insert(combinationXmlFilenames, combinationXmlFilename)
         combinationIndex = combinationIndex + 1
-        combinationXmlFilename = getXMLString(xmlFile, string.format("vehicle.storeData.specs.combination(%d)#xmlFilename", combinationIndex))
+        combinationXmlFilename = xmlFile:getValue(string.format("vehicle.storeData.specs.combination(%d)#xmlFilename", combinationIndex))
     end
 
     -- Dry mass: component can repeat (confirmed — the MF 9S tractor has two,
@@ -399,12 +433,12 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
     -- read below.
     local dryMass = nil
     local componentIndex = 0
-    local componentMass = getXMLFloat(xmlFile, string.format("vehicle.base.components.component(%d)#mass", componentIndex))
+    local componentMass = xmlFile:getValue(string.format("vehicle.base.components.component(%d)#mass", componentIndex))
 
     while componentMass ~= nil do
         dryMass = (dryMass or 0) + componentMass
         componentIndex = componentIndex + 1
-        componentMass = getXMLFloat(xmlFile, string.format("vehicle.base.components.component(%d)#mass", componentIndex))
+        componentMass = xmlFile:getValue(string.format("vehicle.base.components.component(%d)#mass", componentIndex))
     end
 
     -- Capacity and fill types: both fillUnitConfiguration and fillUnit can
@@ -427,7 +461,7 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
                 "vehicle.fillUnit.fillUnitConfigurations.fillUnitConfiguration(%d).fillUnits.fillUnit(%d)",
                 configIndex, unitIndex
             )
-            local capacity = getXMLFloat(xmlFile, unitKey .. "#capacity")
+            local capacity = xmlFile:getValue(unitKey .. "#capacity")
 
             if capacity == nil then
                 break
@@ -439,8 +473,8 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
                 maxCapacity = capacity
             end
 
-            local fillTypesDirect = getXMLString(xmlFile, unitKey .. "#fillTypes")
-            local fillTypeCategories = getXMLString(xmlFile, unitKey .. "#fillTypeCategories")
+            local fillTypesDirect = xmlFile:getValue(unitKey .. "#fillTypes")
+            local fillTypeCategories = xmlFile:getValue(unitKey .. "#fillTypeCategories")
 
             self:collectFillTypeNames(fillTypeNames, fillTypesDirect, fillTypeCategories)
 
@@ -455,8 +489,8 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
     end
 
     local data = {
-        brand = getXMLString(xmlFile, "vehicle.storeData.brand"),
-        storeImage = getXMLString(xmlFile, "vehicle.storeData.image"),  -- Store image path for Overview display
+        brand = xmlFile:getValue("vehicle.storeData.brand"),
+        storeImage = xmlFile:getValue("vehicle.storeData.image"),  -- Store image path for Overview display
         fruitTypes = self:resolveFruitTypes(fruitTypeCategories, fruitTypesDirect, vineFruitType),
         dryMass = dryMass,
         maxCapacity = maxCapacity,
@@ -484,7 +518,7 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
         -- converting to the HP units used everywhere else in this system.
         -- powerRole "HEADER" is kept distinct from "IMPLEMENT" so a header
         -- is never accidentally checked against tractor HP.
-        local neededMaxPtoPower = getXMLFloat(xmlFile, "vehicle.powerConsumer#neededMaxPtoPower")
+        local neededMaxPtoPower = xmlFile:getValue("vehicle.powerConsumer#neededMaxPtoPower")
 
         if neededMaxPtoPower ~= nil then
             local headerRequiredHp = neededMaxPtoPower * DealerRelations.CONSTANTS.KW_TO_HP_RATIO
@@ -497,8 +531,7 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
 
     if data.powerRole == "SELF_PROPELLED" then
         local motorIndex = 0
-        local motorHp = getXMLInt(
-            xmlFile,
+        local motorHp = xmlFile:getValue(
             string.format(
                 "vehicle.motorized.motorConfigurations.motorConfiguration(%d)#hp",
                 motorIndex
@@ -515,8 +548,7 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
             end
 
             motorIndex = motorIndex + 1
-            motorHp = getXMLInt(
-                xmlFile,
+            motorHp = xmlFile:getValue(
                 string.format(
                     "vehicle.motorized.motorConfigurations.motorConfiguration(%d)#hp",
                     motorIndex
@@ -525,7 +557,7 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
         end
     end
 
-    delete(xmlFile)
+    xmlFile:delete()
 
     return data
 end

@@ -629,7 +629,7 @@ function DealerRelations:consoleCommandMassEligibility()
                     tostring(candidate.displayPower)
                 ))
             else
-                local xmlData = DealerRelations.Equipment:readEquipmentXml(candidate.xmlFilename)
+                local xmlData = DealerRelations.Equipment:readEquipmentXml(candidate.xmlFilename, candidate.category)
                 local dryMass = xmlData ~= nil and xmlData.dryMass or nil
                 local maxCapacity = xmlData ~= nil and xmlData.maxCapacity or nil
                 local density = xmlData ~= nil
