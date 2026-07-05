@@ -591,8 +591,20 @@ function DealerRelations.Screen:updateOverviewValues()
             self.offerActionsLayout:setVisible(false)
         end
 
+        -- Include the companion's name and price, if the offer has one
+        -- (e.g. a header bundled with a trailer) -- the player should see
+        -- both pieces and the combined price before accepting, not just
+        -- the primary.
+        local equipmentDisplayName = tostring(offer.name)
+        local combinedListPrice = offer.price or 0
+
+        if offer.companionName ~= nil then
+            equipmentDisplayName = equipmentDisplayName .. " + " .. tostring(offer.companionName)
+            combinedListPrice = combinedListPrice + (offer.companionPrice or 0)
+        end
+
         self.dealerActivityDetail1Text:setText(
-            "Equipment: " .. tostring(offer.name)
+            "Equipment: " .. equipmentDisplayName
         )
 
         self.dealerActivityDetail2Text:setText(
@@ -606,7 +618,7 @@ function DealerRelations.Screen:updateOverviewValues()
             "Power: " .. tostring(offer.displayPower)
         )
         self.dealerActivityDetail5Text:setText(
-            "Price: " .. DealerRelations.Utils:formatMoney(offer.price)
+            "Price: " .. DealerRelations.Utils:formatMoney(combinedListPrice)
         )
 
         self.dealerActivityDetail6Text:setText(
@@ -637,14 +649,33 @@ function DealerRelations.Screen:updateOverviewValues()
         local purchasePrice = 0
         local hoursUsed = 0
 
+        -- Include the companion's price, if one exists, matching the
+        -- combined price buyActiveDemo() actually charges -- this display
+        -- must never show a lower number than what clicking Buy will
+        -- actually cost.
+        local secondary = DealerRelations.DemoManager:findSecondaryDemoVehicle()
+        local equipmentDisplayName = tostring(demo.name)
+        local combinedListPrice = 0
+
         if vehicle ~= nil then
-            purchasePrice = DealerRelations.Data:getDemoPurchasePrice(vehicle.price)
+            combinedListPrice = vehicle.price
             local currentHours = vehicle:getOperatingTime() / (1000 * 60 * 60)
             hoursUsed = currentHours - (demo.startOperatingHours or 0)
         end
 
+        if secondary ~= nil then
+            equipmentDisplayName = equipmentDisplayName .. " + " .. tostring(secondary.name)
+
+            local secondaryVehicle = DealerRelations.DemoManager:findVehicleByUniqueId(secondary.uniqueId)
+            if secondaryVehicle ~= nil then
+                combinedListPrice = combinedListPrice + secondaryVehicle.price
+            end
+        end
+
+        purchasePrice = DealerRelations.Data:getDemoPurchasePrice(combinedListPrice)
+
         self.dealerActivityDetail1Text:setText(
-            "Equipment: " .. tostring(demo.name)
+            "Equipment: " .. equipmentDisplayName
         )
         self.dealerActivityDetail2Text:setText(
             "Brand: " .. DealerRelations.Utils:getBrandDisplayName(demo.brand)
@@ -674,7 +705,6 @@ function DealerRelations.Screen:updateOverviewValues()
         self.dealerActivityDetail3Text:setText("")
         self.dealerActivityDetail4Text:setText("")
         self.dealerActivityDetail5Text:setText("")
-        self.dealerActivityDetail6Text:setText("")
         self.offerImage:setVisible(false)
     end
 end

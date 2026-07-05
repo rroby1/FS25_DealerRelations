@@ -34,8 +34,9 @@ DealerRelations.DemoManager = {}
 --
 -- Creates the vehicle, assigns it to the current farm, and sets MISSION
 -- property state to prevent selling, repairing, repainting, or shop
--- modifications. Loading is asynchronous; onDemoVehicleLoaded() completes
--- the setup once the vehicle is available.
+-- modifications. Loading is asynchronous; onPrimaryDemoVehicleLoaded()
+-- completes the setup once the vehicle is available, and continues on to
+-- load the companion vehicle (e.g. a header's trailer) if the offer has one.
 --
 -- @param offer table Active demo offer data.
 -- @return boolean True if loading was initiated, false if validation failed.
@@ -84,7 +85,7 @@ function DealerRelations.DemoManager:startDemoFromOffer(offer)
 
     -- Begin asynchronous vehicle loading.
     data:load(
-        DealerRelations.DemoManager.onDemoVehicleLoaded,
+        DealerRelations.DemoManager.onPrimaryDemoVehicleLoaded,
         DealerRelations.DemoManager,
         {
             offer = offer
@@ -92,6 +93,226 @@ function DealerRelations.DemoManager:startDemoFromOffer(offer)
     )
 
     return true
+end
+
+-------------------------------------------------------------------------------
+-- Callback invoked when the primary demo vehicle finishes asynchronous
+-- loading.
+--
+-- Records the vehicle as an active demo (role PRIMARY). If the offer has a
+-- companion (e.g. a header's trailer), begins loading it next via
+-- onCompanionDemoVehicleLoaded() -- the offer is not cleared and confidence
+-- is not applied until the whole unit (primary + companion, if any) has
+-- finished loading. If there is no companion, finalizes immediately.
+--
+-- @param vehicles table List of loaded vehicles returned by the engine.
+-- @param loadingState number VehicleLoadingState result code.
+-- @param args table Callback arguments containing the original offer data.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:onPrimaryDemoVehicleLoaded(vehicles, loadingState, args)
+
+    -- Loading failed.
+    if loadingState ~= VehicleLoadingState.OK then
+        DealerRelations.warning("Demo vehicle failed to load")
+        return
+    end
+
+    -- No vehicles were returned even though loading succeeded.
+    if vehicles == nil or #vehicles == 0 then
+        DealerRelations.warning(
+            "Demo vehicle load completed but no vehicles were returned"
+        )
+        return
+    end
+
+    -- Retrieve the spawned vehicle.
+    local vehicle = vehicles[1]
+
+    -- Store the unique ID for future demo tracking.
+    local uniqueId = vehicle:getUniqueId()
+
+    DealerRelations.log(string.format(
+        "Demo vehicle loaded successfully. uniqueId=%s",
+        tostring(uniqueId)
+    ))
+
+    -- Record the active demo vehicle.
+    DealerRelations.Data:addActiveDemoVehicle({
+        uniqueId = uniqueId,
+        name = args.offer.name,
+        brand = args.offer.brand,
+        xmlFilename = args.offer.xmlFilename,
+        imageFilename = args.offer.imageFilename,  -- Store image path for Overview display
+        price = args.offer.price,  -- Stored for overdue fee calculation at Miss 3
+        -- Note: currentPeriod is 1-based from March, not January.
+        -- Period 1 = March, Period 12 = February.
+        startMonth = g_currentMission.environment.currentPeriod,
+        endMonth = g_currentMission.environment.currentPeriod + 1,
+        state = "ACTIVE",
+        role = "PRIMARY",
+
+        -- Operating hour baseline recorded at demo start.
+        -- Rationale:
+        -- Demo expiration is based on hours consumed, not calendar time.
+        -- Storing the starting hours allows the check to calculate usage
+        -- regardless of what the vehicle had accumulated before the demo.
+        startOperatingHours = vehicle:getOperatingTime() / (1000 * 60 * 60),
+        operatingHourLimit = DealerRelations.Data:getDemoOperatingHourLimit(),
+
+        -- Tracks whether the final-day 5 PM warning has already been shown.
+        -- This prevents the reminder from repeating every update cycle.
+        endingNoticeSent = false,
+
+        -- Tracks whether the post-expiration 8 AM return reminder has been shown.
+        -- Prevents the return reminder from repeating after it has been shown..
+        returnNoticeSent = false,
+
+        -- Tracks whether the overdue consequence for the current level has fired.
+        -- Reset to false each time the overdue level advances.
+        overdueNoticeSent = false,
+    })
+
+    -- If the offer has a companion (e.g. a header's trailer), load it next
+    -- and defer finalization until it completes. Otherwise finalize now,
+    -- same as the original single-vehicle flow.
+    if args.offer.companionXmlFilename ~= nil then
+        self:startCompanionDemoVehicle(args.offer, uniqueId)
+    else
+        self:finishDemoStart(args.offer)
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Begins loading the companion vehicle for an offer that has one (e.g. a
+-- header's trailer).
+--
+-- Spawned at a position offset from the primary so the two don't overlap.
+-- Same placeholder-position caveat as startDemoFromOffer(): a configurable
+-- dealer spawn point/layout can replace this later.
+--
+-- @param offer table Active demo offer data (already known to have a
+--        companion at this point).
+-- @param primaryUniqueId string uniqueId of the already-spawned primary
+--        vehicle, needed to roll back if the companion fails to load.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:startCompanionDemoVehicle(offer, primaryUniqueId)
+    local farmId = self:getDemoOwnerFarmId()
+
+    DealerRelations.log(string.format(
+        "Starting companion demo vehicle: %s",
+        tostring(offer.companionXmlFilename)
+    ))
+
+    local data = VehicleLoadingData.new()
+
+    data:setFilename(offer.companionXmlFilename)
+    data:setPropertyState(VehiclePropertyState.MISSION)
+    data:setOwnerFarmId(farmId)
+
+    -- Offset from the primary's spawn point so the two don't overlap.
+    data:setPosition(-114, nil, -135, 0.2)
+    data:setRotation(0, 0, 0)
+
+    data:load(
+        DealerRelations.DemoManager.onCompanionDemoVehicleLoaded,
+        DealerRelations.DemoManager,
+        {
+            offer = offer,
+            primaryUniqueId = primaryUniqueId
+        }
+    )
+end
+
+-------------------------------------------------------------------------------
+-- Callback invoked when the companion demo vehicle finishes asynchronous
+-- loading.
+--
+-- On success, records the companion (role SECONDARY) and finalizes the
+-- demo start. The companion has no independent operating-hour or
+-- month-based expiration of its own -- startOperatingHours, operatingHourLimit,
+-- and endMonth are intentionally left nil, since it always follows the
+-- primary's state rather than being tracked separately (see
+-- checkExpiredDemos/checkDemoOperatingHours/checkOverdueDemos, which skip
+-- SECONDARY records for expiration and instead cascade the primary's state
+-- onto its companion).
+--
+-- On failure, rolls back the already-spawned primary vehicle and its demo
+-- record entirely, rather than leaving a header demo running with no way
+-- to move it. The offer itself is left active (not cleared) so the player
+-- can retry or decline through the normal offer flow.
+--
+-- @param vehicles table List of loaded vehicles returned by the engine.
+-- @param loadingState number VehicleLoadingState result code.
+-- @param args table Callback arguments: offer, primaryUniqueId.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:onCompanionDemoVehicleLoaded(vehicles, loadingState, args)
+
+    if loadingState ~= VehicleLoadingState.OK or vehicles == nil or #vehicles == 0 then
+        DealerRelations.warning(string.format(
+            "Companion demo vehicle failed to load (%s) -- rolling back primary demo vehicle",
+            tostring(args.offer.companionXmlFilename)
+        ))
+
+        local primaryVehicle = self:findVehicleByUniqueId(args.primaryUniqueId)
+        self:removeDemoVehicle(primaryVehicle)
+        DealerRelations.Data:removeActiveDemoVehicleByUniqueId(args.primaryUniqueId)
+
+        return
+    end
+
+    local vehicle = vehicles[1]
+    local uniqueId = vehicle:getUniqueId()
+
+    DealerRelations.log(string.format(
+        "Companion demo vehicle loaded successfully. uniqueId=%s",
+        tostring(uniqueId)
+    ))
+
+    DealerRelations.Data:addActiveDemoVehicle({
+        uniqueId = uniqueId,
+        name = args.offer.companionName,
+        brand = args.offer.companionBrand,
+        xmlFilename = args.offer.companionXmlFilename,
+        price = args.offer.companionPrice,
+        state = "ACTIVE",
+        role = "SECONDARY",
+    })
+
+    self:finishDemoStart(args.offer)
+end
+
+-------------------------------------------------------------------------------
+-- Finalizes a demo start once all of its vehicles (primary, and companion
+-- if any) have finished loading successfully.
+--
+-- Clears the pending offer, applies the accept confidence bonus, and
+-- refreshes the Overview screen if open. Split out from the loading
+-- callbacks so both the "no companion" and "companion loaded" paths finish
+-- the same way.
+--
+-- @param offer table Active demo offer data.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:finishDemoStart(offer)
+    DealerRelations.Data:clearActiveDemoOffer()
+
+    DealerRelations.Data:addConfidence(
+        DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_ACCEPT_DEMO,
+        "Accepted demo offer"
+    )
+
+    -- Refresh the Overview screen if it is currently open.
+    -- Rationale:
+    -- Vehicle loading is asynchronous. The Overview must be refreshed here,
+    -- after the offer is cleared and demo is recorded, not at the point of
+    -- the button click where the data has not changed yet.
+    if DealerRelations.Screen ~= nil and DealerRelations.Screen.instance ~= nil then
+        DealerRelations.Screen.instance:updateOverviewValues()
+    end
+
+    DealerRelations.log(string.format(
+        "Active demo count: %d",
+        #DealerRelations.dealerData.activeDemoVehicles
+    ))
 end
 
 -------------------------------------------------------------------------------
@@ -209,6 +430,14 @@ end
 -- A demo expires when the current game month reaches or exceeds the
 -- vehicle's configured end month.
 --
+-- Only PRIMARY records are evaluated -- a SECONDARY (e.g. a header's
+-- trailer) has no independent expiration clock of its own and always
+-- follows the primary's state instead. This is an explicit role check,
+-- not reliance on nil fields: startOperatingHours/operatingHourLimit/
+-- endMonth default to 0 (not nil) once a SECONDARY record round-trips
+-- through a save/reload, which would otherwise make it appear expired
+-- immediately.
+--
 -- Expired demos are not removed automatically. They remain open and continue
 -- blocking new demo offers until the player chooses Return or Buy.
 -------------------------------------------------------------------------------
@@ -222,7 +451,7 @@ function DealerRelations.DemoManager:checkExpiredDemos()
 
     for _, demoVehicle in ipairs(activeDemoVehicles) do
 
-        if demoVehicle.state == "ACTIVE" then
+        if demoVehicle.state == "ACTIVE" and demoVehicle.role == "PRIMARY" then
 
             -- Check month-end expiration.
             local monthExpired = demoVehicle.endMonth ~= nil
@@ -255,6 +484,13 @@ function DealerRelations.DemoManager:checkExpiredDemos()
                     DealerRelations.Data:setDemoOverdueClockStartDay(demoVehicle, currentDay + 1)
                 end
 
+                -- Cascade to the companion, if any -- it follows the
+                -- primary's state rather than tracking its own expiration.
+                local secondary = self:findSecondaryDemoVehicle()
+                if secondary ~= nil then
+                    secondary.state = "EXPIRED"
+                end
+
                 DealerRelations.log(string.format(
                     "Demo expired: %s (reason=%s, overdueClockStartDay=%d)",
                     tostring(demoVehicle.name),
@@ -273,6 +509,8 @@ end
 -- Operating-hour expiration must be checked every update cycle, not just
 -- at month change. This allows demos to expire mid-month when the player
 -- has consumed their allotted hours.
+--
+-- Only PRIMARY records are evaluated -- see checkExpiredDemos() for why.
 -------------------------------------------------------------------------------
 function DealerRelations.DemoManager:checkDemoOperatingHours()
     local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
@@ -282,6 +520,7 @@ function DealerRelations.DemoManager:checkDemoOperatingHours()
     for _, demoVehicle in ipairs(activeDemoVehicles) do
 
         if demoVehicle.state == "ACTIVE"
+            and demoVehicle.role == "PRIMARY"
             and demoVehicle.startOperatingHours ~= nil
             and demoVehicle.operatingHourLimit ~= nil then
 
@@ -303,6 +542,12 @@ function DealerRelations.DemoManager:checkDemoOperatingHours()
                         DealerRelations.Data:setDemoOverdueClockStartDay(demoVehicle, currentDay + 1)
                     end
 
+                    -- Cascade to the companion, if any.
+                    local secondary = self:findSecondaryDemoVehicle()
+                    if secondary ~= nil then
+                        secondary.state = "EXPIRED"
+                    end
+
                     DealerRelations.log(string.format(
                         "Demo expired: %s (reason=operating-hours, overdueClockStartDay=%d)",
                         tostring(demoVehicle.name),
@@ -315,30 +560,14 @@ function DealerRelations.DemoManager:checkDemoOperatingHours()
 end
 
 -------------------------------------------------------------------------------
--- Finds a vehicle by unique ID.
---
--- Returns:
---   vehicle if found
---   nil if not found
--------------------------------------------------------------------------------
-function DealerRelations.DemoManager:findVehicleByUniqueId(uniqueId)
-    if uniqueId == nil then
-        return nil
-    end
-
-    if g_currentMission == nil or g_currentMission.vehicleSystem == nil then
-        return nil
-    end
-
-    return g_currentMission.vehicleSystem:getVehicleByUniqueId(uniqueId)
-end
-
--------------------------------------------------------------------------------
 -- Checks whether any active demo needs the 5 PM final-day notice.
 --
 -- This notice is intentionally separate from expiration. The demo may expire
 -- at the month transition, but the player-facing warning should happen during
 -- a visible play window so it is not missed while sleeping through the night.
+--
+-- Only PRIMARY records trigger this -- a demo unit gets one notice, named
+-- after the primary, not one per vehicle in the pair.
 -------------------------------------------------------------------------------
 function DealerRelations.DemoManager:checkEndingDemoNotices()
     local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
@@ -359,6 +588,7 @@ function DealerRelations.DemoManager:checkEndingDemoNotices()
             and currentMonth == demoVehicle.endMonth - 1
 
         if demoVehicle.state == "ACTIVE"
+            and demoVehicle.role == "PRIMARY"
             and isFinalDemoMonth
             and demoVehicle.endingNoticeSent ~= true
             and currentHour >= 17 then
@@ -389,6 +619,10 @@ end
 -- This notice is intentionally separate from the expiration state change.
 -- A demo may expire during a month transition or sleep period, but the player
 -- should receive the return reminder during a visible morning play window.
+--
+-- Only PRIMARY records trigger this -- see checkEndingDemoNotices() for why.
+-- A SECONDARY record's state does get cascaded to EXPIRED, so this guard
+-- is necessary to avoid a duplicate notice for the same demo unit.
 -------------------------------------------------------------------------------
 function DealerRelations.DemoManager:checkReturnDemoNotices()
     local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
@@ -399,6 +633,7 @@ function DealerRelations.DemoManager:checkReturnDemoNotices()
 
     for _, demoVehicle in ipairs(activeDemoVehicles) do
         if demoVehicle.state == "EXPIRED"
+            and demoVehicle.role == "PRIMARY"
             and demoVehicle.returnNoticeSent ~= true
             and currentHour >= 8 then
 
@@ -484,6 +719,12 @@ end
 --
 -- Fires at dealer close. Applies escalating consequences for each missed
 -- return window. Each level fires exactly once per period via overdueNoticeSent.
+--
+-- Only PRIMARY records are evaluated -- a SECONDARY record's state does get
+-- cascaded to EXPIRED (see checkExpiredDemos/checkDemoOperatingHours), but
+-- overdue consequences (confidence hits, fees, suspension, repossession)
+-- must only ever apply once per demo unit, not once per vehicle in the pair.
+-- At Miss 4, the companion is repossessed alongside the primary.
 -------------------------------------------------------------------------------
 function DealerRelations.DemoManager:checkOverdueDemos()
     local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
@@ -491,7 +732,7 @@ function DealerRelations.DemoManager:checkOverdueDemos()
     local currentDay = g_currentMission.environment.currentDay
 
     for _, demoVehicle in ipairs(activeDemoVehicles) do
-        if demoVehicle.state == "EXPIRED" then
+        if demoVehicle.state == "EXPIRED" and demoVehicle.role == "PRIMARY" then
 
             -- Only act at dealer close.
             if currentHour >= DealerRelations.CONSTANTS.DEALER_CLOSE_HOUR then
@@ -575,7 +816,7 @@ function DealerRelations.DemoManager:checkOverdueDemos()
                             (DealerRelations.Data:getPendingSuspensionMonths() or 0) +
                             DealerRelations.CONSTANTS.OVERDUE_LEVEL_3_SUSPENSION_MONTHS
                         )
-                        
+
                         local farm = g_farmManager:getFarmById(DealerRelations.DemoManager:getDemoOwnerFarmId())
                         local feeAmount = math.floor(
                             (demoVehicle.price or 0) *
@@ -624,7 +865,7 @@ function DealerRelations.DemoManager:checkOverdueDemos()
 
                     elseif missCount >= DealerRelations.CONSTANTS.OVERDUE_MISS_4
                         and currentOverdueLevel < 4 then
-                            
+
                         DealerRelations.Data:setDemoOverdueLevel(demoVehicle, 4)
                         DealerRelations.Data:setDemoOverdueNoticeSent(demoVehicle, true)
 
@@ -652,11 +893,27 @@ function DealerRelations.DemoManager:checkOverdueDemos()
                         self:removeDemoVehicle(vehicle)
                         DealerRelations.Data:removeActiveDemoVehicleByUniqueId(demoVehicle.uniqueId)
 
+                        -- Repossess the companion alongside the primary, if
+                        -- one exists -- it was never a separate obligation,
+                        -- so it doesn't get its own overdue consequences,
+                        -- but it does get removed at the same time.
+                        local secondary = self:findSecondaryDemoVehicle()
+                        if secondary ~= nil then
+                            local secondaryVehicle = self:findVehicleByUniqueId(secondary.uniqueId)
+                            self:removeDemoVehicle(secondaryVehicle)
+                            DealerRelations.Data:removeActiveDemoVehicleByUniqueId(secondary.uniqueId)
+
+                            DealerRelations.log(string.format(
+                                "Companion repossessed alongside primary: %s",
+                                tostring(secondary.name)
+                            ))
+                        end
+
                     end -- end if/elseif miss level chain
 
                 end -- end clockStartDay ~= nil
             end -- end dealer close hour check
-        end -- end state == EXPIRED
+        end -- end state == EXPIRED and role == PRIMARY
     end -- end for loop
 end
 
@@ -707,4 +964,25 @@ function DealerRelations.DemoManager:validateActiveDemo()
             DealerRelations.Data:removeActiveDemoVehicleByUniqueId(demoVehicle.uniqueId)
         end
     end
+end
+
+-------------------------------------------------------------------------------
+-- Returns the current demo's companion (SECONDARY) record, if one exists.
+--
+-- Only one demo (offer or active) can exist at a time, so there is never
+-- more than one SECONDARY record to disambiguate between -- no separate
+-- pairing key is needed beyond the role field itself.
+--
+-- @return table|nil The SECONDARY demo vehicle record, or nil if none.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:findSecondaryDemoVehicle()
+    local activeDemoVehicles = DealerRelations.Data:getActiveDemoVehicles()
+
+    for _, demoVehicle in ipairs(activeDemoVehicles) do
+        if demoVehicle.role == "SECONDARY" then
+            return demoVehicle
+        end
+    end
+
+    return nil
 end

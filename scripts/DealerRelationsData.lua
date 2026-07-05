@@ -441,13 +441,33 @@ end
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
--- Returns the currently active demo offer.
+-- Returns the current demo's PRIMARY record, if one exists in ACTIVE or
+-- EXPIRED state.
 --
--- An active demo offer represents equipment that has been offered
--- to the player for evaluation. Only one active offer may exist
--- at a time.
+-- Explicitly filters to role == "PRIMARY" -- a bundled demo (e.g. a header
+-- with a trailer companion) has two records in activeDemoVehicles, and
+-- display/purchase logic must always anchor on the primary, never
+-- incidentally pick up the companion by array order.
 --
--- @return table|nil Active demo offer data, or nil if no offer exists.
+-- @return table|nil The active/expired PRIMARY demo vehicle record, or nil.
+-------------------------------------------------------------------------------
+function DealerRelations.Data:getActiveDemo()
+    local activeDemoVehicles = self:getActiveDemoVehicles()
+
+    for _, demoVehicle in ipairs(activeDemoVehicles) do
+        if demoVehicle.role == "PRIMARY"
+            and (demoVehicle.state == "ACTIVE" or demoVehicle.state == "EXPIRED") then
+            return demoVehicle
+        end
+    end
+
+    return nil
+end
+
+-------------------------------------------------------------------------------
+-- Returns the currently active demo offer, if one exists.
+--
+-- @return table|nil Active demo offer data, or nil if none exists.
 -------------------------------------------------------------------------------
 function DealerRelations.Data:getActiveDemoOffer()
     return DealerRelations.dealerData.activeDemoOffer
@@ -910,24 +930,6 @@ function DealerRelations.Data:getRandomDealerName()
     local index = math.random(#dealerNames)
 
     return dealerNames[index]
-end
-
---- Returns the first active (non-expired) demo vehicle.
--- Rationale:
--- The Overview dashboard needs to display active demo information
--- separately from expired demos awaiting return or purchase.
---
--- @return table|nil Active demo vehicle data, or nil if none exists.
-function DealerRelations.Data:getActiveDemo()
-    local activeDemoVehicles = self:getActiveDemoVehicles()
-
-    for _, demoVehicle in ipairs(activeDemoVehicles) do
-        if demoVehicle.state == "ACTIVE" or demoVehicle.state == "EXPIRED" then
-            return demoVehicle
-        end
-    end
-
-    return nil
 end
 
 -------------------------------------------------------------------------------

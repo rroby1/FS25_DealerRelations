@@ -235,8 +235,21 @@ end
 -- Builds the saved demo offer data from a selected equipment candidate.
 -- Rationale: checkMonthlyDemo() should decide when an offer is created;
 -- this helper owns the structure of the offer data that gets persisted.
+-- Builds the saved demo offer data from a selected equipment candidate.
+-- Rationale: checkMonthlyDemo() should decide when an offer is created;
+-- this helper owns the structure of the offer data that gets persisted.
+--
+-- Headers always carry a companion trailer, attached here as flat
+-- "companion*" fields rather than a nested table, matching the existing
+-- flat-field convention already used for the primary vehicle and in
+-- DealerRelationsPersistence.lua. HEADER_CATEGORIES eligibility already
+-- guarantees getCompatibleTrailerForHeader() returns a match for any header
+-- reaching this point (see isCurrentlyEligible()), so no nil-companion
+-- fallback case is expected here for headers -- if one ever occurs, the
+-- companion fields simply stay nil and startDemoFromOffer() will need to
+-- treat that as "no companion to spawn," not an error.
 function DealerRelations:createDemoOfferFromCandidate(candidate, currentMonth)
-    return {
+    local offer = {
         candidateKey = DealerRelations.Equipment:getDemoCandidateKey(candidate),
         name = candidate.name,
         brand = candidate.brand,
@@ -248,13 +261,27 @@ function DealerRelations:createDemoOfferFromCandidate(candidate, currentMonth)
         powerMin = candidate.powerMin,
         powerMax = candidate.powerMax,
         offerMonth = currentMonth,
-        
+
         -- Tracks whether the player has been notified about this offer.
         -- Rationale:
         -- Offers are generated at month change, but the player-facing notice
         -- should wait until the dealer opens.
         offerNotificationSent = false,
     }
+
+    if DealerRelations.Equipment.HEADER_CATEGORIES[candidate.category] == true then
+        local trailer = DealerRelations.Equipment:getCompatibleTrailerForHeader(candidate)
+
+        if trailer ~= nil then
+            offer.companionName = trailer.name
+            offer.companionBrand = trailer.brand
+            offer.companionCategory = trailer.category
+            offer.companionXmlFilename = trailer.xmlFilename
+            offer.companionPrice = trailer.price
+        end
+    end
+
+    return offer
 end
 
 -------------------------------------------------------------------------------

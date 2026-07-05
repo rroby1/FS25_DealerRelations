@@ -261,6 +261,19 @@ DealerRelations.Equipment.HEADER_CATEGORIES = {
     CUTTERS = true,
     SPECIALHEADERS = true,
 }
+
+-------------------------------------------------------------------------------
+-- CUTTERTRAILERS has no manual toggle. This set exists purely for category
+-- recognition in isDemoCandidate() -- trailers must still be discovered
+-- into equipmentList so getCompatibleTrailerForHeader() can find them, but
+-- they are never independently eligible (see isCurrentlyEligible(), which
+-- rejects this category unconditionally) -- they only ever appear bundled
+-- as a header's companion.
+-------------------------------------------------------------------------------
+DealerRelations.Equipment.TRAILER_CATEGORIES = {
+    CUTTERTRAILERS = true,
+}
+
 -------------------------------------------------------------------------------
 -- Default player-configurable category filters.
 --
@@ -269,7 +282,6 @@ DealerRelations.Equipment.HEADER_CATEGORIES = {
 -------------------------------------------------------------------------------
 DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
     SEEDTANKS = true,
-    CUTTERTRAILERS = true,
 }    
 
 
@@ -345,6 +357,7 @@ function DealerRelations.Equipment:isDemoCandidate(item)
         and DealerRelations.Equipment.MASS_MANAGED_CATEGORIES[category] == nil
         and DealerRelations.Equipment.ANIMAL_CATEGORIES[category] == nil
         and DealerRelations.Equipment.HARVESTER_CATEGORIES[category] == nil
+        and DealerRelations.Equipment.TRAILER_CATEGORIES[category] == nil
         and DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS[category] == nil then
         DealerRelations.warning("Unclassified equipment category: " .. category)
         return false
@@ -1097,6 +1110,18 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
         return false
     end
 
+    -- Cutter trailers are never offered as a standalone demo -- they only
+    -- ever appear bundled as a header's companion, attached in
+    -- createDemoOfferFromCandidate(). CUTTERTRAILERS remains in
+    -- DEFAULT_CATEGORY_FILTERS purely so isDemoCandidate() still recognizes
+    -- and discovers them (getCompatibleTrailerForHeader() needs them in
+    -- equipmentList to search) -- the manual toggle itself is now
+    -- meaningless for this category, since this check overrides it
+    -- unconditionally regardless of its value.
+    if candidate.category == "CUTTERTRAILERS" then
+        return false
+    end
+
     -- Implements requiring more power than the player's best owned tractor
     -- are excluded. No floor beyond this.
     if candidate.powerRole == "IMPLEMENT" and candidate.displayPower ~= nil then
@@ -1129,6 +1154,16 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
             and candidate.displayPower <= self:getOwnedMaxHarvesterPower()
 
         if not comboMatch and not hpMatch then
+            return false
+        end
+
+        -- A header cannot be demoed without a compatible trailer to move it
+        -- on the road -- this is a hard requirement, not an optional
+        -- companion. No width/length fallback exists yet for headers
+        -- without a combo-declared trailer, so those headers are simply
+        -- not eligible until that fallback is built. See vault design
+        -- note: 0.21.0 Header/Harvester/Trailer/SeedTank Eligibility.
+        if self:getCompatibleTrailerForHeader(candidate) == nil then
             return false
         end
     end
@@ -1661,4 +1696,42 @@ function DealerRelations.Equipment:getOwnedMaxHeaderRequiredPower()
     end
 
     return maxRequiredPower
+end
+
+-------------------------------------------------------------------------------
+-- Returns the first CUTTERTRAILERS candidate combination-matched to the given
+-- header candidate, checked in both directions via isCombinationMatch().
+--
+-- Headers cannot be used without a compatible trailer (a header has no way
+-- to move itself on the road), so this is a hard requirement, not an
+-- eligibility signal layered on top of something else -- see
+-- HEADER_CATEGORIES eligibility, which now depends on this returning a match.
+--
+-- No width/length fallback yet for headers without a combo-declared trailer
+-- -- see vault design note: 0.21.0 Header/Harvester/Trailer/SeedTank
+-- Eligibility. A header with no matching trailer is simply not eligible
+-- until that fallback exists.
+--
+-- If more than one compatible trailer exists, the first match found is
+-- used -- no preference given to price, brand, or anything else. Worth
+-- revisiting if that ever matters in practice.
+--
+-- @param headerCandidate table Entry from equipmentList, category in
+--        HEADER_CATEGORIES.
+-- @return table|nil Matching CUTTERTRAILERS candidate, or nil if none found.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:getCompatibleTrailerForHeader(headerCandidate)
+    if headerCandidate == nil or DealerRelations.equipmentList == nil then
+        return nil
+    end
+
+    for _, candidate in ipairs(DealerRelations.equipmentList) do
+        if candidate.category == "CUTTERTRAILERS" then
+            if self:isCombinationMatch(headerCandidate, candidate) then
+                return candidate
+            end
+        end
+    end
+
+    return nil
 end

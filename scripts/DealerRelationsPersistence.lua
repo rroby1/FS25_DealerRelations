@@ -182,6 +182,19 @@ function DealerRelations.Persistence:saveActiveDemoOffer(xmlFile)
     setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMin", activeOffer.powerMin or 0)
     setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMax", activeOffer.powerMax or 0)
     setXMLInt(xmlFile, "dealerRelations.activeDemoOffer#offerMonth", activeOffer.offerMonth or 0)
+
+    -- Companion fields (e.g. the trailer bundled with a header offer).
+    -- Omitted entirely when there is no companion, same "nil means absent"
+    -- convention as overdueClockStartDay below -- a candidateKey with no
+    -- companion fields present simply means this offer has no companion,
+    -- not a load error.
+    if activeOffer.companionXmlFilename ~= nil then
+        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#companionName", activeOffer.companionName)
+        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#companionBrand", activeOffer.companionBrand)
+        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#companionCategory", activeOffer.companionCategory)
+        setXMLString(xmlFile, "dealerRelations.activeDemoOffer#companionXmlFilename", activeOffer.companionXmlFilename)
+        setXMLFloat(xmlFile, "dealerRelations.activeDemoOffer#companionPrice", activeOffer.companionPrice or 0)
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -631,18 +644,30 @@ function DealerRelations.Persistence:loadActiveDemoOffer(xmlFile)
         displayPower = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#displayPower"),
         powerMin = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMin"),
         powerMax = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#powerMax"),
-        offerMonth = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#offerMonth")
+        offerMonth = getXMLInt(xmlFile, "dealerRelations.activeDemoOffer#offerMonth"),
+
+        -- Companion fields. All nil on older saves or offers with no
+        -- companion -- startDemoFromOffer() must treat a nil
+        -- companionXmlFilename as "nothing to spawn," not an error.
+        companionName = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#companionName"),
+        companionBrand = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#companionBrand"),
+        companionCategory = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#companionCategory"),
+        companionXmlFilename = getXMLString(xmlFile, "dealerRelations.activeDemoOffer#companionXmlFilename"),
+        companionPrice = getXMLFloat(xmlFile, "dealerRelations.activeDemoOffer#companionPrice"),
     })
 
     local activeOffer = DealerRelations.Data:getActiveDemoOffer()
 
     DealerRelations.log(string.format(
-        "Loaded active demo offer: %s | Brand=%s | Category=%s | HP=%s | Month=%s",
+        "Loaded active demo offer: %s | Brand=%s | Category=%s | HP=%s | Month=%s%s",
         tostring(activeOffer.name),
         tostring(activeOffer.brand),
         tostring(activeOffer.category),
         tostring(activeOffer.displayPower or "Unknown"),
-        tostring(activeOffer.offerMonth)
+        tostring(activeOffer.offerMonth),
+        activeOffer.companionName ~= nil
+            and (" | Companion=" .. tostring(activeOffer.companionName))
+            or ""
     ))
 end
 

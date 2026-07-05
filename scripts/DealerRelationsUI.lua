@@ -110,7 +110,11 @@ end
 -- Presents the player's current relationship status, discount, and purchase
 -- price so they can resolve the demo by returning or purchasing the machine.
 --
--- @param demoVehicle table Expired demo vehicle record.
+-- If the demo has a companion (e.g. a header's trailer), its price is
+-- included in the combined purchase price shown, and its name is included
+-- in the message so the player knows both pieces are part of one decision.
+--
+-- @param demoVehicle table Expired demo vehicle record (the PRIMARY).
 -------------------------------------------------------------------------------
 function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
     if demoVehicle == nil then
@@ -119,7 +123,7 @@ function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
     end
 
     DealerRelations.log("Opening expired demo return/buy dialog")
-    
+
     local vehicle = DealerRelations.DemoManager:findVehicleByUniqueId(demoVehicle.uniqueId)
 
     if vehicle == nil then
@@ -129,12 +133,27 @@ function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
         )
         return
     end
-    
+
+    -- Include the companion's price and name, if one exists.
+    local secondary = DealerRelations.DemoManager:findSecondaryDemoVehicle()
+    local combinedListPrice = vehicle.price
+    local equipmentDisplayName = tostring(demoVehicle.name)
+
+    if secondary ~= nil then
+        local secondaryVehicle = DealerRelations.DemoManager:findVehicleByUniqueId(secondary.uniqueId)
+
+        if secondaryVehicle ~= nil then
+            combinedListPrice = combinedListPrice + secondaryVehicle.price
+        end
+
+        equipmentDisplayName = equipmentDisplayName .. " + " .. tostring(secondary.name)
+    end
+
     local relationshipName = DealerRelations.Data:getRelationshipName()
     local confidence = DealerRelations.Data:getConfidence()
     local discountPercent = DealerRelations.Data:getDiscountPercent()
     local purchasePrice =
-        DealerRelations.Data:getDemoPurchasePrice(vehicle.price)
+        DealerRelations.Data:getDemoPurchasePrice(combinedListPrice)
     local formattedPurchasePrice =
         DealerRelations.Utils:formatMoney(purchasePrice)
     local brandDisplayName =
@@ -145,7 +164,7 @@ function DealerRelations.UI:openExpiredDemoDialog(demoVehicle)
         relationshipName,
         confidence,
         discountPercent,
-        tostring(demoVehicle.name),
+        equipmentDisplayName,
         brandDisplayName,
         formattedPurchasePrice
     )
@@ -180,13 +199,16 @@ end
 -- Rationale:
 -- Mirrors onClickReturn from DealerRelationsDemoReturnDialog without
 -- requiring the dialog to be open. Called from the Overview Return button.
+--
+-- Returns the companion vehicle alongside the primary, if one exists -- the
+-- two were never separate obligations, so they resolve together.
 -------------------------------------------------------------------------------
 function DealerRelations.UI:returnActiveDemo()
     local demoVehicles = DealerRelations.Data:getActiveDemoVehicles()
     local demoVehicle = nil
 
     for _, v in ipairs(demoVehicles) do
-        if v.state == "ACTIVE" or v.state == "EXPIRED" then
+        if v.role == "PRIMARY" and (v.state == "ACTIVE" or v.state == "EXPIRED") then
             demoVehicle = v
             break
         end
@@ -210,9 +232,28 @@ function DealerRelations.UI:returnActiveDemo()
 
     DealerRelations.log("Demo marked RETURNED: " .. tostring(demoVehicle.name))
 
+    -- Return the companion alongside the primary, if one exists.
+    local secondary = DealerRelations.DemoManager:findSecondaryDemoVehicle()
+
+    if secondary ~= nil then
+        local secondaryVehicle = DealerRelations.DemoManager:findVehicleByUniqueId(secondary.uniqueId)
+
+        if secondaryVehicle ~= nil then
+            DealerRelations.DemoManager:removeDemoVehicle(secondaryVehicle)
+        end
+
+        secondary.state = "RETURNED"
+
+        DealerRelations.log("Companion demo marked RETURNED: " .. tostring(secondary.name))
+    end
+
     DealerRelations.DemoManager:applyPendingSuspension()
 
     DealerRelations.Data:removeActiveDemoVehicleByUniqueId(demoVehicle.uniqueId)
+
+    if secondary ~= nil then
+        DealerRelations.Data:removeActiveDemoVehicleByUniqueId(secondary.uniqueId)
+    end
 
     DealerRelations.Data:addConfidence(
         DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_RETURN_DEMO,
@@ -226,13 +267,17 @@ end
 -- Rationale:
 -- Mirrors onClickBuy from DealerRelationsDemoReturnDialog without
 -- requiring the dialog to be open. Called from the Overview Buy button.
+--
+-- Purchases the companion vehicle alongside the primary, if one exists, as
+-- a single combined transaction -- one discount applied to the combined
+-- price, not two separate purchases.
 -------------------------------------------------------------------------------
 function DealerRelations.UI:buyActiveDemo()
     local demoVehicles = DealerRelations.Data:getActiveDemoVehicles()
     local demoVehicle = nil
 
     for _, v in ipairs(demoVehicles) do
-        if v.state == "ACTIVE" or v.state == "EXPIRED" then
+        if v.role == "PRIMARY" and (v.state == "ACTIVE" or v.state == "EXPIRED") then
             demoVehicle = v
             break
         end
@@ -250,15 +295,33 @@ function DealerRelations.UI:buyActiveDemo()
         return
     end
 
+    -- Look up the companion, if any, before charging -- its price needs to
+    -- be included in the same combined transaction.
+    local secondary = DealerRelations.DemoManager:findSecondaryDemoVehicle()
+    local secondaryVehicle = nil
+    local combinedListPrice = vehicle.price
+
+    if secondary ~= nil then
+        secondaryVehicle = DealerRelations.DemoManager:findVehicleByUniqueId(secondary.uniqueId)
+
+        if secondaryVehicle ~= nil then
+            combinedListPrice = combinedListPrice + secondaryVehicle.price
+        end
+    end
+
     vehicle.propertyState = VehiclePropertyState.OWNED
 
+    if secondaryVehicle ~= nil then
+        secondaryVehicle.propertyState = VehiclePropertyState.OWNED
+    end
+
     local discountPercent = DealerRelations.Data:getDiscountPercent()
-    local purchasePrice = DealerRelations.Data:getDemoPurchasePrice(vehicle.price)
+    local purchasePrice = DealerRelations.Data:getDemoPurchasePrice(combinedListPrice)
 
     DealerRelations.log(string.format(
         "Demo purchase price: $%d (list $%d, discount %d%%)",
         purchasePrice,
-        vehicle.price,
+        combinedListPrice,
         discountPercent
     ))
 
@@ -275,6 +338,12 @@ function DealerRelations.UI:buyActiveDemo()
     demoVehicle.state = "PURCHASED"
 
     DealerRelations.log("Demo marked PURCHASED: " .. tostring(demoVehicle.name))
+
+    if secondary ~= nil then
+        secondary.state = "PURCHASED"
+
+        DealerRelations.log("Companion demo marked PURCHASED: " .. tostring(secondary.name))
+    end
 
     DealerRelations.DemoManager:applyPendingSuspension()
 
