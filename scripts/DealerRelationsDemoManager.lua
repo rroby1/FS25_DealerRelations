@@ -42,243 +42,118 @@ DealerRelations.DemoManager = {}
 -- @return boolean True if loading was initiated, false if validation failed.
 -------------------------------------------------------------------------------
 function DealerRelations.DemoManager:startDemoFromOffer(offer)
-
-    -- Validate the offer data before attempting to load a vehicle.
     if offer == nil then
         DealerRelations.warning("Cannot start demo: offer is nil")
         return false
     end
 
-    -- The vehicle XML path is required to load the machine.
     if offer.xmlFilename == nil then
         DealerRelations.warning("Cannot start demo: offer xmlFilename is nil")
         return false
     end
 
+    -- Confirm room exists for the primary AND (if present) the companion
+    -- BEFORE reserving or spawning either one.
+    if not self:isDualSpawnSpaceAvailable(offer.xmlFilename, offer.companionXmlFilename) then
+        DealerRelations.warning("Cannot start demo: no free shop loading place available")
+        g_currentMission:addIngameNotification(
+            FSBaseMission.INGAME_NOTIFICATION_INFO,
+            "Dealer Relations: No space available at the shop right now. Try accepting the offer again later."
+        )
+        return false
+    end
+
     local farmId = self:getDemoOwnerFarmId()
+
+    -- Shared tracking for this spawn group. Both vehicles (if there's a
+    -- companion) have their loading place reserved sequentially, BEFORE
+    -- either one is actually loaded -- mirroring
+    -- AbstractMission:spawnVehicles()'s real loop, which calls
+    -- setLoadingPlace() back-to-back for every vehicle in a mission's
+    -- borrowed set before any of them finish loading asynchronously. This
+    -- is the actual fix for the header/trailer overlap: the previous
+    -- "load primary, then start companion afterward" sequencing placed
+    -- the companion against a world where the primary hadn't necessarily
+    -- settled/registered yet, unlike this proven, already-working pattern.
+    local spawnGroup = {
+        offer = offer,
+        allLoadingData = {},
+        pendingLoadingData = {},
+        pendingCount = 0,
+        failed = false,
+        loadedVehicles = {},
+    }
 
     DealerRelations.log(string.format(
         "Starting demo vehicle: %s",
         tostring(offer.xmlFilename)
     ))
 
-    -- Create vehicle loading data for the demo machine.
-    local data = VehicleLoadingData.new()
+    local primaryData = VehicleLoadingData.new()
+    primaryData:setFilename(offer.xmlFilename)
+    primaryData:setPropertyState(VehiclePropertyState.MISSION)
+    primaryData:setOwnerFarmId(farmId)
 
-    -- Load the vehicle from the store item XML.
-    data:setFilename(offer.xmlFilename)
-
-    -- Use MISSION property state to prevent selling,
-    -- repairing, repainting, and shop modifications.
-    data:setPropertyState(VehiclePropertyState.MISSION)
-
-    -- Assign the vehicle to the current farm.
-    data:setOwnerFarmId(farmId)
-
-    -- Spawn the demo near the dealer area.
-    -- A configurable dealer spawn point can replace this later.
-    data:setPosition(-120, nil, -135, 0.2)
-
-    -- Spawn facing north for now.
-    -- Rotation can be adjusted later if needed.
-    data:setRotation(0, 0, 0)
-
-    -- Begin asynchronous vehicle loading.
-    data:load(
-        DealerRelations.DemoManager.onPrimaryDemoVehicleLoaded,
-        DealerRelations.DemoManager,
-        {
-            offer = offer
-        }
-    )
-
-    return true
-end
-
--------------------------------------------------------------------------------
--- Callback invoked when the primary demo vehicle finishes asynchronous
--- loading.
---
--- Records the vehicle as an active demo (role PRIMARY). If the offer has a
--- companion (e.g. a header's trailer), begins loading it next via
--- onCompanionDemoVehicleLoaded() -- the offer is not cleared and confidence
--- is not applied until the whole unit (primary + companion, if any) has
--- finished loading. If there is no companion, finalizes immediately.
---
--- @param vehicles table List of loaded vehicles returned by the engine.
--- @param loadingState number VehicleLoadingState result code.
--- @param args table Callback arguments containing the original offer data.
--------------------------------------------------------------------------------
-function DealerRelations.DemoManager:onPrimaryDemoVehicleLoaded(vehicles, loadingState, args)
-
-    -- Loading failed.
-    if loadingState ~= VehicleLoadingState.OK then
-        DealerRelations.warning("Demo vehicle failed to load")
-        return
-    end
-
-    -- No vehicles were returned even though loading succeeded.
-    if vehicles == nil or #vehicles == 0 then
-        DealerRelations.warning(
-            "Demo vehicle load completed but no vehicles were returned"
+    if not primaryData:setLoadingPlace(g_currentMission.storeSpawnPlaces, g_currentMission.usedStorePlaces) then
+        -- Shouldn't happen given isDualSpawnSpaceAvailable just confirmed
+        -- capacity, but handled defensively in case something else
+        -- claimed a spot in the brief window between the dry run and now.
+        DealerRelations.warning("Cannot start demo: shop loading place became unavailable")
+        g_currentMission:addIngameNotification(
+            FSBaseMission.INGAME_NOTIFICATION_INFO,
+            "Dealer Relations: No space available at the shop right now. Try accepting the offer again later."
         )
-        return
+        return false
     end
 
-    -- Retrieve the spawned vehicle.
-    local vehicle = vehicles[1]
+    table.insert(spawnGroup.allLoadingData, primaryData)
+    table.insert(spawnGroup.pendingLoadingData, primaryData)
 
-    -- Store the unique ID for future demo tracking.
-    local uniqueId = vehicle:getUniqueId()
+    local companionData = nil
 
-    DealerRelations.log(string.format(
-        "Demo vehicle loaded successfully. uniqueId=%s",
-        tostring(uniqueId)
-    ))
-
-    -- Record the active demo vehicle.
-    DealerRelations.Data:addActiveDemoVehicle({
-        uniqueId = uniqueId,
-        name = args.offer.name,
-        brand = args.offer.brand,
-        xmlFilename = args.offer.xmlFilename,
-        imageFilename = args.offer.imageFilename,  -- Store image path for Overview display
-        price = args.offer.price,  -- Stored for overdue fee calculation at Miss 3
-        -- Note: currentPeriod is 1-based from March, not January.
-        -- Period 1 = March, Period 12 = February.
-        startMonth = g_currentMission.environment.currentPeriod,
-        endMonth = g_currentMission.environment.currentPeriod + 1,
-        state = "ACTIVE",
-        role = "PRIMARY",
-
-        -- Operating hour baseline recorded at demo start.
-        -- Rationale:
-        -- Demo expiration is based on hours consumed, not calendar time.
-        -- Storing the starting hours allows the check to calculate usage
-        -- regardless of what the vehicle had accumulated before the demo.
-        startOperatingHours = vehicle:getOperatingTime() / (1000 * 60 * 60),
-        operatingHourLimit = DealerRelations.Data:getDemoOperatingHourLimit(),
-
-        -- Tracks whether the final-day 5 PM warning has already been shown.
-        -- This prevents the reminder from repeating every update cycle.
-        endingNoticeSent = false,
-
-        -- Tracks whether the post-expiration 8 AM return reminder has been shown.
-        -- Prevents the return reminder from repeating after it has been shown..
-        returnNoticeSent = false,
-
-        -- Tracks whether the overdue consequence for the current level has fired.
-        -- Reset to false each time the overdue level advances.
-        overdueNoticeSent = false,
-    })
-
-    -- If the offer has a companion (e.g. a header's trailer), load it next
-    -- and defer finalization until it completes. Otherwise finalize now,
-    -- same as the original single-vehicle flow.
-    if args.offer.companionXmlFilename ~= nil then
-        self:startCompanionDemoVehicle(args.offer, uniqueId)
-    else
-        self:finishDemoStart(args.offer)
-    end
-end
-
--------------------------------------------------------------------------------
--- Begins loading the companion vehicle for an offer that has one (e.g. a
--- header's trailer).
---
--- Spawned at a position offset from the primary so the two don't overlap.
--- Same placeholder-position caveat as startDemoFromOffer(): a configurable
--- dealer spawn point/layout can replace this later.
---
--- @param offer table Active demo offer data (already known to have a
---        companion at this point).
--- @param primaryUniqueId string uniqueId of the already-spawned primary
---        vehicle, needed to roll back if the companion fails to load.
--------------------------------------------------------------------------------
-function DealerRelations.DemoManager:startCompanionDemoVehicle(offer, primaryUniqueId)
-    local farmId = self:getDemoOwnerFarmId()
-
-    DealerRelations.log(string.format(
-        "Starting companion demo vehicle: %s",
-        tostring(offer.companionXmlFilename)
-    ))
-
-    local data = VehicleLoadingData.new()
-
-    data:setFilename(offer.companionXmlFilename)
-    data:setPropertyState(VehiclePropertyState.MISSION)
-    data:setOwnerFarmId(farmId)
-
-    -- Offset from the primary's spawn point so the two don't overlap.
-    data:setPosition(-114, nil, -135, 0.2)
-    data:setRotation(0, 0, 0)
-
-    data:load(
-        DealerRelations.DemoManager.onCompanionDemoVehicleLoaded,
-        DealerRelations.DemoManager,
-        {
-            offer = offer,
-            primaryUniqueId = primaryUniqueId
-        }
-    )
-end
-
--------------------------------------------------------------------------------
--- Callback invoked when the companion demo vehicle finishes asynchronous
--- loading.
---
--- On success, records the companion (role SECONDARY) and finalizes the
--- demo start. The companion has no independent operating-hour or
--- month-based expiration of its own -- startOperatingHours, operatingHourLimit,
--- and endMonth are intentionally left nil, since it always follows the
--- primary's state rather than being tracked separately (see
--- checkExpiredDemos/checkDemoOperatingHours/checkOverdueDemos, which skip
--- SECONDARY records for expiration and instead cascade the primary's state
--- onto its companion).
---
--- On failure, rolls back the already-spawned primary vehicle and its demo
--- record entirely, rather than leaving a header demo running with no way
--- to move it. The offer itself is left active (not cleared) so the player
--- can retry or decline through the normal offer flow.
---
--- @param vehicles table List of loaded vehicles returned by the engine.
--- @param loadingState number VehicleLoadingState result code.
--- @param args table Callback arguments: offer, primaryUniqueId.
--------------------------------------------------------------------------------
-function DealerRelations.DemoManager:onCompanionDemoVehicleLoaded(vehicles, loadingState, args)
-
-    if loadingState ~= VehicleLoadingState.OK or vehicles == nil or #vehicles == 0 then
-        DealerRelations.warning(string.format(
-            "Companion demo vehicle failed to load (%s) -- rolling back primary demo vehicle",
-            tostring(args.offer.companionXmlFilename)
+    if offer.companionXmlFilename ~= nil then
+        DealerRelations.log(string.format(
+            "Starting companion demo vehicle: %s",
+            tostring(offer.companionXmlFilename)
         ))
 
-        local primaryVehicle = self:findVehicleByUniqueId(args.primaryUniqueId)
-        self:removeDemoVehicle(primaryVehicle)
-        DealerRelations.Data:removeActiveDemoVehicleByUniqueId(args.primaryUniqueId)
+        companionData = VehicleLoadingData.new()
+        companionData:setFilename(offer.companionXmlFilename)
+        companionData:setPropertyState(VehiclePropertyState.MISSION)
+        companionData:setOwnerFarmId(farmId)
 
-        return
+        if not companionData:setLoadingPlace(g_currentMission.storeSpawnPlaces, g_currentMission.usedStorePlaces) then
+            DealerRelations.warning("Cannot start demo: shop loading place became unavailable for companion equipment")
+            g_currentMission:addIngameNotification(
+                FSBaseMission.INGAME_NOTIFICATION_INFO,
+                "Dealer Relations: No space available at the shop right now. Try accepting the offer again later."
+            )
+            return false
+        end
+
+        table.insert(spawnGroup.allLoadingData, companionData)
+        table.insert(spawnGroup.pendingLoadingData, companionData)
     end
 
-    local vehicle = vehicles[1]
-    local uniqueId = vehicle:getUniqueId()
+    spawnGroup.pendingCount = #spawnGroup.allLoadingData
 
-    DealerRelations.log(string.format(
-        "Companion demo vehicle loaded successfully. uniqueId=%s",
-        tostring(uniqueId)
-    ))
+    -- Begin asynchronous loading for both -- only now, after both spots
+    -- are genuinely reserved, matching AbstractMission's sequencing.
+    primaryData:load(
+        DealerRelations.DemoManager.onGroupVehicleLoaded,
+        DealerRelations.DemoManager,
+        { spawnGroup = spawnGroup, role = "PRIMARY", loadingData = primaryData }
+    )
 
-    DealerRelations.Data:addActiveDemoVehicle({
-        uniqueId = uniqueId,
-        name = args.offer.companionName,
-        brand = args.offer.companionBrand,
-        xmlFilename = args.offer.companionXmlFilename,
-        price = args.offer.companionPrice,
-        state = "ACTIVE",
-        role = "SECONDARY",
-    })
+    if companionData ~= nil then
+        companionData:load(
+            DealerRelations.DemoManager.onGroupVehicleLoaded,
+            DealerRelations.DemoManager,
+            { spawnGroup = spawnGroup, role = "SECONDARY", loadingData = companionData }
+        )
+    end
 
-    self:finishDemoStart(args.offer)
+    return true
 end
 
 -------------------------------------------------------------------------------
@@ -295,101 +170,6 @@ end
 function DealerRelations.DemoManager:finishDemoStart(offer)
     DealerRelations.Data:clearActiveDemoOffer()
 
-    DealerRelations.Data:addConfidence(
-        DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_ACCEPT_DEMO,
-        "Accepted demo offer"
-    )
-
-    -- Refresh the Overview screen if it is currently open.
-    -- Rationale:
-    -- Vehicle loading is asynchronous. The Overview must be refreshed here,
-    -- after the offer is cleared and demo is recorded, not at the point of
-    -- the button click where the data has not changed yet.
-    if DealerRelations.Screen ~= nil and DealerRelations.Screen.instance ~= nil then
-        DealerRelations.Screen.instance:updateOverviewValues()
-    end
-
-    DealerRelations.log(string.format(
-        "Active demo count: %d",
-        #DealerRelations.dealerData.activeDemoVehicles
-    ))
-end
-
--------------------------------------------------------------------------------
--- Callback invoked when the demo vehicle finishes asynchronous loading.
---
--- Records the vehicle as an active demo, clears the pending offer, applies
--- the accept confidence bonus, and refreshes the Overview screen if open.
---
--- @param vehicles table List of loaded vehicles returned by the engine.
--- @param loadingState number VehicleLoadingState result code.
--- @param args table Callback arguments containing the original offer data.
--------------------------------------------------------------------------------
-function DealerRelations.DemoManager:onDemoVehicleLoaded(vehicles, loadingState, args)
-
-    -- Loading failed.
-    if loadingState ~= VehicleLoadingState.OK then
-        DealerRelations.warning("Demo vehicle failed to load")
-        return
-    end
-
-    -- No vehicles were returned even though loading succeeded.
-    if vehicles == nil or #vehicles == 0 then
-        DealerRelations.warning(
-            "Demo vehicle load completed but no vehicles were returned"
-        )
-        return
-    end
-
-    -- Retrieve the spawned vehicle.
-    local vehicle = vehicles[1]
-
-    -- Store the unique ID for future demo tracking.
-    local uniqueId = vehicle:getUniqueId()
-
-    DealerRelations.log(string.format(
-        "Demo vehicle loaded successfully. uniqueId=%s",
-        tostring(uniqueId)
-    ))
-    
-    -- Record the active demo vehicle.
-    DealerRelations.Data:addActiveDemoVehicle({
-        uniqueId = uniqueId,
-        name = args.offer.name,
-        brand = args.offer.brand,
-        xmlFilename = args.offer.xmlFilename,
-        imageFilename = args.offer.imageFilename,  -- Store image path for Overview display
-        price = args.offer.price,  -- Stored for overdue fee calculation at Miss 3
-        -- Note: currentPeriod is 1-based from March, not January.
-        -- Period 1 = March, Period 12 = February.
-        startMonth = g_currentMission.environment.currentPeriod,
-        endMonth = g_currentMission.environment.currentPeriod + 1,
-        state = "ACTIVE",
-        role = "PRIMARY",
-
-        -- Operating hour baseline recorded at demo start.
-        -- Rationale:
-        -- Demo expiration is based on hours consumed, not calendar time.
-        -- Storing the starting hours allows the check to calculate usage
-        -- regardless of what the vehicle had accumulated before the demo.
-        startOperatingHours = vehicle:getOperatingTime() / (1000 * 60 * 60),
-        operatingHourLimit = DealerRelations.Data:getDemoOperatingHourLimit(),
-
-        -- Tracks whether the final-day 5 PM warning has already been shown.
-        -- This prevents the reminder from repeating every update cycle.
-        endingNoticeSent = false,
-
-        -- Tracks whether the post-expiration 8 AM return reminder has been shown.
-        -- Prevents the return reminder from repeating after it has been shown..
-        returnNoticeSent = false,
-
-        -- Tracks whether the overdue consequence for the current level has fired.
-        -- Reset to false each time the overdue level advances.
-        overdueNoticeSent = false,
-    })
-    
-    DealerRelations.Data:clearActiveDemoOffer()
-    
     DealerRelations.Data:addConfidence(
         DealerRelations.CONSTANTS.CONFIDENCE_IMPACT_ACCEPT_DEMO,
         "Accepted demo offer"
@@ -985,4 +765,216 @@ function DealerRelations.DemoManager:findSecondaryDemoVehicle()
     end
 
     return nil
+end
+
+-------------------------------------------------------------------------------
+-- Returns the live vehicle object for a given demo vehicle record's
+-- uniqueId, or nil if it no longer exists (e.g. deleted, sold, or removed
+-- outside of Dealer Relations' own flow).
+--
+-- Thin wrapper around VehicleSystem:getVehicleByUniqueId(), the game's own
+-- native uniqueId lookup.
+--
+-- @param uniqueId string The demo vehicle record's stored uniqueId.
+-- @return table|nil The live vehicle object, or nil if not found.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:findVehicleByUniqueId(uniqueId)
+    if uniqueId == nil then
+        return nil
+    end
+
+    return g_currentMission.vehicleSystem:getVehicleByUniqueId(uniqueId)
+end
+
+-------------------------------------------------------------------------------
+-- Checks whether room exists for the primary AND (if present) the
+-- companion vehicle, using the SAME reserve-then-release pattern
+-- AbstractMission:isSpawnSpaceAvailable() uses for mission-borrowed
+-- vehicle sets: call PlacementUtil.getPlace()/markPlaceUsed() for real,
+-- against the real g_currentMission.usedStorePlaces table, then
+-- unmarkPlaceUsed() everything afterward regardless of outcome.
+--
+-- Confirmed via AbstractMission's real source that unmarkPlaceUsed() is a
+-- safe, working way to release a reservation -- this replaces the earlier
+-- deep-clone dry-run approach, which existed specifically because we
+-- didn't yet know a safe release mechanism was available.
+--
+-- @param primaryXmlFilename string Primary vehicle's XML filename.
+-- @param companionXmlFilename string|nil Companion's XML filename, if any.
+-- @return boolean True if room exists for all vehicles in the offer.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:isDualSpawnSpaceAvailable(primaryXmlFilename, companionXmlFilename)
+    local places = g_currentMission.storeSpawnPlaces
+    local usedPlaces = g_currentMission.usedStorePlaces
+    local placesFilled = {}
+    local result = true
+
+    local filenames = { primaryXmlFilename }
+    if companionXmlFilename ~= nil then
+        table.insert(filenames, companionXmlFilename)
+    end
+
+    for _, filename in ipairs(filenames) do
+        local storeItem = g_storeManager:getItemByXMLFilename(filename)
+
+        if storeItem == nil then
+            result = false
+            break
+        end
+
+        local size = StoreItemUtil.getSizeValues(filename, "vehicle", storeItem.rotation, {})
+        size.width = math.max(size.width, VehicleLoadingData.MIN_SPAWN_PLACE_WIDTH)
+        size.length = math.max(size.length, VehicleLoadingData.MIN_SPAWN_PLACE_LENGTH)
+        size.height = math.max(size.height, VehicleLoadingData.MIN_SPAWN_PLACE_HEIGHT)
+        size.width = size.width + VehicleLoadingData.SPAWN_WIDTH_OFFSET
+
+        local x, _, _, place, width, _ = PlacementUtil.getPlace(places, size, usedPlaces, true, true, false, true)
+
+        if x == nil then
+            result = false
+            break
+        end
+
+        PlacementUtil.markPlaceUsed(usedPlaces, place, width)
+        table.insert(placesFilled, place)
+    end
+
+    for _, place in ipairs(placesFilled) do
+        PlacementUtil.unmarkPlaceUsed(usedPlaces, place)
+    end
+
+    return result
+end
+
+-------------------------------------------------------------------------------
+-- Shared callback for every vehicle in a spawn group (primary and, if
+-- present, companion). Both loads run in parallel, so this fires once per
+-- vehicle as each one completes -- not necessarily in primary-then-
+-- companion order.
+--
+-- On any failure, mirrors AbstractMission:onSpawnedVehicle()'s real
+-- pattern: cancel whatever else in the group is still loading, delete
+-- whatever already succeeded, and stop -- rather than assuming a simple
+-- one-at-a-time rollback, which doesn't hold once loads run concurrently.
+--
+-- Once every vehicle in the group has reported in successfully, hands off
+-- to finalizeSpawnGroup() to create the actual demo vehicle records.
+--
+-- @param vehicles table List of loaded vehicles returned by the engine.
+-- @param loadingState number VehicleLoadingState result code.
+-- @param args table { spawnGroup, role, loadingData }.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:onGroupVehicleLoaded(vehicles, loadingState, args)
+    local spawnGroup = args.spawnGroup
+    local role = args.role
+    local loadingData = args.loadingData
+
+    table.removeElement(spawnGroup.pendingLoadingData, loadingData)
+
+    -- Group already failed via the other vehicle -- clean up silently if
+    -- this one still managed to load, and stop.
+    if spawnGroup.failed then
+        if loadingState == VehicleLoadingState.OK and vehicles ~= nil then
+            for _, vehicle in ipairs(vehicles) do
+                vehicle:delete()
+            end
+        end
+        return
+    end
+
+    if loadingState ~= VehicleLoadingState.OK or vehicles == nil or #vehicles == 0 then
+        DealerRelations.warning(string.format(
+            "Demo vehicle failed to load (role=%s) -- rolling back spawn group",
+            tostring(role)
+        ))
+
+        spawnGroup.failed = true
+
+        for _, pendingData in ipairs(spawnGroup.pendingLoadingData) do
+            pendingData:cancelLoading()
+        end
+
+        for _, loaded in ipairs(spawnGroup.loadedVehicles) do
+            loaded.vehicle:delete()
+        end
+        spawnGroup.loadedVehicles = {}
+
+        g_currentMission:addIngameNotification(
+            FSBaseMission.INGAME_NOTIFICATION_INFO,
+            "Dealer Relations: Something went wrong starting the demo. Please try again."
+        )
+
+        return
+    end
+
+    local vehicle = vehicles[1]
+    table.insert(spawnGroup.loadedVehicles, { vehicle = vehicle, role = role })
+    spawnGroup.pendingCount = spawnGroup.pendingCount - 1
+
+    if spawnGroup.pendingCount <= 0 then
+        self:finalizeSpawnGroup(spawnGroup)
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Creates the activeDemoVehicles record(s) for a fully-loaded spawn group
+-- and finalizes the demo start. Only ever called once every vehicle in
+-- the group has succeeded -- see onGroupVehicleLoaded().
+--
+-- Record shapes are unchanged from the original single-callback design:
+-- PRIMARY carries the full operating-hour/expiration tracking fields,
+-- SECONDARY carries none -- its lifecycle is entirely driven by the
+-- primary's state (see checkExpiredDemos and friends).
+--
+-- @param spawnGroup table The completed spawn group.
+-------------------------------------------------------------------------------
+function DealerRelations.DemoManager:finalizeSpawnGroup(spawnGroup)
+    local offer = spawnGroup.offer
+
+    for _, loaded in ipairs(spawnGroup.loadedVehicles) do
+        local vehicle = loaded.vehicle
+        local uniqueId = vehicle:getUniqueId()
+
+        if loaded.role == "PRIMARY" then
+            DealerRelations.log(string.format(
+                "Demo vehicle loaded successfully. uniqueId=%s",
+                tostring(uniqueId)
+            ))
+
+            DealerRelations.Data:addActiveDemoVehicle({
+                uniqueId = uniqueId,
+                name = offer.name,
+                brand = offer.brand,
+                xmlFilename = offer.xmlFilename,
+                imageFilename = offer.imageFilename,
+                price = offer.price,
+                startMonth = g_currentMission.environment.currentPeriod,
+                endMonth = g_currentMission.environment.currentPeriod + 1,
+                state = "ACTIVE",
+                role = "PRIMARY",
+                startOperatingHours = vehicle:getOperatingTime() / (1000 * 60 * 60),
+                operatingHourLimit = DealerRelations.Data:getDemoOperatingHourLimit(),
+                endingNoticeSent = false,
+                returnNoticeSent = false,
+                overdueNoticeSent = false,
+            })
+        else
+            DealerRelations.log(string.format(
+                "Companion demo vehicle loaded successfully. uniqueId=%s",
+                tostring(uniqueId)
+            ))
+
+            DealerRelations.Data:addActiveDemoVehicle({
+                uniqueId = uniqueId,
+                name = offer.companionName,
+                brand = offer.companionBrand,
+                xmlFilename = offer.companionXmlFilename,
+                price = offer.companionPrice,
+                state = "ACTIVE",
+                role = "SECONDARY",
+            })
+        end
+    end
+
+    self:finishDemoStart(offer)
 end
