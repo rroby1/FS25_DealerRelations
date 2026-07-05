@@ -246,6 +246,29 @@ DealerRelations.Equipment.HARVESTER_CATEGORIES = {
 }
 
 -------------------------------------------------------------------------------
+-- FORAGEHARVESTERS has no manual toggle, mirroring HARVESTER_CATEGORIES.
+-- Eligibility is combo-only (see isCurrentlyEligible()) -- unlike grain
+-- headers, forage cutters carry storeData.specs.neededPower directly, but a
+-- second, different powerConsumer#neededMaxPtoPower value also exists, and
+-- which one (if either) reflects what the harvester chassis actually needs
+-- could not be confirmed. No HP fallback is used for this pairing at all.
+-- See vault design note: 0.23.0 Forage Harvester/Cutter Eligibility.
+-------------------------------------------------------------------------------
+DealerRelations.Equipment.FORAGEHARVESTER_CATEGORIES = {
+    FORAGEHARVESTERS = true,
+}
+
+-------------------------------------------------------------------------------
+-- Categories whose eligibility is governed entirely by combination data
+-- against an owned FORAGEHARVESTER_CATEGORIES chassis -- no HP fallback.
+-- FORAGEHARVESTERCUTTERS also remains in CROP_CATEGORIES for crop-history
+-- gating, same dual-classification pattern HEADER_CATEGORIES uses.
+-------------------------------------------------------------------------------
+DealerRelations.Equipment.FORAGEHEADER_CATEGORIES = {
+    FORAGEHARVESTERCUTTERS = true,
+}
+
+-------------------------------------------------------------------------------
 -- Categories whose eligibility is governed by harvester-HP matching rather
 -- than a manual player toggle. Distinct from POWER_MANAGED_CATEGORIES since
 -- the comparison is against owned harvester HP, not tractor HP.
@@ -364,7 +387,9 @@ function DealerRelations.Equipment:isDemoCandidate(item)
         and DealerRelations.Equipment.ANIMAL_CATEGORIES[category] == nil
         and DealerRelations.Equipment.HARVESTER_CATEGORIES[category] == nil
         and DealerRelations.Equipment.TRAILER_CATEGORIES[category] == nil
-        and DealerRelations.Equipment.SEEDTANK_CATEGORIES[category] == nil then
+        and DealerRelations.Equipment.SEEDTANK_CATEGORIES[category] == nil
+        and DealerRelations.Equipment.FORAGEHARVESTER_CATEGORIES[category] == nil
+        and DealerRelations.Equipment.FORAGEHEADER_CATEGORIES[category] == nil then
         DealerRelations.warning("Unclassified equipment category: " .. category)
         return false
     end
@@ -561,6 +586,15 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
         data.displayPower = displayPower
         data.powerMin = displayPower
         data.powerMax = displayPower
+    elseif DealerRelations.Equipment.FORAGEHEADER_CATEGORIES[category] == true then
+        -- Forage cutters carry storeData.specs.neededPower directly (unlike
+        -- grain headers, which carry none at all), but which power field (if
+        -- either) reflects what the forage harvester chassis actually needs
+        -- could not be confirmed -- see FORAGEHARVESTER_CATEGORIES. powerRole
+        -- is intentionally left "NONE" here rather than reading either power
+        -- field, which also keeps this category out of the IMPLEMENT branch
+        -- below -- gating a forage cutter against tractor HP would be
+        -- meaningless, since it never mounts on a tractor.
     elseif displayNeededPower ~= nil then
         data.powerRole = "IMPLEMENT"
         data.displayPower = displayNeededPower
@@ -768,11 +802,6 @@ function DealerRelations.Equipment:resolveDemoCandidate(item)
 end
 
 -------------------------------------------------------------------------------
--- Discovers eligible Dealer Relations demo equipment from the FS25 store.
---
--- Builds an in-memory list only. This does not save equipment data
--- and does not select demo equipment.
---
 -- Acts as the orchestration point only: loops over store items and
 -- delegates the full per-item gating pipeline (category, XML read,
 -- crop history, brand filter) to resolveDemoCandidate().
@@ -808,10 +837,16 @@ function DealerRelations.Equipment:discover()
             -- per engine config sharing one xmlFilename and would collide
             -- in this map. Headers/harvesters are never expanded this way
             -- (one candidate per xmlFilename), so caching them is safe.
+            -- Forage harvesters/cutters follow the same one-candidate-per-
+            -- xmlFilename shape and need the same cache entry, or their
+            -- combo-only eligibility gate (0.23.0) can never find them as
+            -- owned equipment.
             if candidate.xmlFilename ~= nil
                 and (candidate.powerRole == "IMPLEMENT"
                     or DealerRelations.Equipment.HEADER_CATEGORIES[candidate.category] == true
-                    or DealerRelations.Equipment.HARVESTER_CATEGORIES[candidate.category] == true) then
+                    or DealerRelations.Equipment.HARVESTER_CATEGORIES[candidate.category] == true
+                    or DealerRelations.Equipment.FORAGEHEADER_CATEGORIES[candidate.category] == true
+                    or DealerRelations.Equipment.FORAGEHARVESTER_CATEGORIES[candidate.category] == true) then
                 DealerRelations.equipmentByXmlFilename[candidate.xmlFilename] = candidate
             end
         end
@@ -1134,8 +1169,8 @@ function DealerRelations.Equipment:hasGrownAnyWindrowCrop()
 end
 
 -------------------------------------------------------------------------------
--- Returns true when a discovered candidate is currently eligible to be
--- selected as a demo offer.
+-- Returns whether a discovered demo candidate is currently eligible for
+-- selection as a demo offer.
 --
 -- This is evaluated fresh every time a demo is selected, not cached at
 -- discovery time. Category toggles, brand toggles, forestry toggle, and
@@ -1228,12 +1263,28 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
     -- which naturally excludes headers until a capable harvester is owned
     -- -- same floor-of-0 pattern as the implement/tractor gate above.
     if DealerRelations.Equipment.HEADER_CATEGORIES[candidate.category] == true then
-        local comboMatch = self:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.HARVESTER_CATEGORIES)
-        local hpMatch = candidate.displayPower ~= nil
-            and candidate.displayPower <= self:getOwnedMaxHarvesterPower()
+        -- Combo data is a curated, brand-accurate signal -- each brand
+        -- rebadge narrows its own combo list down to that brand's harvesters
+        -- only (confirmed via plus360_johnDeere.xml/series9000.xml vs.
+        -- fr780.xml/plus360.xml). Once a header declares ANY combo data,
+        -- that data must actually match -- HP alone can no longer substitute,
+        -- or a JD-only header could be handed to a Claas owner on horsepower
+        -- alone despite them being incompatible in-game. HP fallback is only
+        -- used when a header declares no combo data at all.
+        local hasComboData = candidate.combinationXmlFilenames ~= nil
+            and #candidate.combinationXmlFilenames > 0
 
-        if not comboMatch and not hpMatch then
-            return false
+        if hasComboData then
+            if not self:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.HARVESTER_CATEGORIES) then
+                return false
+            end
+        else
+            local hpMatch = candidate.displayPower ~= nil
+                and candidate.displayPower <= self:getOwnedMaxHarvesterPower()
+
+            if not hpMatch then
+                return false
+            end
         end
 
         -- A header cannot be demoed without a compatible trailer to move it
@@ -1257,13 +1308,40 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
     -- a header demanding more than it -- same "base machine always
     -- available" pattern as tractors relative to implements.
     if DealerRelations.Equipment.HARVESTER_CATEGORIES[candidate.category] == true then
-        local comboMatch = self:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.HEADER_CATEGORIES)
-        local hpMatch = candidate.displayPower ~= nil
-            and candidate.displayPower >= self:getOwnedMaxHeaderRequiredPower()
+        -- Same brand-safety reasoning as the header block above, mirrored.
+        local hasComboData = candidate.combinationXmlFilenames ~= nil
+            and #candidate.combinationXmlFilenames > 0
 
-        if not comboMatch and not hpMatch then
+        if hasComboData then
+            if not self:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.HEADER_CATEGORIES) then
+                return false
+            end
+        else
+            local hpMatch = candidate.displayPower ~= nil
+                and candidate.displayPower >= self:getOwnedMaxHeaderRequiredPower()
+
+            if not hpMatch then
+                return false
+            end
+        end
+    end
+
+    -- Forage cutters cannot be demoed without a compatible forage harvester,
+    -- and vice versa -- combo-only, no HP fallback (see FORAGEHEADER_CATEGORIES).
+    if DealerRelations.Equipment.FORAGEHEADER_CATEGORIES[candidate.category] == true then
+        if not self:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.FORAGEHARVESTER_CATEGORIES) then
             return false
         end
+    end
+
+    -- Forage harvesters require a combo-matched forage cutter, mirroring the
+    -- block above. Self-contained: FORAGEHARVESTERS has no DEFAULT_CATEGORY_
+    -- FILTERS entry and isn't in any later category check, so this returns
+    -- directly rather than falling through to isCategoryEnabled() at the
+    -- bottom of this function, same reason HARVESTER_CATEGORIES/TRACTOR_
+    -- CATEGORIES return true directly below.
+    if DealerRelations.Equipment.FORAGEHARVESTER_CATEGORIES[candidate.category] == true then
+        return self:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.FORAGEHEADER_CATEGORIES)
     end
 
     -- A slurry tank cannot be demoed without a compatible tool to apply the
@@ -1981,3 +2059,72 @@ function DealerRelations.Equipment:getCompatibleTrailerForHeader(headerCandidate
 
     return bestTrailer
 end
+
+-------------------------------------------------------------------------------
+-- Dumps raw combination xmlFilenames and configFileNames for owned/candidate
+-- forage harvesters and forage cutters. Mirrors consoleCommandHeaderHarvesterMatch()
+-- exactly, scoped to FORAGEHARVESTER_CATEGORIES/FORAGEHEADER_CATEGORIES.
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandForageMatch()
+    if DealerRelations.equipmentList == nil or #DealerRelations.equipmentList == 0 then
+        return "dr_forageMatch: equipmentList unavailable -- has discover() run yet?"
+    end
+
+    print("[DealerRelations] === Owned forage harvesters/cutters ===")
+
+    if g_currentMission ~= nil and g_currentMission.vehicleSystem ~= nil
+        and g_currentMission.vehicleSystem.vehicles ~= nil then
+
+        for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+            local entry = DealerRelations.equipmentByXmlFilename[vehicle.configFileName]
+
+            if entry ~= nil
+                and (DealerRelations.Equipment.FORAGEHARVESTER_CATEGORIES[entry.category] == true
+                    or DealerRelations.Equipment.FORAGEHEADER_CATEGORIES[entry.category] == true) then
+
+                print(string.format(
+                    "[DealerRelations] OWNED name='%s' category=%s configFileName='%s' xmlFilename='%s'",
+                    tostring(entry.name),
+                    tostring(entry.category),
+                    tostring(vehicle.configFileName),
+                    tostring(entry.xmlFilename)
+                ))
+
+                if entry.combinationXmlFilenames == nil or #entry.combinationXmlFilenames == 0 then
+                    print("[DealerRelations]   combinationXmlFilenames: (none)")
+                else
+                    for _, comboFilename in ipairs(entry.combinationXmlFilenames) do
+                        print(string.format("[DealerRelations]   combinationXmlFilenames: '%s'", tostring(comboFilename)))
+                    end
+                end
+            end
+        end
+    end
+
+    print("[DealerRelations] === Discovered forage harvester/cutter candidates ===")
+
+    for _, candidate in ipairs(DealerRelations.equipmentList) do
+        if DealerRelations.Equipment.FORAGEHARVESTER_CATEGORIES[candidate.category] == true
+            or DealerRelations.Equipment.FORAGEHEADER_CATEGORIES[candidate.category] == true then
+
+            print(string.format(
+                "[DealerRelations] CANDIDATE name='%s' category=%s brand=%s xmlFilename='%s'",
+                tostring(candidate.name),
+                tostring(candidate.category),
+                tostring(candidate.brand),
+                tostring(candidate.xmlFilename)
+            ))
+
+            if candidate.combinationXmlFilenames == nil or #candidate.combinationXmlFilenames == 0 then
+                print("[DealerRelations]   combinationXmlFilenames: (none)")
+            else
+                for _, comboFilename in ipairs(candidate.combinationXmlFilenames) do
+                    print(string.format("[DealerRelations]   combinationXmlFilenames: '%s'", tostring(comboFilename)))
+                end
+            end
+        end
+    end
+
+    return "dr_forageMatch: see log"
+end
+

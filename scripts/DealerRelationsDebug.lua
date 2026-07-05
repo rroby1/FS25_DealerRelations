@@ -215,6 +215,20 @@ function DealerRelations.registerConsoleCommands()
         DealerRelations,
         "[headerXmlFilename]"
     )
+
+    addConsoleCommand(
+        "dr_forageMatch",
+        "Dump raw combination xmlFilenames and configFileNames for owned/candidate forage harvesters and cutters",
+        "consoleCommandForageMatch",
+        DealerRelations
+    )
+
+    addConsoleCommand(
+        "dr_forageEligibility",
+        "Dump comboMatch/eligible for all discovered forage harvester/cutter candidates",
+        "consoleCommandForageEligibility",
+        DealerRelations
+    )
     
     DealerRelations.log("Console commands registered")
 end
@@ -833,11 +847,12 @@ function DealerRelations:consoleCommandHeaderHarvesterMatch()
 end
 
 -------------------------------------------------------------------------------
--- Dumps comboMatch, hpMatch, and displayPower for every discovered header/
--- harvester candidate, recomputing the same signals isCurrentlyEligible()
--- uses rather than reading a cached decision. Temporary -- used to verify
--- the combo/HP eligibility gate in isolation, without needing to trigger a
--- full isCurrentlyEligible() pass across every category via dr_eligibleCount.
+-- Dumps the actual eligibility signal for every discovered header/harvester
+-- candidate, mirroring isCurrentlyEligible()'s real combo-required-if-present
+-- rule (0.23.0) rather than treating comboMatch/hpMatch as independent OR'd
+-- signals -- a candidate with combo data that doesn't match is ineligible
+-- even if hpMatch would have passed, so this now reports which signal was
+-- actually used, not both in isolation.
 -------------------------------------------------------------------------------
 function DealerRelations:consoleCommandHeaderHarvesterEligibility()
     if DealerRelations.equipmentList == nil or #DealerRelations.equipmentList == 0 then
@@ -847,28 +862,47 @@ function DealerRelations:consoleCommandHeaderHarvesterEligibility()
     local count = 0
 
     for _, candidate in ipairs(DealerRelations.equipmentList) do
-        local comboMatch, hpMatch
+        local ownedCategorySet
 
         if DealerRelations.Equipment.HEADER_CATEGORIES[candidate.category] == true then
-            comboMatch = DealerRelations.Equipment:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.HARVESTER_CATEGORIES)
-            hpMatch = candidate.displayPower ~= nil
-                and candidate.displayPower <= DealerRelations.Equipment:getOwnedMaxHarvesterPower()
+            ownedCategorySet = DealerRelations.Equipment.HARVESTER_CATEGORIES
         elseif DealerRelations.Equipment.HARVESTER_CATEGORIES[candidate.category] == true then
-            comboMatch = DealerRelations.Equipment:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.HEADER_CATEGORIES)
-            hpMatch = candidate.displayPower ~= nil
-                and candidate.displayPower >= DealerRelations.Equipment:getOwnedMaxHeaderRequiredPower()
+            ownedCategorySet = DealerRelations.Equipment.HEADER_CATEGORIES
         end
 
-        if comboMatch ~= nil then
+        if ownedCategorySet ~= nil then
             count = count + 1
 
+            local hasComboData = candidate.combinationXmlFilenames ~= nil
+                and #candidate.combinationXmlFilenames > 0
+            local comboMatch = DealerRelations.Equipment:isCombinationMatchedToOwnedCategory(candidate, ownedCategorySet)
+
+            local hpMatch = nil
+            local signalUsed
+
+            if hasComboData then
+                signalUsed = "combo (required)"
+            else
+                hpMatch = candidate.displayPower ~= nil
+                    and (DealerRelations.Equipment.HEADER_CATEGORIES[candidate.category] == true
+                        and candidate.displayPower <= DealerRelations.Equipment:getOwnedMaxHarvesterPower()
+                        or candidate.displayPower >= DealerRelations.Equipment:getOwnedMaxHeaderRequiredPower())
+                signalUsed = "hp (no combo data)"
+            end
+
+            local eligible = hasComboData and comboMatch or (not hasComboData and hpMatch or false)
+
             print(string.format(
-                "[DealerRelations] name='%s' category=%s displayPower=%s comboMatch=%s hpMatch=%s",
+                "[DealerRelations] name='%s' category=%s brand=%s displayPower=%s hasComboData=%s comboMatch=%s hpMatch=%s signalUsed=%s eligible=%s",
                 tostring(candidate.name),
                 tostring(candidate.category),
+                tostring(candidate.brand),
                 tostring(candidate.displayPower),
+                tostring(hasComboData),
                 tostring(comboMatch),
-                tostring(hpMatch)
+                tostring(hpMatch),
+                signalUsed,
+                tostring(eligible)
             ))
         end
     end
@@ -1050,4 +1084,50 @@ function DealerRelations:consoleCommandTrailerFallback(headerXmlFilename)
     end
 
     return string.format("dr_trailerFallback: checked %d header(s) -- see log", #headersToCheck)
+end
+
+-------------------------------------------------------------------------------
+-- Dumps comboMatch and eligibility for every discovered forage harvester/
+-- cutter candidate. Combo-only -- there is no HP fallback for this pairing
+-- (see FORAGEHARVESTER_CATEGORIES/FORAGEHEADER_CATEGORIES), so unlike
+-- dr_headerHarvesterEligibility, comboMatch alone determines eligible.
+-------------------------------------------------------------------------------
+function DealerRelations:consoleCommandForageEligibility()
+    if DealerRelations.equipmentList == nil or #DealerRelations.equipmentList == 0 then
+        return "dr_forageEligibility: equipmentList unavailable -- has discover() run yet?"
+    end
+
+    local count = 0
+
+    for _, candidate in ipairs(DealerRelations.equipmentList) do
+        local ownedCategorySet
+
+        if DealerRelations.Equipment.FORAGEHEADER_CATEGORIES[candidate.category] == true then
+            ownedCategorySet = DealerRelations.Equipment.FORAGEHARVESTER_CATEGORIES
+        elseif DealerRelations.Equipment.FORAGEHARVESTER_CATEGORIES[candidate.category] == true then
+            ownedCategorySet = DealerRelations.Equipment.FORAGEHEADER_CATEGORIES
+        end
+
+        if ownedCategorySet ~= nil then
+            count = count + 1
+
+            local comboMatch = DealerRelations.Equipment:isCombinationMatchedToOwnedCategory(candidate, ownedCategorySet)
+
+            print(string.format(
+                "[DealerRelations] name='%s' category=%s brand=%s xmlFilename='%s' comboMatch=%s eligible=%s",
+                tostring(candidate.name),
+                tostring(candidate.category),
+                tostring(candidate.brand),
+                tostring(candidate.xmlFilename),
+                tostring(comboMatch),
+                tostring(comboMatch)
+            ))
+        end
+    end
+
+    if count == 0 then
+        return "dr_forageEligibility: no forage harvester/cutter candidates found"
+    end
+
+    return string.format("dr_forageEligibility: checked %d candidate(s) -- see log", count)
 end
