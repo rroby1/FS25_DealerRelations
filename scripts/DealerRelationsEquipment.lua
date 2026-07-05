@@ -429,6 +429,18 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
     -- element itself, since its presence alone is the signal.
     local isFoldable = xmlFile:hasProperty("vehicle.foldable")
 
+    -- Generic multi-brand headers (selectable per-brand couplers, e.g.
+    -- "New Holland"/"John Deere"/"Claas Lexion"/etc. -- confirmed via
+    -- CressoniCRX720.xml, CressoniCRXSojaFlex720.xml) cannot be verified
+    -- against a specific harvester brand: the coupler names are free text,
+    -- not structured brand IDs, and which one is actually mounted isn't
+    -- knowable from the store item alone. Only excluded when the header
+    -- ALSO has no combination data -- see isCurrentlyEligible(), which
+    -- lets combo-declared generic headers through unaffected, since combo
+    -- data is a trustworthy compatibility signal regardless of coupler
+    -- structure.
+    local hasMultiBrandCouplers = xmlFile:hasProperty("vehicle.attachable.inputAttacherJointConfigurations")
+
     -- Combination entries declare compatible vehicles (harvesters, trailers,
     -- seeders/planters, etc.) by XML filename. Not type-separated in the XML —
     -- a single item's list can mix categories — so this just collects the raw
@@ -537,6 +549,7 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
         sizeLength = sizeLength,
         workingWidth = workingWidth,
         isFoldable = isFoldable,
+        hasMultiBrandCouplers = hasMultiBrandCouplers,
         powerRole = "NONE",
         displayPower = nil,
         powerMin = nil,
@@ -742,6 +755,7 @@ function DealerRelations.Equipment:resolveDemoCandidate(item)
             sizeLength = xmlData ~= nil and xmlData.sizeLength or nil,
             workingWidth = xmlData ~= nil and xmlData.workingWidth or nil,
             isFoldable = xmlData ~= nil and xmlData.isFoldable or nil,
+            hasMultiBrandCouplers = xmlData ~= nil and xmlData.hasMultiBrandCouplers or nil,
             price = item.price,
             xmlFilename = item.xmlFilename,
             storeImage = xmlData ~= nil and xmlData.storeImage or nil,
@@ -1171,6 +1185,19 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
     -- its own) -- this check only prevents the tank itself from being
     -- offered independently, same mechanism as the other two rejections.
     if candidate.category == "SEEDTANKS" then
+        return false
+    end
+
+    -- Generic multi-brand headers (selectable per-brand couplers, e.g.
+    -- CressoniCRX720/CressoniCRXSojaFlex720) with no combination data at
+    -- all are excluded -- there's no way to verify which coupler is
+    -- actually mounted, so which harvester brand it really fits can't be
+    -- confirmed. A multi-brand header that DOES declare combos passes
+    -- through untouched -- combo data is a trustworthy signal regardless
+    -- of coupler structure, so this only closes the specific gap where
+    -- neither signal exists.
+    if candidate.hasMultiBrandCouplers == true
+        and (candidate.combinationXmlFilenames == nil or #candidate.combinationXmlFilenames == 0) then
         return false
     end
 
