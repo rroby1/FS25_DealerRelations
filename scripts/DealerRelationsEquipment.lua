@@ -1122,6 +1122,15 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
         return false
     end
 
+    -- Slurry tools are never offered as a standalone demo -- they only ever
+    -- appear bundled as a slurry tank's companion, attached in
+    -- createDemoOfferFromCandidate(). Without this, SLURRYTOOLS would still
+    -- reach the ANIMAL_CATEGORIES dispatch below and become independently
+    -- eligible via ownsAccumulatedSlurry() alone.
+    if candidate.category == "SLURRYTOOLS" then
+        return false
+    end
+
     -- Implements requiring more power than the player's best owned tractor
     -- are excluded. No floor beyond this.
     if candidate.powerRole == "IMPLEMENT" and candidate.displayPower ~= nil then
@@ -1180,6 +1189,17 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
             and candidate.displayPower >= self:getOwnedMaxHeaderRequiredPower()
 
         if not comboMatch and not hpMatch then
+            return false
+        end
+    end
+
+    -- A slurry tank cannot be demoed without a compatible tool to apply the
+    -- slurry -- same hard-requirement pattern as headers/trailers, layered
+    -- on top of (not replacing) the existing ownsAccumulatedSlurry()
+    -- precondition still enforced by isAnimalEligible() below. Both
+    -- conditions are now required.
+    if candidate.category == "SLURRYTANKS" then
+        if self:getCompatibleToolForTank(candidate) == nil then
             return false
         end
     end
@@ -1728,6 +1748,43 @@ function DealerRelations.Equipment:getCompatibleTrailerForHeader(headerCandidate
     for _, candidate in ipairs(DealerRelations.equipmentList) do
         if candidate.category == "CUTTERTRAILERS" then
             if self:isCombinationMatch(headerCandidate, candidate) then
+                return candidate
+            end
+        end
+    end
+
+    return nil
+end
+
+-------------------------------------------------------------------------------
+-- Returns the first SLURRYTOOLS candidate combination-matched to the given
+-- slurry tank candidate, checked in both directions via isCombinationMatch().
+--
+-- A slurry tank cannot be demoed on its own -- it has no way to apply
+-- slurry without a compatible tool -- so this is a hard requirement, not
+-- an eligibility signal layered on top of something else. See
+-- SLURRYTANKS eligibility, which now depends on this returning a match, in
+-- addition to the existing ownsAccumulatedSlurry() precondition.
+--
+-- No fallback exists yet for tanks without a combo-declared tool -- same
+-- caveat as getCompatibleTrailerForHeader(). A tank with no matching tool
+-- is simply not eligible until one exists.
+--
+-- If more than one compatible tool exists, the first match found is used --
+-- no preference given to price, brand, or anything else.
+--
+-- @param tankCandidate table Entry from equipmentList, category
+--        SLURRYTANKS.
+-- @return table|nil Matching SLURRYTOOLS candidate, or nil if none found.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:getCompatibleToolForTank(tankCandidate)
+    if tankCandidate == nil or DealerRelations.equipmentList == nil then
+        return nil
+    end
+
+    for _, candidate in ipairs(DealerRelations.equipmentList) do
+        if candidate.category == "SLURRYTOOLS" then
+            if self:isCombinationMatch(tankCandidate, candidate) then
                 return candidate
             end
         end
