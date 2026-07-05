@@ -15,7 +15,7 @@
 DealerRelations = DealerRelations or {}
 
 -- Current mod version displayed in startup logging.
-DealerRelations.version = "0.21.0"
+DealerRelations.version = "0.22.0"
 
 -- Store the mod directory for later runtime use.
 -- Rationale: g_currentModDirectory is available while sourcing files,
@@ -236,15 +236,13 @@ end
 -- Rationale: checkMonthlyDemo() should decide when an offer is created;
 -- this helper owns the structure of the offer data that gets persisted.
 --
--- Headers always carry a companion trailer, and slurry tanks always carry
--- a companion tool -- both hard requirements enforced by isCurrentlyEligible()
--- before a candidate ever reaches this function. Seeders/planters are
--- different: a companion seed tank is attached whenever a combo match
--- exists, but it is never required -- most seeders/planters have no tank
--- relationship at all, and that's the normal case, not a gap. Companion
--- fields are attached here as flat "companion*" fields rather than a
--- nested table, matching the existing flat-field convention already used
--- for the primary vehicle and in DealerRelationsPersistence.lua.
+-- Headers carry a companion trailer unless they're foldable (see
+-- isFoldable -- a foldable header travels the road on its own and never
+-- needed one). Slurry tanks always carry a companion tool. Seeders/planters
+-- carry a companion tank whenever a combo match exists, but never require
+-- one. All attached here as flat "companion*" fields rather than a nested
+-- table, matching the existing flat-field convention already used for the
+-- primary vehicle and in DealerRelationsPersistence.lua.
 function DealerRelations:createDemoOfferFromCandidate(candidate, currentMonth)
     local offer = {
         candidateKey = DealerRelations.Equipment:getDemoCandidateKey(candidate),
@@ -268,7 +266,8 @@ function DealerRelations:createDemoOfferFromCandidate(candidate, currentMonth)
 
     local companion = nil
 
-    if DealerRelations.Equipment.HEADER_CATEGORIES[candidate.category] == true then
+    if DealerRelations.Equipment.HEADER_CATEGORIES[candidate.category] == true
+        and candidate.isFoldable ~= true then
         companion = DealerRelations.Equipment:getCompatibleTrailerForHeader(candidate)
     elseif candidate.category == "SLURRYTANKS" then
         companion = DealerRelations.Equipment:getCompatibleToolForTank(candidate)

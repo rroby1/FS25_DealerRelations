@@ -322,6 +322,9 @@ DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.fillU
 DealerRelations.Equipment.xmlSchema:register(XMLValueType.FLOAT, "vehicle.powerConsumer#neededMaxPtoPower", "Header PTO power draw (kW)")
 DealerRelations.Equipment.xmlSchema:register(XMLValueType.INT, "vehicle.motorized.motorConfigurations.motorConfiguration(?)#hp", "Motor configuration horsepower")
 DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.sowingMachine.seedFruitTypeCategories", "Sowing machine seed fruit type categories")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.FLOAT, "vehicle.base.size#width", "Physical footprint width")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.FLOAT, "vehicle.base.size#length", "Physical footprint length")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.FLOAT, "vehicle.storeData.specs.workingWidth", "Working (crop-intake) width")
 
 -------------------------------------------------------------------------------
 -- Returns true when a store item should be considered for dealer demos.
@@ -409,6 +412,22 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
         
     local fruitTypesDirect = xmlFile:getValue("vehicle.cutter#fruitTypes")
     local vineFruitType = xmlFile:getValue("vehicle.vineCutter#fruitType")
+
+    -- Header/trailer width-and-length fallback matching, used by
+    -- getCompatibleTrailerForHeader() when no combination data exists.
+    -- Read for every category, not just headers/trailers, same as
+    -- combinationXmlFilenames -- harmless for anything else, keeps this
+    -- read ungated by category.
+    local sizeWidth = xmlFile:getValue("vehicle.base.size#width")
+    local sizeLength = xmlFile:getValue("vehicle.base.size#length")
+    local workingWidth = xmlFile:getValue("vehicle.storeData.specs.workingWidth")
+
+    -- Foldable headers (confirmed via <foldable> element -- diamant8.xml,
+    -- northStar1230FB.xml, headerC16F.xml, CressoniCRX720.xml) never need
+    -- a trailer to travel the road -- they fold themselves down instead.
+    -- hasProperty() checks existence only; no value is read from the
+    -- element itself, since its presence alone is the signal.
+    local isFoldable = xmlFile:hasProperty("vehicle.foldable")
 
     -- Combination entries declare compatible vehicles (harvesters, trailers,
     -- seeders/planters, etc.) by XML filename. Not type-separated in the XML —
@@ -514,6 +533,10 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
         maxCapacity = maxCapacity,
         fillTypeNames = fillTypeNames,
         combinationXmlFilenames = combinationXmlFilenames,
+        sizeWidth = sizeWidth,
+        sizeLength = sizeLength,
+        workingWidth = workingWidth,
+        isFoldable = isFoldable,
         powerRole = "NONE",
         displayPower = nil,
         powerMin = nil,
@@ -715,6 +738,10 @@ function DealerRelations.Equipment:resolveDemoCandidate(item)
             category = category,
             fruitTypes = xmlData ~= nil and xmlData.fruitTypes or nil,
             combinationXmlFilenames = xmlData ~= nil and xmlData.combinationXmlFilenames or nil,
+            sizeWidth = xmlData ~= nil and xmlData.sizeWidth or nil,
+            sizeLength = xmlData ~= nil and xmlData.sizeLength or nil,
+            workingWidth = xmlData ~= nil and xmlData.workingWidth or nil,
+            isFoldable = xmlData ~= nil and xmlData.isFoldable or nil,
             price = item.price,
             xmlFilename = item.xmlFilename,
             storeImage = xmlData ~= nil and xmlData.storeImage or nil,
@@ -1183,12 +1210,15 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
         end
 
         -- A header cannot be demoed without a compatible trailer to move it
-        -- on the road -- this is a hard requirement, not an optional
-        -- companion. No width/length fallback exists yet for headers
-        -- without a combo-declared trailer, so those headers are simply
-        -- not eligible until that fallback is built. See vault design
-        -- note: 0.21.0 Header/Harvester/Trailer/SeedTank Eligibility.
-        if self:getCompatibleTrailerForHeader(candidate) == nil then
+        -- on the road -- UNLESS it folds itself down for road travel and
+        -- never needed a trailer to begin with (confirmed via <foldable>
+        -- element -- diamant8.xml, northStar1230FB.xml, headerC16F.xml,
+        -- CressoniCRX720.xml). No width/length fallback exists yet for
+        -- non-foldable headers without a combo-declared trailer, so those
+        -- are simply not eligible until that fallback covers their case.
+        -- See vault design note: 0.21.0 Header/Harvester/Trailer/SeedTank
+        -- Eligibility, and the 0.22.0 trailer fallback addendum.
+        if candidate.isFoldable ~= true and self:getCompatibleTrailerForHeader(candidate) == nil then
             return false
         end
     end
@@ -1843,4 +1873,84 @@ function DealerRelations.Equipment:getCompatibleTankForSeeder(seederCandidate)
     end
 
     return nil
+end
+
+-------------------------------------------------------------------------------
+-- Returns the first CUTTERTRAILERS candidate combination-matched to the
+-- given header candidate, checked in both directions via isCombinationMatch().
+-- If no combo match exists, falls back to a width/length check: the
+-- smallest trailer whose size.length is at least the header's size.width --
+-- a header rides lengthwise on the trailer bed, and the closest-fitting
+-- trailer that still works is preferred over an oversized (and likely
+-- costlier) one that also happens to fit.
+--
+-- Header dimension convention is inverted from normal vehicles: a header's
+-- size.width is its LONGEST measurement -- the span across the face of the
+-- header, perpendicular to the direction of travel when mounted on the
+-- combine (running parallel to the cutting edge). size.length is the
+-- short front-to-back depth of the header housing. Confirmed via
+-- header4408.xml (width=7.1, length=3.15) and powerFlow.xml (width=14,
+-- length=3.5) -- width is the larger number in both. Header width prefers
+-- size.width and falls back to workingWidth (the narrower crop-intake
+-- width only, not the full physical span) only if size.width is missing.
+--
+-- Trailers follow the normal convention -- size.length is their own long
+-- axis (the bed the header rides on), confirmed via n70_30.xml
+-- (width=2.4, length=12).
+--
+-- This is a first-approximation rule with no confirmed real-world matched
+-- pair to derive a tolerance/margin from (both examples checked this
+-- session were either uncombined or paired with a different header
+-- entirely) -- a strict >= comparison, no buffer. Revisit if this proves
+-- too strict or too loose in practice.
+--
+-- Headers cannot be used without a compatible trailer (a header has no way
+-- to move itself on the road), so this remains a hard requirement -- see
+-- HEADER_CATEGORIES eligibility.
+--
+-- Combo matches still take priority over the fallback, and use the first
+-- match found among those -- no "smallest/best fit" preference applies
+-- there, since a curated combo declaration is already an author's
+-- explicit choice, not a derived guess.
+--
+-- @param headerCandidate table Entry from equipmentList, category in
+--        HEADER_CATEGORIES.
+-- @return table|nil Matching CUTTERTRAILERS candidate, or nil if none found.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:getCompatibleTrailerForHeader(headerCandidate)
+    if headerCandidate == nil or DealerRelations.equipmentList == nil then
+        return nil
+    end
+
+    -- Combo match first -- takes priority over the derived fallback.
+    for _, candidate in ipairs(DealerRelations.equipmentList) do
+        if candidate.category == "CUTTERTRAILERS" then
+            if self:isCombinationMatch(headerCandidate, candidate) then
+                return candidate
+            end
+        end
+    end
+
+    -- No combo declared either direction -- fall back to width/length,
+    -- preferring the smallest trailer that still fits.
+    local headerWidth = headerCandidate.sizeWidth or headerCandidate.workingWidth
+
+    if headerWidth == nil then
+        return nil
+    end
+
+    local bestTrailer = nil
+
+    for _, candidate in ipairs(DealerRelations.equipmentList) do
+        if candidate.category == "CUTTERTRAILERS"
+            and candidate.sizeLength ~= nil
+            and candidate.sizeLength >= headerWidth then
+
+            if bestTrailer == nil or candidate.sizeLength < bestTrailer.sizeLength then
+                bestTrailer = candidate
+            end
+        end
+    end
+
+    return bestTrailer
 end
