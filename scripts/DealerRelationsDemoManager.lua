@@ -1,4 +1,4 @@
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- DealerRelationsDemoManager.lua
 --
 -- Handles Dealer Relations demo vehicle functionality.
@@ -559,8 +559,6 @@ function DealerRelations.DemoManager:checkOverdueDemos()
                             "Overdue demo not returned - Miss 2"
                         )
 
-                        -- Note: currentPeriod is 1-based from March, not January.
-                        -- Period 1 = March, Period 12 = February.
                         DealerRelations.Data:setPendingSuspensionMonths(
                             DealerRelations.CONSTANTS.OVERDUE_LEVEL_2_SUSPENSION_MONTHS
                         )
@@ -590,8 +588,6 @@ function DealerRelations.DemoManager:checkOverdueDemos()
                             "Overdue demo not returned - Miss 3"
                         )
 
-                        -- Note: currentPeriod is 1-based from March, not January.
-                        -- Period 1 = March, Period 12 = February.
                         DealerRelations.Data:setPendingSuspensionMonths(
                             (DealerRelations.Data:getPendingSuspensionMonths() or 0) +
                             DealerRelations.CONSTANTS.OVERDUE_LEVEL_3_SUSPENSION_MONTHS

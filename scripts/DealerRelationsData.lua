@@ -654,11 +654,9 @@ function DealerRelations.Data:initializeCategoryFilters()
 end
 
 -------------------------------------------------------------------------------
--- Initializes per-save category filters from the default equipment category list.
+-- Returns the per-save category filter settings.
 --
--- Rationale:
--- These values represent player-configurable categories, not hard exclusions.
--- Hard exclusions are defined in Equipment.lua and are never written here.
+-- @return table Category filter settings keyed by category name.
 -------------------------------------------------------------------------------
 function DealerRelations.Data:getCategoryFilters()
     return DealerRelations.dealerData.categoryFilters

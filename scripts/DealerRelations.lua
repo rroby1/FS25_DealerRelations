@@ -363,10 +363,6 @@ end
 -- should wait until business hours so the player can act immediately.
 -------------------------------------------------------------------------------
 function DealerRelations:checkActiveDemoOfferNotification()
-    -- Notify the player about a generated offer only after the dealer opens.
-    -- Rationale:
-    -- Offers are generated at month change, but player-facing notification
-    -- should wait until business hours so the player can act immediately.
     local offer = DealerRelations.Data:getActiveDemoOffer()
 
     if offer == nil then
