@@ -237,16 +237,14 @@ end
 -- this helper owns the structure of the offer data that gets persisted.
 --
 -- Headers always carry a companion trailer, and slurry tanks always carry
--- a companion tool, attached here as flat "companion*" fields rather than
--- a nested table, matching the existing flat-field convention already used
+-- a companion tool -- both hard requirements enforced by isCurrentlyEligible()
+-- before a candidate ever reaches this function. Seeders/planters are
+-- different: a companion seed tank is attached whenever a combo match
+-- exists, but it is never required -- most seeders/planters have no tank
+-- relationship at all, and that's the normal case, not a gap. Companion
+-- fields are attached here as flat "companion*" fields rather than a
+-- nested table, matching the existing flat-field convention already used
 -- for the primary vehicle and in DealerRelationsPersistence.lua.
--- HEADER_CATEGORIES/SLURRYTANKS eligibility already guarantees
--- getCompatibleTrailerForHeader()/getCompatibleToolForTank() returns a
--- match for any candidate reaching this point (see isCurrentlyEligible()),
--- so no nil-companion fallback case is expected here for either -- if one
--- ever occurs, the companion fields simply stay nil and
--- startDemoFromOffer() will need to treat that as "no companion to spawn,"
--- not an error.
 function DealerRelations:createDemoOfferFromCandidate(candidate, currentMonth)
     local offer = {
         candidateKey = DealerRelations.Equipment:getDemoCandidateKey(candidate),
@@ -274,6 +272,8 @@ function DealerRelations:createDemoOfferFromCandidate(candidate, currentMonth)
         companion = DealerRelations.Equipment:getCompatibleTrailerForHeader(candidate)
     elseif candidate.category == "SLURRYTANKS" then
         companion = DealerRelations.Equipment:getCompatibleToolForTank(candidate)
+    elseif candidate.category == "PLANTERS" or candidate.category == "SEEDERS" then
+        companion = DealerRelations.Equipment:getCompatibleTankForSeeder(candidate)
     end
 
     if companion ~= nil then

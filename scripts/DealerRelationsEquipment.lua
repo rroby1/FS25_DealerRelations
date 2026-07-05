@@ -16,6 +16,7 @@ DealerRelations.Equipment = DealerRelations.Equipment or {}
 
 DealerRelations.equipmentList = {}
 DealerRelations.equipmentByXmlFilename = {}
+DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {}
 
 -------------------------------------------------------------------------------
 -- Categories that Dealer Relations should never offer as equipment demos.
@@ -275,15 +276,16 @@ DealerRelations.Equipment.TRAILER_CATEGORIES = {
 }
 
 -------------------------------------------------------------------------------
--- Default player-configurable category filters.
---
--- These categories are valid equipment-demo categories. New saves will start
--- with these enabled, and later save-specific settings can override them.
+-- SEEDTANKS has no manual toggle. This set exists purely for category
+-- recognition in isDemoCandidate() -- seed tanks must still be discovered
+-- into equipmentList so getCompatibleTankForSeeder() can find them, but
+-- they are never independently eligible (see isCurrentlyEligible(), which
+-- rejects this category unconditionally) -- they only ever appear bundled
+-- as a seeder/planter's optional companion.
 -------------------------------------------------------------------------------
-DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {
+DealerRelations.Equipment.SEEDTANK_CATEGORIES = {
     SEEDTANKS = true,
-}    
-
+}
 
 -------------------------------------------------------------------------------
 -- Schema for reading vehicle XML files via XMLFile.load() instead of the
@@ -319,6 +321,7 @@ DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.fillU
 DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.fillUnit.fillUnitConfigurations.fillUnitConfiguration(?).fillUnits.fillUnit(?)#fillTypeCategories", "Fill unit fill type categories")
 DealerRelations.Equipment.xmlSchema:register(XMLValueType.FLOAT, "vehicle.powerConsumer#neededMaxPtoPower", "Header PTO power draw (kW)")
 DealerRelations.Equipment.xmlSchema:register(XMLValueType.INT, "vehicle.motorized.motorConfigurations.motorConfiguration(?)#hp", "Motor configuration horsepower")
+DealerRelations.Equipment.xmlSchema:register(XMLValueType.STRING, "vehicle.sowingMachine.seedFruitTypeCategories", "Sowing machine seed fruit type categories")
 
 -------------------------------------------------------------------------------
 -- Returns true when a store item should be considered for dealer demos.
@@ -358,7 +361,7 @@ function DealerRelations.Equipment:isDemoCandidate(item)
         and DealerRelations.Equipment.ANIMAL_CATEGORIES[category] == nil
         and DealerRelations.Equipment.HARVESTER_CATEGORIES[category] == nil
         and DealerRelations.Equipment.TRAILER_CATEGORIES[category] == nil
-        and DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS[category] == nil then
+        and DealerRelations.Equipment.SEEDTANK_CATEGORIES[category] == nil then
         DealerRelations.warning("Unclassified equipment category: " .. category)
         return false
     end
@@ -402,6 +405,8 @@ function DealerRelations.Equipment:readEquipmentXml(xmlFilename, category)
     local displayNeededMaxPower = xmlFile:getValue("vehicle.storeData.specs.neededPower#maxPower")
 
     local fruitTypeCategories = xmlFile:getValue("vehicle.cutter#fruitTypeCategories")
+        or xmlFile:getValue("vehicle.sowingMachine.seedFruitTypeCategories")
+        
     local fruitTypesDirect = xmlFile:getValue("vehicle.cutter#fruitTypes")
     local vineFruitType = xmlFile:getValue("vehicle.vineCutter#fruitType")
 
@@ -1131,6 +1136,17 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
         return false
     end
 
+    -- Seed tanks are never offered as a standalone demo -- they only ever
+    -- appear bundled as a seeder/planter's optional companion, attached in
+    -- createDemoOfferFromCandidate() whenever a combo match exists. Unlike
+    -- headers/trailers and slurry tanks/tools, the primary here is never
+    -- gated on this relationship (a seeder/planter is fully functional on
+    -- its own) -- this check only prevents the tank itself from being
+    -- offered independently, same mechanism as the other two rejections.
+    if candidate.category == "SEEDTANKS" then
+        return false
+    end
+
     -- Implements requiring more power than the player's best owned tractor
     -- are excluded. No floor beyond this.
     if candidate.powerRole == "IMPLEMENT" and candidate.displayPower ~= nil then
@@ -1785,6 +1801,42 @@ function DealerRelations.Equipment:getCompatibleToolForTank(tankCandidate)
     for _, candidate in ipairs(DealerRelations.equipmentList) do
         if candidate.category == "SLURRYTOOLS" then
             if self:isCombinationMatch(tankCandidate, candidate) then
+                return candidate
+            end
+        end
+    end
+
+    return nil
+end
+
+-------------------------------------------------------------------------------
+-- Returns the first SEEDTANKS candidate combination-matched to the given
+-- seeder/planter candidate, checked in both directions via
+-- isCombinationMatch().
+--
+-- Unlike getCompatibleTrailerForHeader()/getCompatibleToolForTank(), this is
+-- never a hard requirement -- a seeder/planter is fully functional on its
+-- own (many have real seed/fertilizer capacity of their own, e.g.
+-- maxima3TIL). A nil result here is a normal, expected outcome for most
+-- seeders/planters, not a gap to fill -- see createDemoOfferFromCandidate(),
+-- which attaches the tank as a bonus whenever a match exists, regardless of
+-- whether the seeder/planter's own capacity would already suffice.
+--
+-- If more than one compatible tank exists, the first match found is used --
+-- no preference given to price, brand, or anything else.
+--
+-- @param seederCandidate table Entry from equipmentList, category PLANTERS
+--        or SEEDERS.
+-- @return table|nil Matching SEEDTANKS candidate, or nil if none found.
+-------------------------------------------------------------------------------
+function DealerRelations.Equipment:getCompatibleTankForSeeder(seederCandidate)
+    if seederCandidate == nil or DealerRelations.equipmentList == nil then
+        return nil
+    end
+
+    for _, candidate in ipairs(DealerRelations.equipmentList) do
+        if candidate.category == "SEEDTANKS" then
+            if self:isCombinationMatch(seederCandidate, candidate) then
                 return candidate
             end
         end
