@@ -17,9 +17,6 @@
             <Button profile="fs25_subCategorySelectorTabbedTab" id="drConfigurationTab" text="Configuration" onClick="onClickConfigurationTab">
                 <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
             </Button>
-            <Button profile="fs25_subCategorySelectorTabbedTab" id="drCategoriesTab" text="Categories" onClick="onClickCategoriesTab">
-                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
-            </Button>
             <Button profile="fs25_subCategorySelectorTabbedTab" id="drBrandsTab" text="Brands" onClick="onClickBrandsTab">
                 <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
             </Button>
@@ -121,16 +118,6 @@
                         <Text profile="dr_textDefaultTopLeft" text="Configuration" position="20px -20px" size="400px 32px"/>
                         <ScrollingLayout profile="fs25_settingsLayout" id="settingsLayout" visible="true" position="20px -170px" size="820px 200px"/>
                     </GuiElement>
-                </ThreePartBitmap>
-            </GuiElement>
-        </GuiElement>
-
-        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="categoriesPanel" visible="false">
-            <GuiElement profile="fs25_subCategoryContainer" width="860px">
-                <Text profile="dr_textDefaultTopLeft" text="Categories" position="20px 20px" size="400px 32px"/>
-                <ScrollingLayout id="categoriesLayout" profile="fs25_settingsLayout" position="20px -15px" size="820px 680px"/>
-                <ThreePartBitmap profile="dr_listSlider">
-                    <Slider profile="fs25_listSlider" dataElementId="categoriesLayout"/>
                 </ThreePartBitmap>
             </GuiElement>
         </GuiElement>

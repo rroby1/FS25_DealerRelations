@@ -157,7 +157,6 @@ function DealerRelations.Screen:register()
         screen.drOverviewTab,
         screen.drFinancingTab,
         screen.drConfigurationTab,
-        screen.drCategoriesTab,
         screen.drBrandsTab,
         screen.drHelpTab
     }
@@ -166,7 +165,6 @@ function DealerRelations.Screen:register()
         screen.overviewPanel,
         screen.financingPanel,
         screen.configurationPanel,
-        screen.categoriesPanel,
         screen.brandsPanel,
         screen.helpPanel
     }
@@ -179,7 +177,6 @@ function DealerRelations.Screen:register()
     screen.subCategoryPaging:addText("Overview")
     screen.subCategoryPaging:addText("Financing")
     screen.subCategoryPaging:addText("Configuration")
-    screen.subCategoryPaging:addText("Categories")
     screen.subCategoryPaging:addText("Brands")
     screen.subCategoryPaging:addText("Help")
 
@@ -206,7 +203,6 @@ function DealerRelations.Screen:register()
     -- Rationale:
     -- category and brand layouts are created by the XML and exposed during
     -- initialize(), so dynamic rows should be generated only after initialization.
-    screen:buildCategoryFilterRows()
     screen:buildBrandFilterRows()
 
     screen.loanTable:setDataSource(screen)
@@ -266,7 +262,7 @@ function DealerRelations.Screen:onClickSubCategoryPaging(state, element)
         self:updateOverviewValues()
     elseif state == 2 then
         self:updateFinancingValues()
-    elseif state == 6 then
+    elseif state == 5 then
         self.helpLayout.fillDirections[2] = -1
         self.helpLayout.alignment[2] = 1
         self.helpLayout:invalidateLayout()
@@ -728,23 +724,12 @@ function DealerRelations.Screen:onFrameOpen()
     self:updateOverviewValues()
 end
 
---- Handles selection of the Categories tab.
--- Rationale:
--- Category filters are separate from general configuration because the list
--- can become long. This keeps the Configuration page focused on global
--- Dealer Relations settings.
-function DealerRelations.Screen:onClickCategoriesTab()
-    self:updateSubCategoryPages(4)
-
-    DealerRelations.log("Dealer Relations Categories tab selected")
-end
-
 --- Handles selection of the Brands tab.
 -- Rationale:
 -- Brand filters are separate from category filters because they are a distinct
 -- filter dimension and will likely need their own scrolling list.
 function DealerRelations.Screen:onClickBrandsTab()
-    self:updateSubCategoryPages(5)
+    self:updateSubCategoryPages(4)
 
     DealerRelations.log("Dealer Relations Brands tab selected")
 end
@@ -842,71 +827,6 @@ function DealerRelations.Screen:addButtonToLayout(layout, onClickCallback, butto
     layout:invalidateLayout()
 
     return button
-end
-
---- Builds the Category filter rows.
--- Rationale:
--- Category filter persistence and discovery logic already use the
--- DealerRelations.Data category filter table. The UI should edit that same
--- source of truth instead of maintaining a separate category list.
-function DealerRelations.Screen:buildCategoryFilterRows()
-    if self.categoryRowsBuilt == true then
-        return
-    end
-
-    local categoryFilters = DealerRelations.Data:getCategoryFilters()
-    local categoryNames = {}
-
-    for categoryName, _ in pairs(categoryFilters) do
-        table.insert(categoryNames, categoryName)
-    end
-
-    -- Sort by display name rather than internal key so the player sees
-    -- an alphabetical list regardless of how GIANTS names the category internally.
-    table.sort(categoryNames, function(a, b)
-        return DealerRelations.Utils:getCategoryDisplayName(a)
-            < DealerRelations.Utils:getCategoryDisplayName(b)
-    end)
-
-    for _, categoryName in ipairs(categoryNames) do
-        local categoryDisplayName = DealerRelations.Utils:getCategoryDisplayName(categoryName)
-        
-        local option = self:addBinaryOptionToLayout(
-            self.categoriesLayout,
-            "onClickCategoryFilterOption",
-            categoryDisplayName,
-            "Allow demo offers from the " .. categoryDisplayName .. " category."
-        )
-
-        -- Store the category key directly on the option so the callback can
-        -- update the matching persisted filter entry without lookup tables.
-        option.categoryName = categoryName
-        option:setIsChecked(DealerRelations.Data:isCategoryEnabled(categoryName))
-    end
-
-    self.categoryRowsBuilt = true
-end
-
---- Handles changes to one category filter row.
--- Rationale:
--- Dynamically generated BinaryOption rows pass the selected state first and
--- the option element second. The category key is stored on the option element
--- so the callback updates the matching persisted filter entry.
-function DealerRelations.Screen:onClickCategoryFilterOption(state, element, isChecked)
-    if element == nil or element.categoryName == nil then
-        return
-    end
-
-    local enabled = not isChecked
-
-    DealerRelations.Data:setCategoryEnabled(element.categoryName, enabled)
-
-    DealerRelations.log(
-        "Dealer Relations category filter set: "
-        .. tostring(element.categoryName)
-        .. "="
-        .. tostring(enabled)
-    )
 end
 
 --- Builds the Brand filter rows.

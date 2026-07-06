@@ -57,7 +57,6 @@ function DealerRelations.Persistence:save(savegameDirectory)
     self:saveCropsEverGrown(xmlFile)
 
     -- Player settings
-    self:saveCategoryFilters(xmlFile)
     self:saveBrandFilters(xmlFile)
 
     saveXMLFile(xmlFile)
@@ -238,36 +237,6 @@ function DealerRelations.Persistence:saveActiveDemoVehicles(xmlFile)
 end
 
 -------------------------------------------------------------------------------
--- Saves per-save category filter settings to XML.
---
--- Only player-configurable categories are saved. Hard exclusions remain
--- code-defined in Equipment.lua and are never written here.
--- Categories are sorted alphabetically for consistent XML output.
---
--- @param xmlFile number Active XML file handle.
--------------------------------------------------------------------------------
-function DealerRelations.Persistence:saveCategoryFilters(xmlFile)
-    local categoryFilters = DealerRelations.Data:getCategoryFilters()
-    local categories = {}
-
-    for category, _ in pairs(categoryFilters) do
-        table.insert(categories, category)
-    end
-
-    table.sort(categories)
-
-    for index, category in ipairs(categories) do
-        local key = string.format(
-            "dealerRelations.categoryFilters.category(%d)",
-            index - 1
-        )
-
-        setXMLString(xmlFile, key .. "#name", category)
-        setXMLBool(xmlFile, key .. "#enabled", categoryFilters[category] == true)
-    end
-end
-
--------------------------------------------------------------------------------
 -- Saves per-save brand filter settings to XML.
 --
 -- Only brands that have been discovered in the current save are written.
@@ -403,10 +372,6 @@ function DealerRelations.Persistence:load(savegameDirectory)
             DealerRelations.Data:getRandomDealerName()
         )
 
-        -- Initialize category filters so equipment discovery can still use
-        -- valid default settings before the first save creates the XML file.
-        DealerRelations.Data:initializeCategoryFilters()
-
         DealerRelations.warning("Cannot load dealerRelations.xml: savegameDirectory is nil")
         return
     end
@@ -425,21 +390,10 @@ function DealerRelations.Persistence:load(savegameDirectory)
             DealerRelations.Data:getRandomDealerName()
         )
 
-        -- Initialize configurable category filters from defaults so discovery and
-        -- the first save both have valid per-save settings to use.
-        DealerRelations.Data:initializeCategoryFilters()
-
         return
     end
 
     local xmlFile = loadXMLFile("dealerRelationsXML", filePath)
-
-    if xmlFile == nil or xmlFile == 0 then
-        DealerRelations.Data:initializeCategoryFilters()
-
-        DealerRelations.warning("Could not load dealerRelations.xml; using default dealer data")
-        return
-    end
 
     -- Keep load() as the orchestration point only.
     -- Each helper restores one saved data group so future persistence changes
@@ -454,7 +408,6 @@ function DealerRelations.Persistence:load(savegameDirectory)
     self:loadCropsEverGrown(xmlFile)
     
     -- Player settings
-    self:loadCategoryFilters(xmlFile)
     self:loadBrandFilters(xmlFile)
 
     delete(xmlFile)
@@ -719,56 +672,6 @@ function DealerRelations.Persistence:loadActiveDemoVehicles(xmlFile)
 
         demoVehicleIndex = demoVehicleIndex + 1
     end
-end
-
--------------------------------------------------------------------------------
--- Loads per-save category filter settings from XML.
---
--- If no category data is present, initializes defaults so existing saves
--- continue behaving as they did before settings were added.
---
--- @param xmlFile number Loaded XML file handle.
--------------------------------------------------------------------------------
-function DealerRelations.Persistence:loadCategoryFilters(xmlFile)
-    DealerRelations.dealerData.categoryFilters = {}
-
-    local index = 0
-
-    while true do
-        local key = string.format(
-            "dealerRelations.categoryFilters.category(%d)",
-            index
-        )
-
-        local category = getXMLString(xmlFile, key .. "#name")
-
-        if category == nil then
-            break
-        end
-
-        local enabled = getXMLBool(xmlFile, key .. "#enabled")
-
-        DealerRelations.Data:setCategoryEnabled(
-            category,
-            enabled == true
-        )
-
-        index = index + 1
-    end
-
-    if index == 0 then
-        DealerRelations.Data:initializeCategoryFilters()
-    end
-
-    local count = 0
-
-    for _, _ in pairs(DealerRelations.Data:getCategoryFilters()) do
-        count = count + 1
-    end
-
-    DealerRelations.log(
-        "Loaded category filters: " .. tostring(count)
-    )
 end
 
 -------------------------------------------------------------------------------

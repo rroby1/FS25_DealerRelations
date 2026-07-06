@@ -16,7 +16,6 @@ DealerRelations.Equipment = DealerRelations.Equipment or {}
 
 DealerRelations.equipmentList = {}
 DealerRelations.equipmentByXmlFilename = {}
-DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS = {}
 
 -------------------------------------------------------------------------------
 -- Categories that Dealer Relations should never offer as equipment demos.
@@ -101,9 +100,8 @@ DealerRelations.Equipment.EXCLUDED_CATEGORIES = {
 -- than individual per-category filters.
 --
 -- Forestry has no reliable ownership/usage signal the way fields have for
--- crops, so it cannot be auto-detected. These categories remain listed in
--- DEFAULT_CATEGORY_FILTERS as valid equipment categories, but are only
--- offered when the Forestry setting is enabled. Default OFF.
+-- crops, so it cannot be auto-detected. These categories are only offered
+-- when the Forestry setting is enabled. Default OFF.
 -------------------------------------------------------------------------------
 DealerRelations.Equipment.FORESTRY_CATEGORIES = {
     FORESTRYEXCAVATORS = true,
@@ -1194,11 +1192,10 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
     -- Cutter trailers are never offered as a standalone demo -- they only
     -- ever appear bundled as a header's companion, attached in
     -- createDemoOfferFromCandidate(). CUTTERTRAILERS remains in
-    -- DEFAULT_CATEGORY_FILTERS purely so isDemoCandidate() still recognizes
+    -- TRAILER_CATEGORIES purely so isDemoCandidate() still recognizes
     -- and discovers them (getCompatibleTrailerForHeader() needs them in
-    -- equipmentList to search) -- the manual toggle itself is now
-    -- meaningless for this category, since this check overrides it
-    -- unconditionally regardless of its value.
+    -- equipmentList to search) -- this check overrides that recognition
+    -- unconditionally, rejecting the category as a standalone demo.
     if candidate.category == "CUTTERTRAILERS" then
         return false
     end
@@ -1335,11 +1332,10 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
     end
 
     -- Forage harvesters require a combo-matched forage cutter, mirroring the
-    -- block above. Self-contained: FORAGEHARVESTERS has no DEFAULT_CATEGORY_
-    -- FILTERS entry and isn't in any later category check, so this returns
-    -- directly rather than falling through to isCategoryEnabled() at the
-    -- bottom of this function, same reason HARVESTER_CATEGORIES/TRACTOR_
-    -- CATEGORIES return true directly below.
+    -- block above. Self-contained: FORAGEHARVESTERS isn't in any later
+    -- category check, so this returns directly rather than falling through
+    -- to the unhandled-category warning at the bottom of this function, same
+    -- reason HARVESTER_CATEGORIES/TRACTOR_CATEGORIES return true directly below.
     if DealerRelations.Equipment.FORAGEHARVESTER_CATEGORIES[candidate.category] == true then
         return self:isCombinationMatchedToOwnedCategory(candidate, DealerRelations.Equipment.FORAGEHEADER_CATEGORIES)
     end
@@ -1363,6 +1359,19 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
         return true
     end
 
+    -- Mass-managed categories (SPRAYERS, FERTILIZERSPREADERS) have no manual
+    -- toggle; eligibility is already fully resolved by the mass-based HP gate
+    -- earlier in this function (via the powerRole == "IMPLEMENT" branch),
+    -- mirroring how HARVESTER_CATEGORIES/TRACTOR_CATEGORIES lost their manual
+    -- toggle in earlier versions. Without this, both categories fall through
+    -- to the isCategoryEnabled() fallback below, which always returns false
+    -- now that DEFAULT_CATEGORY_FILTERS is empty and the Categories UI has
+    -- been removed -- confirmed via dr_eligibleCount showing 0 for both
+    -- categories despite owned qualifying tractors.
+    if DealerRelations.Equipment.MASS_MANAGED_CATEGORIES[candidate.category] == true then
+        return true
+    end
+
     if DealerRelations.Equipment.CROP_CATEGORIES[candidate.category] ~= nil then
         return self:isCropEligible(candidate.category, candidate.fruitTypes)
     end
@@ -1383,7 +1392,10 @@ function DealerRelations.Equipment:isCurrentlyEligible(candidate)
         return true
     end
 
-    return DealerRelations.Data:isCategoryEnabled(candidate.category)
+     DealerRelations.warning(
+        "isCurrentlyEligible: unhandled category '" .. tostring(candidate.category) .. "' reached fallback"
+    )
+    return false
 end
 
 -------------------------------------------------------------------------------

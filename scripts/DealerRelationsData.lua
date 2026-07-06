@@ -177,10 +177,6 @@ DealerRelations.dealerData = {
     -- Nil indicates no active offer is available.
     activeDemoOffer = nil,
     
-    -- Per-save category filter settings.
-    -- Controls which equipment categories are eligible for demo offers.
-    categoryFilters = {},
-
     -- Per-save brand filter settings.
     -- Controls which equipment brands are eligible for demo offers.
     brandFilters = {},
@@ -636,57 +632,6 @@ function DealerRelations.Data:getDemoPurchasePrice(listPrice)
     local discountMultiplier = 1 - (discountPercent / 100)
 
     return math.floor(price * discountMultiplier)
-end
-
--------------------------------------------------------------------------------
--- Initializes per-save category filters from the default equipment category list.
---
--- Rationale:
--- These values represent player-configurable categories, not hard exclusions.
--- Hard exclusions are defined in Equipment.lua and are never written here.
--------------------------------------------------------------------------------
-function DealerRelations.Data:initializeCategoryFilters()
-    DealerRelations.dealerData.categoryFilters = {}
-
-    for category, enabled in pairs(DealerRelations.Equipment.DEFAULT_CATEGORY_FILTERS) do
-        DealerRelations.dealerData.categoryFilters[category] = enabled == true
-    end
-end
-
--------------------------------------------------------------------------------
--- Returns the per-save category filter settings.
---
--- @return table Category filter settings keyed by category name.
--------------------------------------------------------------------------------
-function DealerRelations.Data:getCategoryFilters()
-    return DealerRelations.dealerData.categoryFilters
-end
-
--- Store player preference for one configurable equipment category.
--- Hard exclusions are handled by Equipment.lua and should not be written here.
-function DealerRelations.Data:setCategoryEnabled(category, enabled)
-    if category == nil then
-        return
-    end
-
-    DealerRelations.dealerData.categoryFilters[tostring(category)] = enabled == true
-end
-
--------------------------------------------------------------------------------
--- Returns whether a configurable equipment category is currently enabled.
---
--- Category filter settings are stored per save and determine whether
--- otherwise eligible equipment categories may be considered for demo offers.
---
--- @param category string Equipment category name.
--- @return boolean True when the category is enabled.
--------------------------------------------------------------------------------
-function DealerRelations.Data:isCategoryEnabled(category)
-    if category == nil then
-        return false
-    end
-
-    return DealerRelations.dealerData.categoryFilters[tostring(category)] == true
 end
 
 -------------------------------------------------------------------------------
