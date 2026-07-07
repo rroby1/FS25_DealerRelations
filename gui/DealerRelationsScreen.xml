@@ -21,8 +21,6 @@
 
         <MultiTextOption profile="fs25_subCategorySelectorTabbed" id="subCategoryPaging" position="0px -10px" onClick="onClickSubCategoryPaging"/>
 
-        <ScrollingLayout profile="fs25_settingsLayout" id="helpButtonLayout" position="700px -10px" size="140px 60px"/>
-
        <GuiElement id="overviewPanel" position="0px 100px" width="1400px" height="600px">
             <Bitmap id="dealerLogoImage" position="700px 380px" size="96px 96px"/>
             <ThreePartBitmap width="1400px" height="600px" position="0px 0px">

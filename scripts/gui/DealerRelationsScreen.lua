@@ -206,18 +206,30 @@ function DealerRelations.Screen:register()
     -- initialize(), so dynamic rows should be generated only after initialization.
     screen:buildBrandFilterRows()
 
-    -- Persistent Help button, visible on every tab.
-    -- Rationale:
-    -- Reuses the proven addButtonToLayout construction (row + button +
-    -- background + tooltip + titleText) rather than a bare declarative
-    -- <Button>, which renders invisible for this profile.
-    screen.helpButton = screen:addButtonToLayout(screen.helpButtonLayout, "onClickHelpButton", "Help")
-
     screen.loanTable:setDataSource(screen)
     screen.loanTable:setDelegate(screen)
     screen.selectedLoanIndex = nil
        
     DealerRelations.log("Dealer Relations ESC menu page registered")
+end
+
+--- Adds the Help button to the native ESC menu footer bar.
+--
+-- Rationale:
+-- Calls super first so the framework's own Previous Menu/Next Menu/Back
+-- entries are populated before we touch menuButtonInfo -- replacing the
+-- table outright (rather than appending to it) would silently remove
+-- that built-in page-switching behavior.
+function DealerRelations.Screen:initialize()
+    DealerRelations.Screen:superClass().initialize(self)
+
+    table.insert(self.menuButtonInfo, {
+        inputAction = "MENU_EXTRA_1",
+        text = "Help",
+        callback = function() self:onClickHelpButton() end
+    })
+
+    self:setMenuButtonInfo(self.menuButtonInfo)
 end
 
 --- Handles selection of the Overview tab.

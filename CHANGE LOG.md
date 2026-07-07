@@ -1,5 +1,22 @@
 # Changelog
 
+## Version 0.24.0
+
+- Removed the Category filter screen and its underlying data: `categoryFilters` field, `initializeCategoryFilters()`, `getCategoryFilters()`, `setCategoryEnabled()`, `isCategoryEnabled()`, `DEFAULT_CATEGORY_FILTERS`, and the persistence load path, all now dead following the 0.21.0/0.22.0 filter retirement.
+- Fixed: `MASS_MANAGED_CATEGORIES` (SPRAYERS, FERTILIZERSPREADERS) had no terminal eligibility check and was silently falling through to the now-dead `isCategoryEnabled()` fallback, making both categories permanently ineligible for demo offers. Added an explicit terminal check mirroring `HARVESTER_CATEGORIES`/`TRACTOR_CATEGORIES`.
+- Fixed: duplicate `POWER_MANAGED_CATEGORIES` check introduced during the above fix.
+- Merged Configuration and Brands tabs into a single Settings tab, ordered General options → Forestry toggle → Brand filters.
+- Added Forestry Equipment toggle (`isForestryEnabled()`/`setForestryEnabled()`).
+- Fixed: duplicate Debug option row introduced during the Settings merge.
+- Renamed "Brands" section to "Brands Filter"; tightened Settings panel spacing to enlarge the brand list scroll window.
+- Removed Help tab/panel; added `DealerRelationsHelpDialog.xml`/`.lua` as a standalone dialog opened via `g_gui:showDialog()`.
+- Help text is now built from a template with live values substituted at open-time (dealer hours, current demo hour limit, late fee percent, max relationship discount) rather than hardcoded, so it can't drift out of sync with future tuning. Overdue-penalty language kept qualitative (no exact confidence values shown).
+- Added Help to the native ESC menu footer bar via `menuButtonInfo`/`MENU_EXTRA_1` (bound to X by default), after an in-page button attempt proved unreliable across two iterations.
+- Widened Overview and Financing panels from 900px to 1400px by dropping the `fs25_subCategorySelectorTabbedContainer`/`emptyPanel` wrapper workaround in favor of a plain `GuiElement` with a widened `fs25_subCategoryContainer`; confirmed against a reference mod using the same base class that the 900px cap was self-imposed, not an engine limit.
+- Spread Financing's loan table columns to use the reclaimed width, fixing equipment-name truncation (Equipment column 200px → 400px).
+- Split `DealerRelationsScreen.lua`: Overview-tab logic moved to new `DealerRelationsOverviewPanel.lua`, Financing-tab logic to new `DealerRelationsFinancingPanel.lua`. No behavior change.
+- Deferred: further Overview screen redesign, no concrete plan yet.
+
 ## Version 0.23.0
 
 - Fixed `isDemoCandidate()` logging `Unclassified equipment category: FORAGEHARVESTERS` and silently excluding all forage harvesters from discovery — `FORAGEHARVESTERS` had never been added to any category bucket. Added new `FORAGEHARVESTER_CATEGORIES` and `FORAGEHEADER_CATEGORIES` tables and wired both into `isDemoCandidate()`'s classification check.
