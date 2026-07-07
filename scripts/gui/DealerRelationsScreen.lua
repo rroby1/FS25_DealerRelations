@@ -156,16 +156,14 @@ function DealerRelations.Screen:register()
     screen.subCategoryTabs = {
         screen.drOverviewTab,
         screen.drFinancingTab,
-        screen.drConfigurationTab,
-        screen.drBrandsTab,
+        screen.drSettingsTab,
         screen.drHelpTab
     }
 
     screen.subCategoryPages = {
         screen.overviewPanel,
         screen.financingPanel,
-        screen.configurationPanel,
-        screen.brandsPanel,
+        screen.settingsPanel,
         screen.helpPanel
     }
     
@@ -176,8 +174,7 @@ function DealerRelations.Screen:register()
     -- can advance through the same pages as the direct tab buttons.
     screen.subCategoryPaging:addText("Overview")
     screen.subCategoryPaging:addText("Financing")
-    screen.subCategoryPaging:addText("Configuration")
-    screen.subCategoryPaging:addText("Brands")
+    screen.subCategoryPaging:addText("Settings")
     screen.subCategoryPaging:addText("Help")
 
     -- Initialize the paging control and visible page.
@@ -198,6 +195,13 @@ function DealerRelations.Screen:register()
         "Debug",
         "Enable or disable Dealer Relations debug logging."
     )
+
+    screen.forestryOption = screen:addBinaryOption(
+        "onClickForestryOption",
+        "Forestry Equipment",
+        "Include forestry equipment (harvesters, forwarders, etc.) in demo offers."
+    )
+    screen.forestryOption:setIsChecked(DealerRelations.Data:isForestryEnabled())
 
     -- Build filter controls after XML controls are exposed.
     -- Rationale:
@@ -228,9 +232,9 @@ end
 -- Rationale:
 -- Switches the visible sub-page to Configuration. Tab switching only
 -- toggles child panel visibility within the Dealer Relations ESC page.
-function DealerRelations.Screen:onClickConfigurationTab()
+function DealerRelations.Screen:onClickSettingsTab()
     self:updateSubCategoryPages(3)
-    DealerRelations.log("Dealer Relations Configuration tab selected")
+    DealerRelations.log("Dealer Relations Settings tab selected")
 end
 
 --- Updates the active Dealer Relations sub-page.
@@ -262,7 +266,7 @@ function DealerRelations.Screen:onClickSubCategoryPaging(state, element)
         self:updateOverviewValues()
     elseif state == 2 then
         self:updateFinancingValues()
-    elseif state == 5 then
+    elseif state == 4  then
         self.helpLayout.fillDirections[2] = -1
         self.helpLayout.alignment[2] = 1
         self.helpLayout:invalidateLayout()
@@ -368,6 +372,21 @@ function DealerRelations.Screen:onClickDebugOption(option, element, isChecked)
         .. tostring(not isChecked)
     )
 end
+
+    --- Handles changes to the Forestry Equipment setting.
+    --
+    -- Rationale:
+    -- Forestry has no reliable ownership/usage signal to auto-detect, so it is
+    -- exposed as a manual toggle. This callback keeps Dealer Relations runtime
+    -- configuration synchronized with the user's selection.
+    function DealerRelations.Screen:onClickForestryOption(option, element, isChecked)
+        DealerRelations.Data:setForestryEnabled(not isChecked)
+
+        DealerRelations.log(
+            "Dealer Relations forestry set to "
+            .. tostring(not isChecked)
+        )
+    end
 
 --- Handles selection of the Financing tab.
 --
@@ -722,16 +741,6 @@ function DealerRelations.Screen:onFrameOpen()
     -- Overview page must read current runtime data whenever the player opens
     -- the Dealer Relations page.
     self:updateOverviewValues()
-end
-
---- Handles selection of the Brands tab.
--- Rationale:
--- Brand filters are separate from category filters because they are a distinct
--- filter dimension and will likely need their own scrolling list.
-function DealerRelations.Screen:onClickBrandsTab()
-    self:updateSubCategoryPages(4)
-
-    DealerRelations.log("Dealer Relations Brands tab selected")
 end
 
 --- Creates a binary option row in a specific scrolling layout.
