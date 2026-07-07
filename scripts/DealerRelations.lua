@@ -36,6 +36,8 @@ source(g_currentModDirectory .. "scripts/DealerRelationsEquipment.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsCrops.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsUI.lua")
 source(g_currentModDirectory .. "scripts/gui/DealerRelationsScreen.lua")
+source(g_currentModDirectory .. "scripts/gui/DealerRelationsScreen.lua")
+source(g_currentModDirectory .. "scripts/gui/DealerRelationsHelpDialog.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsDemoManager.lua")
 source(g_currentModDirectory .. "scripts/DealerRelationsFinance.lua")
 
@@ -90,6 +92,7 @@ function DealerRelations:loadMap()
     -- This creates the screen instance, registers the page and tab,
     -- and initializes the Dealer Relations user interface.
     DealerRelations.Screen:register()
+    DealerRelations.HelpDialog.register()
 
     DealerRelations.registerConsoleCommands()
     

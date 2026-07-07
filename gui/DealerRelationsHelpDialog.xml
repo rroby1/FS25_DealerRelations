@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<GUI onOpen="onOpen" onClose="onClose">
+  <GuiElement profile="newLayer"/>
+  <Bitmap profile="dialogFullscreenBg" id="dialogBg"/>
+
+  <GuiElement profile="dr_helpDialogBg" id="dialogElement">
+    <ThreePartBitmap profile="fs25_dialogBgMiddle"/>
+    <ThreePartBitmap profile="fs25_dialogBgTop"/>
+    <ThreePartBitmap profile="fs25_dialogBgBottom"/>
+
+    <GuiElement profile="fs25_dialogContentContainer">
+      <Text profile="fs25_dialogTitle" text="Dealer Relations Help" position="0px -30px"/>
+
+      <ScrollingLayout id="helpLayout" profile="fs25_settingsLayout" position="0px -80px" size="700px 560px"/>
+
+      <ThreePartBitmap profile="dr_helpDialogSlider">
+        <Slider profile="fs25_listSlider" dataElementId="helpLayout"/>
+      </ThreePartBitmap>
+    </GuiElement>
+
+    <BoxLayout profile="fs25_dialogButtonBox">
+      <Button profile="buttonOK" text="Close" onClick="onClickClose"/>
+    </BoxLayout>
+  </GuiElement>
+
+  <GUIProfiles>
+    <Profile name="dr_helpDialogBg" extends="fs25_dialogBg">
+      <size value="900px 760px"/>
+    </Profile>
+
+    <Profile name="dr_helpHeader" extends="fs25_textDefault" with="anchorTopLeft">
+      <size value="640px 28px"/>
+      <textSize value="20px"/>
+      <textColor value="$preset_colorWhite"/>
+      <textAlignment value="left"/>
+      <textBold value="true"/>
+    </Profile>
+
+    <Profile name="dr_helpBody" extends="fs25_textDefault" with="anchorTopLeft">
+      <size value="640px 120px"/>
+      <textSize value="18px"/>
+      <textColor value="$preset_colorWhite"/>
+      <textAlignment value="left"/>
+      <textAutoHeight value="true"/>
+      <textMaxNumLines value="10"/>
+    </Profile>
+
+    <Profile name="dr_helpDialogSlider" extends="fs25_listSliderBox" with="anchorTopRight">
+      <position value="30px -80px"/>
+      <size value="6px 560px"/>
+    </Profile>
+  </GUIProfiles>
+</GUI>

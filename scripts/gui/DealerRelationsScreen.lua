@@ -156,15 +156,13 @@ function DealerRelations.Screen:register()
     screen.subCategoryTabs = {
         screen.drOverviewTab,
         screen.drFinancingTab,
-        screen.drSettingsTab,
-        screen.drHelpTab
+        screen.drSettingsTab
     }
 
     screen.subCategoryPages = {
         screen.overviewPanel,
         screen.financingPanel,
-        screen.settingsPanel,
-        screen.helpPanel
+        screen.settingsPanel
     }
     
     -- Populate the paging control once.
@@ -175,8 +173,7 @@ function DealerRelations.Screen:register()
     screen.subCategoryPaging:addText("Overview")
     screen.subCategoryPaging:addText("Financing")
     screen.subCategoryPaging:addText("Settings")
-    screen.subCategoryPaging:addText("Help")
-
+   
     -- Initialize the paging control and visible page.
     screen.subCategoryPaging:setState(1)
     screen:updateSubCategoryPages(1)
@@ -209,6 +206,13 @@ function DealerRelations.Screen:register()
     -- initialize(), so dynamic rows should be generated only after initialization.
     screen:buildBrandFilterRows()
 
+    -- Persistent Help button, visible on every tab.
+    -- Rationale:
+    -- Reuses the proven addButtonToLayout construction (row + button +
+    -- background + tooltip + titleText) rather than a bare declarative
+    -- <Button>, which renders invisible for this profile.
+    screen.helpButton = screen:addButtonToLayout(screen.helpButtonLayout, "onClickHelpButton", "Help")
+
     screen.loanTable:setDataSource(screen)
     screen.loanTable:setDelegate(screen)
     screen.selectedLoanIndex = nil
@@ -227,14 +231,24 @@ function DealerRelations.Screen:onClickOverviewTab()
     DealerRelations.log("Dealer Relations Overview tab selected")
 end
 
---- Handles selection of the Configuration tab.
+--- Handles selection of the Settings tab.
 --
 -- Rationale:
--- Switches the visible sub-page to Configuration. Tab switching only
+-- Switches the visible sub-page to Settings. Tab switching only
 -- toggles child panel visibility within the Dealer Relations ESC page.
 function DealerRelations.Screen:onClickSettingsTab()
     self:updateSubCategoryPages(3)
     DealerRelations.log("Dealer Relations Settings tab selected")
+end
+
+--- Opens the standalone Dealer Relations Help dialog.
+--
+-- Rationale:
+-- Help is no longer one of the tabbed sub-pages -- it's a persistent
+-- button (visible on every tab) that opens its own dialog window via
+-- g_gui:showDialog(), independent of the subCategoryPaging system.
+function DealerRelations.Screen:onClickHelpButton()
+    g_gui:showDialog(DealerRelations.HelpDialog.CLASS_NAME)
 end
 
 --- Updates the active Dealer Relations sub-page.
@@ -266,11 +280,6 @@ function DealerRelations.Screen:onClickSubCategoryPaging(state, element)
         self:updateOverviewValues()
     elseif state == 2 then
         self:updateFinancingValues()
-    elseif state == 4  then
-        self.helpLayout.fillDirections[2] = -1
-        self.helpLayout.alignment[2] = 1
-        self.helpLayout:invalidateLayout()
-        self.helpLayout:raiseSliderUpdateEvent()
     end
 end
 
