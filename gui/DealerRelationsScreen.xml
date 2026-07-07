@@ -23,88 +23,84 @@
 
         <ScrollingLayout profile="fs25_settingsLayout" id="helpButtonLayout" position="700px -10px" size="140px 60px"/>
 
-        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="overviewPanel">
-            <GuiElement profile="emptyPanel" position="0px 100px" width="900px" height="520px">
-                <Bitmap id="dealerLogoImage" position="700px 380px" size="96px 96px"/>
-                <ThreePartBitmap width="900px" height="520px" position="0px 0px">
-                    <GuiElement profile="fs25_subCategoryContainer" width="860px">
+       <GuiElement id="overviewPanel" position="0px 100px" width="1400px" height="600px">
+            <Bitmap id="dealerLogoImage" position="700px 380px" size="96px 96px"/>
+            <ThreePartBitmap width="1400px" height="600px" position="0px 0px">
+                <GuiElement profile="fs25_subCategoryContainer" width="1360px">
 
-                        <Text profile="dr_textDefaultTopLeft" text="Dealer Name:" position="20px -40px" size="260px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerNameValueText" text="Dealer" position="300px -40px" size="420px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Dealer Name:" position="20px -40px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerNameValueText" text="Dealer" position="300px -40px" size="420px 28px"/>
 
-                        <Text profile="dr_textDefaultTopLeft" text="Dealer Hours:" position="20px -80px" size="260px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerHoursValueText" text="07:00 - 18:00" position="300px -80px" size="420px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Dealer Hours:" position="20px -80px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerHoursValueText" text="07:00 - 18:00" position="300px -80px" size="420px 28px"/>
 
-                        <Text profile="dr_textDefaultTopLeft" text="Dealer Status:" position="20px -120px" size="260px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerStatusValueText" text="Closed" position="300px -120px" size="420px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Dealer Status:" position="20px -120px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerStatusValueText" text="Closed" position="300px -120px" size="420px 28px"/>
 
-                        <Text profile="dr_textDefaultTopLeft" text="Relationship Level:" position="20px -180px" size="260px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="relationshipLevelValueText" text="Neutral" position="300px -180px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Relationship Level:" position="20px -180px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="relationshipLevelValueText" text="Neutral" position="300px -180px" size="260px 28px"/>
 
-                        <Text profile="dr_textDefaultTopLeft" text="Confidence:" position="20px -240px" size="260px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="confidenceValueText" text="0" position="300px -240px" size="260px 28px"/>
-                        
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityTitleText" text="No dealer activity." position="20px -260px" size="820px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Confidence:" position="20px -240px" size="260px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="confidenceValueText" text="0" position="300px -240px" size="260px 28px"/>
+                    
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityTitleText" text="No dealer activity." position="20px -260px" size="820px 28px"/>
 
-                        <ScrollingLayout profile="fs25_settingsLayout" id="offerActionsLayout" position="20px -300px" size="580px 80px" visible="false"/>
+                    <ScrollingLayout profile="fs25_settingsLayout" id="offerActionsLayout" position="20px -300px" size="580px 80px" visible="false"/>
 
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail1Text" text="" position="20px -390px" size="580px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail2Text" text="" position="20px -430px" size="580px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail3Text" text="" position="20px -470px" size="580px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail4Text" text="" position="20px -510px" size="580px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail5Text" text="" position="20px -550px" size="580px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail6Text" text="" position="20px -590px" size="580px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail1Text" text="" position="20px -390px" size="580px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail2Text" text="" position="20px -430px" size="580px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail3Text" text="" position="20px -470px" size="580px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail4Text" text="" position="20px -510px" size="580px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail5Text" text="" position="20px -550px" size="580px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="dealerActivityDetail6Text" text="" position="20px -590px" size="580px 28px"/>
 
-                        <Bitmap profile="fs25_vehiclesDetailsImage" id="offerImage" position="300px -200px" size="200px 200px"/>
-                    </GuiElement>
-                </ThreePartBitmap>
-            </GuiElement>
+                    <Bitmap profile="fs25_vehiclesDetailsImage" id="offerImage" position="300px -200px" size="200px 200px"/>
+                </GuiElement>
+            </ThreePartBitmap>
         </GuiElement>
 
-        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="financingPanel" visible="false">
-            <GuiElement profile="emptyPanel" position="0px 100px" width="900px" height="520px">
-                <ThreePartBitmap width="900px" height="520px" position="0px 0px">
-                    <GuiElement profile="fs25_subCategoryContainer" width="860px">
+        <GuiElement id="financingPanel" visible="false" position="0px 100px" width="1400px" height="600px">
+            <ThreePartBitmap width="1400px" height="600px" position="0px 0px">
+                <GuiElement profile="fs25_subCategoryContainer" width="1360px">
 
-                        <Text profile="dr_textDefaultTopLeft" text="Credit Score:" position="20px 20px" size="200px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="creditScoreValueText" text="" position="230px 20px" size="200px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Credit Score:" position="20px 20px" size="200px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="creditScoreValueText" text="" position="230px 20px" size="200px 28px"/>
 
-                        <Text profile="dr_textDefaultTopLeft" text="Finance Rate:" position="460px 20px" size="200px 28px"/>
-                        <Text profile="dr_textDefaultTopLeft" id="financeRateValueText" text="" position="670px 20px" size="160px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" text="Finance Rate:" position="460px 20px" size="200px 28px"/>
+                    <Text profile="dr_textDefaultTopLeft" id="financeRateValueText" text="" position="670px 20px" size="160px 28px"/>
 
-                        <GuiElement id="financeTableContainer" visible="false">
-                            <GuiElement profile="fs25_statisticsHeaderBox" position="0px -20px">
-                                <Button profile="dr_tableHeader" position="20px 0px"  text="Equipment"        handleFocus="false"/>
-                                <Button profile="dr_tableHeader" position="240px 0px" text="Monthly Payment"  handleFocus="false"/>
-                                <Button profile="dr_tableHeader" position="430px 0px" text="Rate"             handleFocus="false"/>
-                                <Button profile="dr_tableHeader" position="540px 0px" text="Months Left"      handleFocus="false"/>
-                                <Button profile="dr_tableHeader" position="660px 0px" text="Remaining"        handleFocus="false"/>
-                            </GuiElement>
-
-                            <SmoothList profile="dr_loanTable" id="loanTable" position="0px -60px">
-                                <ListItem profile="dr_loanListItem">
-                                    <Text profile="dr_loanRowCell" position="20px 0px"  size="200px 32px" name="loan_name"/>
-                                    <Text profile="dr_loanRowCell" position="240px 0px" size="180px 32px" name="loan_payment"/>
-                                    <Text profile="dr_loanRowCell" position="430px 0px" size="100px 32px" name="loan_rate"/>
-                                    <Text profile="dr_loanRowCell" position="540px 0px" size="110px 32px" name="loan_months"/>
-                                    <Text profile="dr_loanRowCell" position="660px 0px" size="180px 32px" name="loan_remaining"/>
-                                </ListItem>
-                            </SmoothList>
-
-                            <ThreePartBitmap profile="dr_listSlider" position="50px -60px" size="6px 440px">
-                                <Slider profile="fs25_listSlider" dataElementId="loanTable"/>
-                            </ThreePartBitmap>
+                    <GuiElement id="financeTableContainer" visible="false">
+                        <GuiElement profile="fs25_statisticsHeaderBox" position="0px -20px">
+                            <Button profile="dr_tableHeader" position="20px 0px"   text="Equipment"        handleFocus="false"/>
+                            <Button profile="dr_tableHeader" position="460px 0px"  text="Monthly Payment"  handleFocus="false"/>
+                            <Button profile="dr_tableHeader" position="740px 0px"  text="Rate"             handleFocus="false"/>
+                            <Button profile="dr_tableHeader" position="920px 0px"  text="Months Left"      handleFocus="false"/>
+                            <Button profile="dr_tableHeader" position="1140px 0px" text="Remaining"        handleFocus="false"/>
                         </GuiElement>
 
-                        <GuiElement id="financeNoLoansContainer" visible="false">
-                            <Text profile="dr_textDefaultTopLeft" text="No active loans." position="20px -20px" size="400px 28px"/>
-                        </GuiElement>
+                        <SmoothList profile="dr_loanTable" id="loanTable" position="0px -60px">
+                            <ListItem profile="dr_loanListItem">
+                                <Text profile="dr_loanRowCell" position="20px 0px"   size="400px 32px" name="loan_name"/>
+                                <Text profile="dr_loanRowCell" position="460px 0px"  size="240px 32px" name="loan_payment"/>
+                                <Text profile="dr_loanRowCell" position="740px 0px"  size="140px 32px" name="loan_rate"/>
+                                <Text profile="dr_loanRowCell" position="920px 0px"  size="180px 32px" name="loan_months"/>
+                                <Text profile="dr_loanRowCell" position="1140px 0px" size="200px 32px" name="loan_remaining"/>
+                            </ListItem>
+                        </SmoothList>
 
-                        <ScrollingLayout profile="fs25_settingsLayout" id="loanActionsLayout" position="20px -530px" size="400px 80px" visible="false"/>
-
+                        <ThreePartBitmap profile="dr_listSlider" position="50px -60px" size="6px 440px">
+                            <Slider profile="fs25_listSlider" dataElementId="loanTable"/>
+                        </ThreePartBitmap>
                     </GuiElement>
-                </ThreePartBitmap>
-            </GuiElement>
+
+                    <GuiElement id="financeNoLoansContainer" visible="false">
+                        <Text profile="dr_textDefaultTopLeft" text="No active loans." position="20px -20px" size="400px 28px"/>
+                    </GuiElement>
+
+                    <ScrollingLayout profile="fs25_settingsLayout" id="loanActionsLayout" position="20px -530px" size="400px 80px" visible="false"/>
+
+                </GuiElement>
+            </ThreePartBitmap>
         </GuiElement>
 
         <GuiElement profile="fs25_subCategorySelectorTabbedContainer" id="settingsPanel" visible="false">
